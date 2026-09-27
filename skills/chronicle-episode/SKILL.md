@@ -216,6 +216,7 @@ Everything else (mint, number check, status, relate and sync, lineage, register 
 - 2026-09-05: the episode door landed (jgwill/Miadi 123446ec, 24 library tests and 7 route tests); rebase is impossible on the chronicle because its reference-transaction hook refuses non-fast-forward moves of main, so the door merges and says so. `@miadi/inquiry-weave` 0.9.0, `@miadi/voice-mcp` 0.4.1, and `passages` 0.3.2 published the same day; `ep348` was the door's first real mint.
 - 2026-09-23: "I want a new ceremony with a talking circle" had no reading here while Miadi had held circles, bound ceremonies and spoken turns since 2026-09-18 (jgwill/Miadi#647). A door the skill does not name does not exist for an agent (jgwill/miadi-orchestration-kit#51, S15).
 - 2026-09-23: three doors disagreed on how a ceremony belongs to its episode. The MCP wrote no binding, gmtermux read only the legacy `research_context` string and showed 1 of Episode 349's 10 ceremonies, and the episode door left ceremony notes for a hand to commit. Each was fixed where it lives: jgwill/medicine-wheel#144 (0.15.3), miadisabelle/gmtermux#89, jgwill/Miadi#678.
+- 2026-09-27: ceremonies and circles got an address (jgwill/Miadi#680); what an agent copies into the vessel's text bypasses the page's per-reader view, so S17 names what to write (jgwill/miadi-orchestration-kit#58).
 
 ## S15. Ceremonies and circles: "a new ceremony with a talking circle"
 
@@ -268,5 +269,17 @@ A Miadi review (`miadi-review` skill) enters an episode through the episode door
 5. MCP. `chronicle_episode_review` and `review` on `chronicle_episode_mint` (`inquiry-weave-mcp` 0.13.1). Over HTTP they send `MIADI_PERSON_TOKEN` in `x-miadi-person-token` beside the writer token, so the circle opens; on the library path no person is present and the ceremony is owed.
 7. Idempotent on the wheel, not only the manifest: before opening, the app asks `GET /api/ceremonies?subject_id=review:<uuid>&episode_path=<dir>&type=talking_circle` and answers an existing circle as `already-open`. A relation the caller asks for that differs from an edge already on the wheel is reported in `relationNote` and not written.
 6. The room (`/chronicle/<episode>`) has a Reviews card with the add form; `/chronicle` has "Begin an episode from a review". Give the person the room and `/ceremony/<id>`.
+
+## S17. Naming a ceremony or circle in the vessel's text
+
+A script, a chapter or `status.md` names a ceremony as `miadi-ceremony:<id>` and a circle as `miadi-circle:<id>`, written as a directive: `{{ miadi-ceremony:<id> | label="<the episode's words>" }}`, `show=card` for a card. The room and articles render it for each reader: a person the circle admits sees the ceremony, anyone else sees a private chip (jgwill/Miadi#680, `rispecs/miadi-chronicle-dsl/SPEC.md` §9 in jgwill/Miadi). `miadi-chronicle:<N>/ceremonies` and `…/circles` list what the episode holds.
+
+1. Link, never copy. Do not write a ceremony's intention, turns, witnesses or diary into the text. The page shows them to the people the circle admits; text copied into the vessel shows them to everyone. Quote a turn only when its speaker said so.
+2. The whole id, from a door's answer: `ceremony.id` in the 201 of `POST /api/circles/<circle>/ceremonies`, or `.ceremonies[].id` and `.circles[].id` from `GET …/episodes/<N>/wheel`. Never an id from memory.
+3. The canonical form only, rootless: `miadi-ceremony:<id>`, `miadi-circle:<id>`. Short forms (`{{ ceremony:<first 8> }}`) are for people typing; a prefix unique today can match two ceremonies later.
+4. A `label=` renders to every reader, signed in or not. Write it in the episode's words, never the intention and never a person's name.
+5. A reference is not a binding. The binding is the ceremony's `episode_path` (S15). Naming another episode's ceremony is fine; when the episodes relate, author lineage too (S8).
+6. Order: open the ceremony and land its note (S15 steps 1 to 5), then write the reference, then land the text (S5, S12). Needing something to name is never a reason to open a ceremony.
+7. Check twice: signed in as the person, `/chronicle/<episode>` shows the card; signed out, the same page shows the private chip. `inquiry-weave resolve miadi-ceremony:<id> --verify` (`@miadi/inquiry-weave` 0.14.0) prints the page and says whether the wheel holds the id.
 
 🌸: One skill that names no host is the difference between an agent that can close an episode wherever it is running and one that has to be told, again, which machine it is on.
