@@ -21,9 +21,10 @@ Named 2026-09-28, the morning gaia rebooted, in the witness session `mino-260928
 - **Done 2026-09-28:**
   - A1, which agent each tmux session held at the crash of Sunday 2026-09-27 19:31:47: `miadi-chronicle/_staging_for_new_episodes/gaia-miadi-tide-runtime-session-inventory-enhancements-260928/A1-recovery-candidates.md` in the episodes repository, with the launcher inventory `RP1-launch-aliases.md` beside it.
   - A2, the binding line, jgwill/binscripts@817eb85, checked in one tmux pane through start, rename, /clear, exit, resume and exit.
-  - tide's last snapshot before the crash kept at `~/.miadi/navigator/context/snapshot-20260927T233141Z-precrash-preserved.json` on gaia; the tide daemon runs again since 10:06, after its stale pid file (a thread id of another program) kept it down.
+  - tide's last snapshot before the crash kept at `~/.miadi/navigator/context/snapshot-20260927T233141Z-precrash-preserved.json` on gaia. The tide daemon runs again since 10:06, after its stale pid file (a thread id of another program) kept it down, and a start guard in its service (`tide-runtime.service.d/10-stale-pid.conf`) now clears such a file (A8, tested).
+  - Measured for William's tide and herdr question: a tmux save of 68 sessions with visible screens costs 12.6 s and 13.5 s of CPU and does not interrupt typing; full scrollback blocks every pane for about 1.4 s per 47,000-line pane.
 - **Open work:** jgwill/gaia#89 (A3, tmux saves with screens and the restore brings agents back), jgwill/Miadi#691 (A4, tide starts after a reboot and names the agent in each pane), jgwill/binscripts#158 (A6, the other seven agents write the same line), jgwill/Miadi#607.
-- **Waiting on William:** D6, go for A3 and A4.
+- **Waiting on William:** D6, go for A3 and A4, recommended as O3: tmux keeps layout and visible screens, and tide brings agents back, for tmux now and herdr later. D7, which of the sessions that differ from the crash to close or recreate. D8, whether the T1 practice ships as a skill or in the plugin.
 - **Sessions:** `gaia-tmux-rebooted-restore-finetuning-260928` (outside tmux). Before the crash, for example `gaia-var-disk-space`, `miadi-tide-reusable-components-260923`, `episode-019-tide-runtime-orchard`, `miadi-orchestration-kit-apt`, `mia-claude-plugin-mia-episode-companion`.
 - **Skill:** held while William decides whether a team's practice ships as a skill or inside the session-observability plugin.
 
