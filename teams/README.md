@@ -6,7 +6,7 @@ Named 2026-09-28, the morning gaia rebooted, in the witness session `mino-260928
 
 - Every terminal session belongs to one team.
 - Each team has a **human lead** and an **agent lead**. Leads coordinate with the other teams' leads.
-- A team makes packages and practices that the other teams use. It names what it makes and what it uses.
+- A building team makes packages and practices that the other teams use. The witness team builds nothing: it hears their work for William first and keeps the records. Each team names what it makes and what it uses.
 - Each team's practice becomes a skill in this kit, written by the team from its own work.
 - A team's section below is kept current by its agent lead.
 
