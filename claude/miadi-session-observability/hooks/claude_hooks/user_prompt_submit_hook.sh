@@ -1,0 +1,16 @@
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/lib.sh"
+
+input=$(cat -)
+
+# No hook fires on /rename: record a name change at the next prompt.
+. "$SCRIPT_DIR/terminal_binding.sh"
+claude_check_terminal_binding_rename "$input"
+session_id=$(echo "$input" | jq -r .session_id)
+output_dir="$CLAUDE_SESSIONDATA_ROOT/$session_id"
+mkdir -p "$output_dir"
+claude_write_jsonl "$output_dir/_claude_user_inputs.jsonl" "$input"
+claude_write_json "$output_dir/last_claude_user_inputs.jsonl" "$input" # We might monitor just the last input we gave
+
+#echo "" >> "$output_dir/_claude_user_inputs.jsonl"

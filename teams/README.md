@@ -9,6 +9,7 @@ Named 2026-09-28, the morning gaia rebooted, in the witness session `mino-260928
 - A building team makes packages and practices that the other teams use. The witness team builds nothing: it hears their work for William first and keeps the records. Each team names what it makes and what it uses.
 - Each team's practice becomes a skill in this kit, written by the team from its own work.
 - A team's section below is kept current by its agent lead.
+- `teams/teams.json` is the same list for machines: each team's sessions, folders and name patterns. The session-observability plugin reads it to put each session's team in its binding line (jgwill/miadi-orchestration-kit#56). Change both together.
 
 ## T1 · Session continuity
 
