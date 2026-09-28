@@ -14,12 +14,18 @@ Named 2026-09-28, the morning gaia rebooted, in the witness session `mino-260928
 
 - **Level:** the machine.
 - **Desired outcome, in William's words (2026-09-28):** "Picture that I'm rebooting my computer and when it comes back up, all of the sessions are the same way that they were. I should not even know that the computer rebooted."
-- **Leads:** William (human). The gaia session `gaia-tmux-rebooted-restore-finetuning-260928` (agent, proposed).
-- **Makes:** the capture hooks (`/opt/binscripts/hooks/*`), tmux save and restore (`jgwill/gaia` `14-tmux-resurrect.sh`), tide runtime and its snapshots, the session-observability plugin (jgwill/miadi-orchestration-kit#56), the session inventory format.
-- **Uses:** Claude Code's session records (`~/.claude/sessions/<pid>.json`, transcripts), the launch aliases in `~/.bash_aliases` that load each agent's tools and plugins.
-- **Open work:** jgwill/binscripts#158, jgwill/Miadi#607 (the line joining a terminal to its agent session and launch).
-- **Sessions before the reboot, examples:** `gaia-screen-reboot`, `gaia-var-disk-space`, `miadi-tide-reusable-components-260923`, `episode-019-tide-runtime-orchard`, `miadi-orchestration-kit-apt`, `mia-claude-plugin-mia-episode-companion`.
-- **Skill:** not written yet. The agent lead writes it from the restore work.
+- **Leads:** William (human). The gaia session `gaia-tmux-rebooted-restore-finetuning-260928` (agent).
+- **Makes:** the capture hooks (`/opt/binscripts/hooks/*`) and their binding line (`hooks/claude_hooks/terminal_binding.sh`: every agent session start, end and rename with its tmux `session:window.pane`, argv and name), tmux save and restore (`jgwill/gaia` `14-tmux-resurrect.sh`), tide runtime and its snapshots, the session-observability plugin (jgwill/miadi-orchestration-kit#56), the session inventory format.
+- **Uses:** Claude Code's session records (`~/.claude/sessions/<pid>.json`, transcripts), the launch aliases in `/opt/binscripts/etc/bash_aliases_common` that load each agent's tools and plugins.
+- **Proposal:** https://claude.ai/artifact/Hu5WwqkWTsGQuwESxwmD5q (Tmux Agent Restore, revision 2).
+- **Done 2026-09-28:**
+  - A1, which agent each tmux session held at the crash of Sunday 2026-09-27 19:31:47: `miadi-chronicle/_staging_for_new_episodes/gaia-miadi-tide-runtime-session-inventory-enhancements-260928/A1-recovery-candidates.md` in the episodes repository, with the launcher inventory `RP1-launch-aliases.md` beside it.
+  - A2, the binding line, jgwill/binscripts@817eb85, checked in one tmux pane through start, rename, /clear, exit, resume and exit.
+  - tide's last snapshot before the crash kept at `~/.miadi/navigator/context/snapshot-20260927T233141Z-precrash-preserved.json` on gaia; the tide daemon started again at 09:58 after a stale pid file kept it down.
+- **Open work:** jgwill/gaia#89 (A3, tmux saves with screens and the restore brings agents back), jgwill/Miadi#691 (A4, tide starts after a reboot and names the agent in each pane), jgwill/binscripts#158 (A6, the other seven agents write the same line), jgwill/Miadi#607.
+- **Waiting on William:** D6, go for A3 and A4.
+- **Sessions:** `gaia-tmux-rebooted-restore-finetuning-260928` (outside tmux). Before the crash, for example `gaia-var-disk-space`, `miadi-tide-reusable-components-260923`, `episode-019-tide-runtime-orchard`, `miadi-orchestration-kit-apt`, `mia-claude-plugin-mia-episode-companion`.
+- **Skill:** held while William decides whether a team's practice ships as a skill or inside the session-observability plugin.
 
 ## T2 · Event path
 
