@@ -20,6 +20,10 @@ Change the hooks here first. `/opt/binscripts/hooks/claude_hooks` stays a live c
 hosts and users that still wire it in `settings.json`. Carry each change there, byte for byte,
 until nothing wires it any more.
 
+`/opt/binscripts/hooks/terminal_binding.sh` writes the same binding line for the other agents
+(hermes and pi since jgwill/binscripts@c99dd89) with the same tmux and team rules. A change to
+those rules here goes there too.
+
 ## What the port must keep
 
 - **The capture layout.** `<root>/<session_id>/` under `CLAUDE_SESSIONDATA_ROOT` (`lib.sh`
