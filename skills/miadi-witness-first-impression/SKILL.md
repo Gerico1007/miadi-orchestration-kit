@@ -37,7 +37,8 @@ This skill is the witness team's main practice.
 1. **See the peer. Read only.**
    - `ListAgents` gives its name, short id, and whether it is busy or idle.
    - Session id: from its name in `ListAgents`, or `~/.claude/sessions/<pid>.json` where `<pid>` is the number in `cc-socks/<pid>.sock`.
-   - What William sent it: `/a/src/_sessiondata/<session_id>/_claude_user_inputs.jsonl`.
+   - What William sent it: `/a/src/_sessiondata/<session_id>/_claude_user_inputs.jsonl`. Its records have **no timestamp field**, so never filter them by time. Read them all, or grep them.
+   - Messages William typed while the peer was mid-turn are not `type=="user"` records in the transcript. They are `queue-operation` records and `attachment` records whose `attachment.type` is `queued_command`. Read those too before saying William never asked for something. (2026-09-28: the witness wrongly flagged a PyPI release as unasked because it read only user records.)
    - What it is doing: the tail of `_claude_PreToolUse.jsonl` in the same folder.
    - What it answered: `~/.claude/projects/<cwd-slug>/<session_id>.jsonl`, assistant text blocks:
      `jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="text") | .text'`
