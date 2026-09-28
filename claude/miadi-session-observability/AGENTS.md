@@ -34,6 +34,21 @@ until nothing wires it any more.
 - **Nothing on stdout.** Claude Code injects the stdout of SessionStart and UserPromptSubmit
   hooks into the conversation. The binding writer prints nothing.
 
+## Where it is installed
+
+- gaia, mia: installed on 2026-09-28 from this kit's marketplace, with the `hooks` block removed
+  from `~/.claude/settings.json` (backup: `~/.claude/settings.json.bak.260928-before-a9-cutover`).
+  Checked: a new session wrote each event once, with its pane and team.
+- gaia, jgi and ava: still wired to `/opt/binscripts/hooks/claude_hooks` in their own
+  `settings.json`, until each of them switches.
+
+An installed plugin is a copy in `~/.claude/plugins/cache/`. A change here reaches an installed
+host only after the version in `.claude-plugin/plugin.json` and in the kit's
+`.claude-plugin/marketplace.json` goes up, followed by
+`claude plugin marketplace update miadi-orchestration-kit` and
+`claude plugin update miadi-session-observability@miadi-orchestration-kit` on that host. Sessions
+pick it up when they start.
+
 ## Cutover rule
 
 When a host enables this plugin, remove the `hooks` block from that host's `settings.json`.

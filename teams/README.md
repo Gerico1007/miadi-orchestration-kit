@@ -25,8 +25,9 @@ Named 2026-09-28, the morning gaia rebooted, in the witness session `mino-260928
   - A3, tmux saves every 15 minutes with visible screens, keeps the folder of panes with an empty title, and hands the agents to tide after a restore: jgwill/gaia@8c82a36, live on gaia, jgwill/gaia#89 closed.
   - A4, tide 0.9.35 (jgwill/Miadi@ffdcfa90): starts after every reboot, names the agent in each pane, and brings agents back after a restore with their launch alias and tools. Checked end to end on a private tmux server, published to PyPI, running as gaia's tide service.
   - tide's last snapshot before the crash kept at `~/.miadi/navigator/context/snapshot-20260927T233141Z-precrash-preserved.json` on gaia.
-- **Next:** A9, the session-observability plugin, version 1 (scope on jgwill/miadi-orchestration-kit#56), after its page is read with William. Then A5 (the inventory reads the binding), A6 (the other seven agents write it, jgwill/binscripts#158), A7 (launchers record their own name), and herdr in jgwill/Miadi#691.
-- **Needs William now:** nothing. The A9 page is read with him before the build.
+  - A9, the session-observability plugin 0.1.0 (jgwill/miadi-orchestration-kit@92a2931): the capture hooks with the binding line and each session's team, and the session-continuity skill. mia on gaia runs it since 18:50, and mia's settings.json no longer wires hooks by hand.
+- **Next:** A5 (the inventory reads the binding), A6 (the other seven agents write it, jgwill/binscripts#158), A7 (launchers record their own name), and herdr in jgwill/Miadi#691.
+- **Needs William now:** nothing.
 - **Sessions:** `gaia-tmux-rebooted-restore-finetuning-260928` (outside tmux). Before the crash, for example `gaia-var-disk-space`, `miadi-tide-reusable-components-260923`, `episode-019-tide-runtime-orchard`, `miadi-orchestration-kit-apt`, `mia-claude-plugin-mia-episode-companion`.
 - **Skill:** the T1 practice ships inside the session-observability plugin (D8, William, 2026-09-28: "a plugin contains more than just skills. So it's going to be extendable."). Version 1 is A9, scoped on jgwill/miadi-orchestration-kit#56.
 
