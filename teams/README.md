@@ -15,18 +15,19 @@ Named 2026-09-28, the morning gaia rebooted, in the witness session `mino-260928
 - **Level:** the machine.
 - **Desired outcome, in William's words (2026-09-28):** "Picture that I'm rebooting my computer and when it comes back up, all of the sessions are the same way that they were. I should not even know that the computer rebooted."
 - **Leads:** William (human). The gaia session `gaia-tmux-rebooted-restore-finetuning-260928` (agent).
-- **Makes:** the capture hooks (`/opt/binscripts/hooks/*`) and their binding line (`hooks/claude_hooks/terminal_binding.sh`: every agent session start, end and rename with its tmux `session:window.pane`, argv and name), tmux save and restore (`jgwill/gaia` `14-tmux-resurrect.sh`), tide runtime and its snapshots, the session-observability plugin (jgwill/miadi-orchestration-kit#56), the session inventory format.
+- **Makes:** the capture hooks (`/opt/binscripts/hooks/*`) and their binding line (`hooks/claude_hooks/terminal_binding.sh`: every agent session start, end and rename with its tmux `session:window.pane`, argv and name), tmux save and restore (`jgwill/gaia` `14-tmux-resurrect.sh` and its two hooks), tide runtime (`ironsilk`, `tide agents list` and `tide agents restore`) and its snapshots, the session-observability plugin (jgwill/miadi-orchestration-kit#56), the session inventory format.
 - **Uses:** Claude Code's session records (`~/.claude/sessions/<pid>.json`, transcripts), the launch aliases in `/opt/binscripts/etc/bash_aliases_common` that load each agent's tools and plugins.
-- **Proposal:** https://claude.ai/artifact/Hu5WwqkWTsGQuwESxwmD5q (Tmux Agent Restore, revision 2).
+- **Proposal:** https://claude.ai/artifact/Hu5WwqkWTsGQuwESxwmD5q (Tmux Agent Restore, revision 4).
 - **Done 2026-09-28:**
   - A1, which agent each tmux session held at the crash of Sunday 2026-09-27 19:31:47: `miadi-chronicle/_staging_for_new_episodes/gaia-miadi-tide-runtime-session-inventory-enhancements-260928/A1-recovery-candidates.md` in the episodes repository, with the launcher inventory `RP1-launch-aliases.md` beside it.
   - A2, the binding line, jgwill/binscripts@817eb85, checked in one tmux pane through start, rename, /clear, exit, resume and exit.
-  - tide's last snapshot before the crash kept at `~/.miadi/navigator/context/snapshot-20260927T233141Z-precrash-preserved.json` on gaia. The tide daemon runs again since 10:06, after its stale pid file (a thread id of another program) kept it down, and a start guard in its service (`tide-runtime.service.d/10-stale-pid.conf`) now clears such a file (A8, tested).
-  - Measured for William's tide and herdr question: a tmux save of 68 sessions with visible screens costs 12.6 s and 13.5 s of CPU and does not interrupt typing; full scrollback blocks every pane for about 1.4 s per 47,000-line pane.
-- **Open work:** jgwill/gaia#89 (A3, tmux saves with screens and the restore brings agents back), jgwill/Miadi#691 (A4, tide starts after a reboot and names the agent in each pane), jgwill/binscripts#158 (A6, the other seven agents write the same line), jgwill/Miadi#607.
-- **Waiting on William:** D6, go for A3 and A4, recommended as O3: tmux keeps layout and visible screens, and tide brings agents back, for tmux now and herdr later. D7, which of the sessions that differ from the crash to close or recreate. D8, whether the T1 practice ships as a skill or in the plugin.
+  - A3, tmux saves every 15 minutes with visible screens, keeps the folder of panes with an empty title, and hands the agents to tide after a restore: jgwill/gaia@8c82a36, live on gaia, jgwill/gaia#89 closed.
+  - A4, tide 0.9.35 (jgwill/Miadi@ffdcfa90): starts after every reboot, names the agent in each pane, and brings agents back after a restore with their launch alias and tools. Checked end to end on a private tmux server, published to PyPI, running as gaia's tide service.
+  - tide's last snapshot before the crash kept at `~/.miadi/navigator/context/snapshot-20260927T233141Z-precrash-preserved.json` on gaia.
+- **Next:** A9, the session-observability plugin, version 1 (scope on jgwill/miadi-orchestration-kit#56), after its page is read with William. Then A5 (the inventory reads the binding), A6 (the other seven agents write it, jgwill/binscripts#158), A7 (launchers record their own name), and herdr in jgwill/Miadi#691.
+- **Needs William now:** nothing. The A9 page is read with him before the build.
 - **Sessions:** `gaia-tmux-rebooted-restore-finetuning-260928` (outside tmux). Before the crash, for example `gaia-var-disk-space`, `miadi-tide-reusable-components-260923`, `episode-019-tide-runtime-orchard`, `miadi-orchestration-kit-apt`, `mia-claude-plugin-mia-episode-companion`.
-- **Skill:** held while William decides whether a team's practice ships as a skill or inside the session-observability plugin.
+- **Skill:** the T1 practice ships inside the session-observability plugin (D8, William, 2026-09-28: "a plugin contains more than just skills. So it's going to be extendable."). Version 1 is A9, scoped on jgwill/miadi-orchestration-kit#56.
 
 ## T2 · Event path
 
