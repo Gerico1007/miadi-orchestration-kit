@@ -80,6 +80,7 @@ Rules:
 
 - `proposal-visualization` (this kit): how the other side builds the page this skill reads.
 - `miadi-mino-tmux-inventory` (this kit): the inventory the witness keeps.
+- Tracked in jgwill/miadi-orchestration-kit#59.
 - The example that taught this: the gaia session `gaia-tmux-rebooted-restore-finetuning-260928` and its page "Tmux Agent Restore", witnessed on 2026-09-28.
 
 🌸: William decides what an agent revises only after hearing its work, so the revision follows his judgment rather than the agent's first draft.
