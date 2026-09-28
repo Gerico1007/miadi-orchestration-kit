@@ -280,6 +280,6 @@ A script, a chapter or `status.md` names a ceremony as `miadi-ceremony:<id>` and
 4. A `label=` renders to every reader, signed in or not. Write it in the episode's words, never the intention and never a person's name.
 5. A reference is not a binding. The binding is the ceremony's `episode_path` (S15). Naming another episode's ceremony is fine; when the episodes relate, author lineage too (S8).
 6. Order: open the ceremony and land its note (S15 steps 1 to 5), then write the reference, then land the text (S5, S12). Needing something to name is never a reason to open a ceremony.
-7. Check twice: signed in as the person, `/chronicle/<episode>` shows the card; signed out, the same page shows the private chip. `inquiry-weave resolve miadi-ceremony:<id> --verify` (`@miadi/inquiry-weave` 0.14.0) prints the page and says whether the wheel holds the id.
+7. Check twice: signed in as the person, `/chronicle/<episode>` shows the card; signed out, the same page shows the private chip. `chronicle_resolve {uri, verify: true}` on `inquiry-weave-mcp`, or `inquiry-weave resolve miadi-ceremony:<id> --verify` (`@miadi/inquiry-weave` 0.14.1), prints the page and says whether the wheel holds the id; a UUID prefix reports the whole id it names.
 
 🌸: One skill that names no host is the difference between an agent that can close an episode wherever it is running and one that has to be told, again, which machine it is on.
