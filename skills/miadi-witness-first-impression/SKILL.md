@@ -70,6 +70,16 @@ Rules:
 - Ask fewer decisions than the page does, never more. When one of the page's decisions is a sensible default, say so and let him drop it.
 - Translate the page. Do not restate it.
 
+## A walkthrough William records
+
+Sometimes William records his screen while the reply plays, then publishes the video. The first one is https://youtu.be/bZ87ypPXPnA (2026-09-28).
+
+- **The reply is only the narration.** Everything in the reply is read aloud, so there is no preamble, no status, and no account of the steps you took. Produce it in a turn with no tool calls, or with no text before the narration starts.
+- **Address him and the community together.** Say once who is speaking and which team you belong to.
+- **Follow the page from top to bottom.** Open each part with the section's heading exactly as it appears on the page, so he can scroll along.
+- **Explain any term a community listener would not know**, such as tmux or hooks, in one clause.
+- **After he shares the video:** add its link and a QR code to the page. Generate the code with `qrencode -t SVG --inline --svg-path -m 2 "<short url>"` and inline it on a white background so it scans in both themes. Record the URL in the chart, and hold the video as an internal source for `miadi-review` until he decides to review it.
+
 ## What not to do
 
 - Do not send the peer a revision before William has heard the page. The first version is for the witness to read.
