@@ -1,0 +1,16 @@
+[Unit]
+Description=miadi-witness service: the witness team's threads and asks on 127.0.0.1:3340
+Documentation=https://github.com/jgwill/miadi-orchestration-kit/tree/main/claude/miadi-witness
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=WITNESS_HOST=127.0.0.1
+Environment=WITNESS_PORT=3340
+ExecStart=@NODE@ @SERVICE_DIR@/witness-service.mjs
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
