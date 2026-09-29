@@ -20,8 +20,8 @@ gaia crashed on Sunday 2026-09-27 at 19:31 and rebooted on Monday morning. That 
 - **What:** the story of the morning after the crash, with the drawings that named the three teams.
 - **Made by:** T3 Witness, session `mino-260928-fork-01`, with William, 2026-09-28.
 - **Where:** https://claude.ai/artifact/MArxUrUa8x9YjfCiRL1Dfs
-- **Visibility:** a claude.ai page. Its sharing is not checked.
-- **Before a post:** check the page's sharing.
+- **Visibility:** a claude.ai page shared with anyone who has the link, according to the artifact service at its last publish (checked by the witness, 2026-09-29).
+- **Before a post:** none for the link.
 
 ### C2 · The walkthrough video
 
