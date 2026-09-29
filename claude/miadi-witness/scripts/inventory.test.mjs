@@ -1,0 +1,130 @@
+// node --test claude/miadi-witness/scripts/inventory.test.mjs
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const SCRIPT = fileURLToPath(new URL("./inventory.mjs", import.meta.url));
+const SEAT = "/fixture/seat";
+const NEW = "aaaaaaaa-0000-4000-8000-000000000001";
+const KEPT = "bbbbbbbb-0000-4000-8000-000000000002";
+const OLD = "cccccccc-0000-4000-8000-000000000003";
+const TRAP = "dddddddd-0000-4000-8000-000000000004";
+
+function fixture() {
+  const base = mkdtempSync(join(tmpdir(), "witness-inventory-"));
+  const fx = {
+    base,
+    bindings: join(base, "sessiondata", "data", "terminal_bindings.jsonl"),
+    sessiondata: join(base, "sessiondata"),
+    inventory: join(base, "inventory"),
+    projects: join(base, "projects"),
+  };
+  mkdirSync(join(fx.sessiondata, "data"), { recursive: true });
+  mkdirSync(fx.inventory);
+  const seatTranscripts = join(fx.projects, SEAT.replace(/[^A-Za-z0-9]/g, "-"));
+  mkdirSync(seatTranscripts, { recursive: true });
+  writeFileSync(join(base, "seats.json"), JSON.stringify({ seats: [{ id: "mino", folder: SEAT }] }));
+  writeFileSync(fx.bindings, "");
+  bind(fx, NEW, { name: "new-one", tmux: "tmux-new" });
+  bind(fx, KEPT, { name: "kept-one", tmux: "tmux-kept" });
+  mkdirSync(join(fx.sessiondata, NEW));
+  writeFileSync(join(fx.sessiondata, NEW, "_claude_user_inputs.jsonl"), `${JSON.stringify({ prompt: "please build the loop" })}\n`);
+  writeFileSync(join(fx.sessiondata, NEW, "_claude_PreToolUse.jsonl"), "{}\n{}\n");
+  writeFileSync(join(fx.inventory, `ONGOING-tmux-kept.json`), JSON.stringify({
+    version: "1.0.0", session_id: KEPT, tmux_session_name: "tmux-kept", status: "in_progress",
+    mission: "an agent wrote this", work_completed: [{ title: "kept" }], observations: [{ at: "x", by: "witness", what: "seen" }],
+  }));
+  writeFileSync(join(fx.inventory, "ONGOING-no-id.json"), JSON.stringify({ tmux_session_name: "tmux-lost", session_id: "[PENDING]" }));
+  // the seat read two panes before binding lines existed: "old-name" and, separately, a
+  // longer name that starts with it
+  const lines = [
+    { type: "assistant", message: { content: [{ type: "tool_use", id: "t1", input: { command: "tmux send-keys -t 'old-name' '/exit' Enter; tmux capture-pane -t 'old-name' -p" } }] } },
+    { type: "user", timestamp: "2026-09-27T08:50:18Z", message: { content: [{ type: "tool_result", tool_use_id: "t1", content: `Resume this session with: claude --resume ${OLD}` }] } },
+    { type: "assistant", message: { content: [{ type: "tool_use", id: "t2", input: { command: "tmux capture-pane -t 'old-name-cont' -p" } }] } },
+    { type: "user", timestamp: "2026-09-27T09:00:00Z", message: { content: [{ type: "tool_result", tool_use_id: "t2", content: `claude --resume ${TRAP}` }] } },
+  ];
+  writeFileSync(join(seatTranscripts, "seat.jsonl"), `${lines.map((l) => JSON.stringify(l)).join("\n")}\n`);
+  return fx;
+}
+
+function bind(fx, id, { name, tmux, event = "session.start", source = "startup" }) {
+  appendFileSync(fx.bindings, `${JSON.stringify({
+    at: "2026-09-29T10:00:00.000Z", event, source, agent: "claude", session_id: id, cwd: "/fixture/not-a-repo",
+    name: { name, former: [] }, tmux: { session: tmux, pane_id: "%9" }, team: { id: "T3", source: "folder" }, launch_alias: "claudeyolo",
+  })}\n`);
+}
+
+function run(fx, args) {
+  const env = {
+    ...process.env,
+    WITNESS_BINDINGS: fx.bindings,
+    MIADI_SESSIONDATA_ROOT: fx.sessiondata,
+    WITNESS_INVENTORY_DIR: fx.inventory,
+    WITNESS_CLAUDE_PROJECTS_DIR: fx.projects,
+    WITNESS_SEATS_JSON: join(fx.base, "seats.json"),
+  };
+  try {
+    return { code: 0, stdout: execFileSync("node", [SCRIPT, ...args], { encoding: "utf8", env, stdio: ["ignore", "pipe", "pipe"] }) };
+  } catch (error) {
+    return { code: error.status, stdout: String(error.stdout ?? ""), stderr: String(error.stderr ?? "") };
+  }
+}
+
+const read = (fx, file) => JSON.parse(readFileSync(join(fx.inventory, file), "utf8"));
+
+test("plan is a dry run: it lists what it would write and writes nothing", () => {
+  const fx = fixture();
+  const before = readdirSync(fx.inventory).sort();
+  const plan = run(fx, ["plan"]);
+  assert.equal(plan.code, 0);
+  assert.match(plan.stdout, /plan \(dry run, nothing written\)/);
+  assert.match(plan.stdout, new RegExp(`create    ${NEW}\\.json · new record`));
+  assert.match(plan.stdout, /update    ONGOING-tmux-kept\.json · claude_session_name filled, cwd filled, team filled, binding added, hook_capture added/);
+  assert.match(plan.stdout, /ONGOING-no-id\.json: session_id is "\[PENDING\]", not a session id/);
+  assert.deepEqual(readdirSync(fx.inventory).sort(), before);
+});
+
+test("write creates a record keyed by session id from the binding line and the hook capture", () => {
+  const fx = fixture();
+  assert.equal(run(fx, ["write"]).code, 2, "write needs --session or --all");
+  run(fx, ["write", "--session", NEW]);
+  const record = read(fx, `${NEW}.json`);
+  assert.equal(record.session_id, NEW);
+  assert.equal(record.tmux_session_name, "tmux-new");
+  assert.equal(record.status, "in_progress");
+  assert.equal(record.binding.launch_alias, "claudeyolo");
+  assert.deepEqual([record.hook_capture.user_inputs, record.hook_capture.tool_uses], [1, 2]);
+  assert.equal(record.hook_capture.last_input, "please build the loop");
+  assert.equal(existsSync(join(fx.inventory, "ONGOING-tmux-kept.json")) && read(fx, "ONGOING-tmux-kept.json").binding, undefined, "only the named session is written");
+  assert.match(run(fx, ["plan", "--session", NEW]).stdout, /unchanged /);
+});
+
+test("an update adds facts in place and never touches what an agent wrote", () => {
+  const fx = fixture();
+  run(fx, ["write", "--session", KEPT]);
+  const record = read(fx, "ONGOING-tmux-kept.json");
+  assert.equal(record.mission, "an agent wrote this");
+  assert.deepEqual(record.work_completed, [{ title: "kept" }]);
+  assert.equal(record.status, "in_progress");
+  assert.equal(record.binding.tmux.session, "tmux-kept");
+  assert.equal(record.observations.length, 2);
+  assert.match(record.observations[1].what, /Facts updated/);
+  assert.equal(existsSync(join(fx.inventory, `${KEPT}.json`)), false, "no second file for the same session");
+});
+
+test("verify-names: a binding line, an exact pane reading, or unverified", () => {
+  const fx = fixture();
+  const out = run(fx, ["verify-names", "tmux-new", "old-name", "never-seen", "--json"]);
+  const [bound, read_, unknown] = JSON.parse(out.stdout);
+  assert.equal(out.code, 1, "one unverified name makes the exit 1");
+  assert.deepEqual([bound.verified, bound.session_id], [true, NEW]);
+  assert.match(bound.basis, /binding line/);
+  assert.deepEqual([read_.verified, read_.session_id], [true, OLD], "the reading of old-name-cont is not a reading of old-name");
+  assert.match(read_.basis, /pane reading at 2026-09-27T08:50:18Z/);
+  assert.equal(unknown.verified, false);
+  assert.equal(unknown.session_id, undefined);
+});
