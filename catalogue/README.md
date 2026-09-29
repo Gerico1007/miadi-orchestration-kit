@@ -117,16 +117,19 @@ gaia crashed on Sunday 2026-09-27 at 19:31 and rebooted on Monday morning. That 
 - **Visibility:** public episode page. The drafts are not approved and not posted.
 - **Before a post:** Guillaume's approval of the exact text.
 
-## Held
+## tide and ironsilk documentation
 
-### C14 · The tide and ironsilk documentation
+### C14 · tide described as it is
 
-- **What:** the tide and ironsilk documentation being rewritten by `miadi-18-ba` in tmux `miadi-tide-runtime-pypi-org-ironsilk`.
-- **Status:** added when the witness relays that session's report.
+- **What:** tide's documentation rewritten to match what shipped. The ironsilk README says the package is `ironsilk`, which was `hermes-navigator` up to 0.9.2, and that `tide-runtime` on PyPI belongs to someone else. A new page, `docs/how-tide-helps-the-work.md`, explains what tide does for the work. The tide specs gain `15-agent-continuity` and `16-steering-clients-and-cockpit`, and their STATUS is rewritten. The Miadi docs page for tide shows its four parts, the moments they serve, the gate and the restore.
+- **Made by:** T1, session `miadi-18-ba` in tmux `miadi-tide-runtime-pypi-org-ironsilk`, 2026-09-29.
+- **Where:** jgwill/Miadi@bdff1bc9 (`runtime/tide-runtime/README.md`, jgwill/Miadi#359), jgwill/Miadi@c1abc91f (`rispecs/tide-runtime`, jgwill/Miadi#265), jgwill/Miadi@3fe800e9 (`app/docs/miadi-agent/tide`, jgwill/Miadi#381), live on Miadi at `/docs/miadi-agent/tide`.
+- **Visibility:** private repository. The docs page is live on Miadi.
+- **Before a post:** PyPI still shows the old README until the next `ironsilk` release, and that release is William's call.
 
 ## Episodes these results relate to
 
-- **019 Tide Runtime Orchard:** tide's arc from its May outline. C7's tide 0.9.35 and `agents restore` are a new branch of it.
+- **019 Tide Runtime Orchard:** tide's arc from its May outline. C7's tide 0.9.35 and `agents restore`, with C14's documentation, are a new branch of it.
 - **331 the exhaust becomes a witness:** the hook capture that C8 now ships as a plugin.
 - **351:** C12. Its only link to the reboot is that its tmux session was recreated in C6.
 - **547 and 548:** the Page practice that C13 continues.
