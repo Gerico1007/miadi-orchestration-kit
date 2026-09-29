@@ -11,12 +11,17 @@
 //                                          the last input William sent (records carry no time)
 //
 // The parent of a thread comes from its fork line and nothing else. A thread with no fork
-// line has an unknown parent, even when its name says "fork".
+// line is "recorded". For threads in a configured seat, lineage.mjs can infer a parent from
+// records a fork copied out of its parent's transcript; that parent is "inferred from
+// transcript" and carries its evidence. Otherwise the parent is "unknown", even when the
+// thread's name says "fork".
 
 import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { inferParent, transcriptDirForCwd } from "./lineage.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -28,6 +33,7 @@ export function defaultPaths(env = process.env) {
     bindings: env.WITNESS_BINDINGS || join(sessiondata, "data", "terminal_bindings.jsonl"),
     sessiondata,
     teams: env.WITNESS_TEAMS_JSON || resolve(HERE, "..", "..", "..", "teams", "teams.json"),
+    projects: env.WITNESS_CLAUDE_PROJECTS_DIR || join(homedir(), ".claude", "projects"),
     seats: env.WITNESS_SEATS_JSON || join(HERE, "seats.json"),
   };
 }
@@ -178,7 +184,11 @@ export function forkParentRef(argv) {
   return { ref: next, reason: "" };
 }
 
-export function buildThreads({ bindings = [], sessions = [], teams = null, seats = null, sessiondata = null, agent = "claude" } = {}) {
+const UNKNOWN = "no fork line in the binding file";
+
+// lineage: { projectsRoot, infer(thread) → boolean, birth(path) → ms } turns on transcript
+// inference; without it, only fork lines give parents.
+export function buildThreads({ bindings = [], sessions = [], teams = null, seats = null, sessiondata = null, agent = "claude", lineage = null } = {}) {
   const byId = new Map();
   const get = (id) => {
     if (!byId.has(id)) {
@@ -197,7 +207,8 @@ export function buildThreads({ bindings = [], sessions = [], teams = null, seats
         last_event: null,
         events: 0,
         fork: null,
-        parent: { session_id: null, known: false, reason: "no fork line in the binding file" },
+        transcript_path: null,
+        parent: { session_id: null, known: false, basis: "unknown", reason: UNKNOWN },
         children: [],
         sources: [],
       });
@@ -218,6 +229,7 @@ export function buildThreads({ bindings = [], sessions = [], teams = null, seats
     if (line.name?.name) thread.name = line.name.name;
     if (line.tmux?.session) thread.tmux = { session: line.tmux.session, window: line.tmux.window ?? null, pane_id: line.tmux.pane_id ?? null };
     if (line.cwd && !thread.cwd) thread.cwd = line.cwd;
+    if (line.transcript_path) thread.transcript_path = line.transcript_path;
     if (line.team?.id) thread.team = { id: line.team.id, source: `binding (${line.team.source || "?"})` };
     if (line.event === "session.start" && line.source === "fork" && !thread.fork) {
       thread.fork = { at: line.at ?? null, ...forkParentRef(line.argv), argv: line.argv ?? [] };
@@ -242,7 +254,7 @@ export function buildThreads({ bindings = [], sessions = [], teams = null, seats
     if (updated && (!thread.last_seen || updated > thread.last_seen)) thread.last_seen = updated;
   }
 
-  for (const thread of byId.values()) {
+  const finish = (thread) => {
     if (!thread.live && thread.status === "unknown") {
       thread.status = thread.last_event?.event === "session.end"
         ? `ended (${thread.last_event.source || "no reason"})`
@@ -252,32 +264,70 @@ export function buildThreads({ bindings = [], sessions = [], teams = null, seats
     thread.team ??= teamFor({ tmuxSession: thread.tmux?.session, name: thread.name, cwd: thread.cwd }, teams);
     thread.seat = seatFor({ cwd: thread.cwd, names: thread.names }, seats);
     thread.last_input = sessiondata ? lastWilliamInput(sessiondata, thread.session_id) : null;
-  }
+  };
+  for (const thread of byId.values()) finish(thread);
 
-  // Parents: a fork line only. A name resolves when exactly one other thread has carried it.
+  // Parents, recorded: a fork line. A name resolves when exactly one other thread carried it.
   for (const thread of byId.values()) {
     if (!thread.fork) continue;
     const { ref, reason } = thread.fork;
     if (!ref) {
-      thread.parent = { session_id: null, known: false, reason };
+      thread.parent = { session_id: null, known: false, basis: "unknown", reason };
       continue;
     }
     if (UUID.test(ref)) {
       thread.parent = byId.has(ref)
-        ? { session_id: ref, known: true, via: "fork line, --resume <session id>" }
-        : { session_id: ref, known: true, via: "fork line, --resume <session id>", note: "parent seen in no source" };
+        ? { session_id: ref, known: true, basis: "recorded", via: "fork line, --resume <session id>" }
+        : { session_id: ref, known: true, basis: "recorded", via: "fork line, --resume <session id>", note: "parent seen in no source" };
       continue;
     }
     const carriers = [...byId.values()].filter((other) => other !== thread && other.names.includes(ref));
     thread.parent = carriers.length === 1
-      ? { session_id: carriers[0].session_id, known: true, via: `fork line, --resume <name> "${ref}"` }
+      ? { session_id: carriers[0].session_id, known: true, basis: "recorded", via: `fork line, --resume <name> "${ref}"` }
       : {
         session_id: null,
         known: false,
+        basis: "unknown",
         reason: carriers.length
           ? `name "${ref}" was carried by ${carriers.length} threads`
           : `name "${ref}" is carried by no other thread in the sources`,
       };
+  }
+
+  // Parents, inferred: records a fork copied from its parent's transcript. A parent known only
+  // by its transcript joins the model as a thread of its own, and is inferred in turn.
+  if (lineage) {
+    const pending = [...byId.values()].filter((thread) => !thread.parent.known && lineage.infer(thread));
+    const tried = new Set();
+    while (pending.length) {
+      const thread = pending.shift();
+      if (tried.has(thread.session_id)) continue;
+      tried.add(thread.session_id);
+      const path = thread.transcript_path
+        ?? (thread.cwd ? join(transcriptDirForCwd(lineage.projectsRoot, thread.cwd), `${thread.session_id}.jsonl`) : null);
+      const inferred = inferParent(path, { birth: lineage.birth });
+      if (!inferred.known) {
+        thread.parent = { ...thread.parent, reason: `${thread.parent.reason}; ${inferred.reason}` };
+        continue;
+      }
+      thread.parent = {
+        session_id: inferred.session_id,
+        known: true,
+        basis: "inferred from transcript",
+        via: `${inferred.evidence.shared_records} records copied from its transcript`,
+        evidence: inferred.evidence,
+      };
+      if (!byId.has(inferred.session_id)) {
+        const parent = get(inferred.session_id);
+        parent.sources.push("transcript");
+        parent.cwd = thread.cwd;
+        parent.transcript_path = path.replace(/[^/]+\.jsonl$/, `${inferred.session_id}.jsonl`);
+        if (inferred.title) pushName(parent.names, inferred.title);
+        parent.status = "known only by its transcript";
+        finish(parent);
+        pending.push(parent);
+      }
+    }
   }
 
   for (const thread of byId.values()) {
@@ -335,7 +385,9 @@ export function snapshot(paths = defaultPaths()) {
   const teams = readJson(paths.teams, null);
   const seats = readJson(paths.seats, null);
   if (!teams) errors.push(`teams.json unreadable at ${paths.teams}`);
-  const byId = buildThreads({ bindings: lines, sessions, teams, seats, sessiondata: paths.sessiondata });
+  const seatIds = new Set((seats?.seats ?? []).map((seat) => seat.id));
+  const lineage = { projectsRoot: paths.projects, infer: (thread) => seatIds.has(thread.seat) };
+  const byId = buildThreads({ bindings: lines, sessions, teams, seats, sessiondata: paths.sessiondata, lineage });
   const threads = Object.fromEntries(byId);
   return {
     generated_at: new Date().toISOString(),
@@ -344,7 +396,8 @@ export function snapshot(paths = defaultPaths()) {
       registry: { path: paths.sessionsDir, files: sessions.length, live: sessions.filter((s) => s.alive).length },
       teams: { path: paths.teams },
       user_inputs: { path: join(paths.sessiondata, "<session_id>", "_claude_user_inputs.jsonl"), note: "records carry no time" },
-      seats: { path: paths.seats, ids: (seats?.seats ?? []).map((seat) => seat.id) },
+      seats: { path: paths.seats, ids: [...seatIds] },
+      transcripts: { path: paths.projects, note: "read only to infer the parents of threads in a seat" },
       errors,
     },
     scope: "Claude Code sessions (agent \"claude\" in binding lines)",

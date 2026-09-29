@@ -88,3 +88,79 @@ test("helpers", () => {
   assert.equal(tmuxFromRegistry("nope"), null);
   assert.deepEqual(forkParentRef(["claude", "--resume", "x"]), { ref: null, reason: "argv has no --fork-session" });
 });
+
+// ---------- the three parent bases ----------
+
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { clearLineageCache } from "./lineage.mjs";
+
+const rec = (uuid, at, type = "user") => JSON.stringify({ type, uuid, timestamp: at, sessionId: "x" });
+
+function projects(files) {
+  clearLineageCache();
+  const root = mkdtempSync(join(tmpdir(), "witness-lineage-"));
+  const dir = join(root, "-seat");
+  mkdirSync(dir);
+  const births = new Map();
+  for (const [id, { born, records, title }] of Object.entries(files)) {
+    const path = join(dir, `${id}.jsonl`);
+    const lines = title ? [JSON.stringify({ type: "custom-title", customTitle: title, sessionId: id })] : [];
+    writeFileSync(path, `${[...lines, ...records].join("\n")}\n`);
+    births.set(path, Date.parse(born));
+  }
+  return { root, lineage: { projectsRoot: root, infer: () => true, birth: (path) => births.get(path) ?? null } };
+}
+
+const seatLine = (id, extra = {}) => line(id, { cwd: "/seat", name: { name: `n-${id.slice(0, 4)}`, former: [] }, ...extra });
+
+test("recorded: a fork line names the parent, and the transcript is not consulted", () => {
+  const { lineage } = projects({ [A]: { born: "2026-09-26T00:00:00Z", records: [] } });
+  const byId = buildThreads({ bindings: [seatLine(A), seatLine(B, { source: "fork", argv: ["claude", "--resume", A, "--fork-session"] })], lineage });
+  assert.equal(byId.get(B).parent.basis, "recorded");
+  assert.equal(byId.get(B).parent.session_id, A);
+});
+
+test("inferred from transcript: records copied from an earlier transcript give the parent, with evidence", () => {
+  const { lineage } = projects({
+    [A]: { born: "2026-09-26T00:00:00Z", title: "the-original", records: [rec("u1", "2026-09-26T01:00:00Z"), rec("u2", "2026-09-26T02:00:00Z", "system"), rec("u3", "2026-09-26T03:00:00Z")] },
+    [B]: { born: "2026-09-28T00:00:00Z", records: [rec("u2", "2026-09-26T02:00:00Z", "system"), rec("u3", "2026-09-26T03:00:00Z"), rec("b1", "2026-09-28T01:00:00Z")] },
+  });
+  const byId = buildThreads({ bindings: [seatLine(B, { source: "resume" })], lineage });
+  const parent = byId.get(B).parent;
+  assert.equal(parent.basis, "inferred from transcript");
+  assert.equal(parent.session_id, A);
+  assert.equal(parent.evidence.shared_records, 2);
+  assert.deepEqual(parent.evidence.first_copied, { at: "2026-09-26T02:00:00Z", type: "system" });
+  // the parent was known only by its transcript, so it joins the model under its title
+  assert.equal(byId.get(A).name, "the-original");
+  assert.deepEqual(byId.get(A).sources, ["transcript"]);
+  assert.deepEqual(byId.get(A).children, [B]);
+});
+
+test("unknown: no fork line and no earlier transcript sharing a record", () => {
+  const { lineage } = projects({
+    [A]: { born: "2026-09-26T00:00:00Z", records: [rec("u1", "2026-09-26T01:00:00Z")] },
+    [B]: { born: "2026-09-28T00:00:00Z", records: [rec("b1", "2026-09-28T01:00:00Z")] },
+  });
+  const byId = buildThreads({ bindings: [seatLine(B, { source: "resume" })], lineage });
+  assert.equal(byId.get(B).parent.basis, "unknown");
+  assert.equal(byId.get(B).parent.known, false);
+  assert.match(byId.get(B).parent.reason, /no earlier transcript in its folder shares a record/);
+});
+
+test("a later-born transcript is never a parent, and a tie is broken only by the parent's last record", () => {
+  const { lineage } = projects({
+    // A is the original; C forked from A and then wrote its own record c1
+    [A]: { born: "2026-09-26T00:00:00Z", records: [rec("u1", "2026-09-26T01:00:00Z"), rec("u2", "2026-09-26T02:00:00Z")] },
+    [C]: { born: "2026-09-27T00:00:00Z", records: [rec("u1", "2026-09-26T01:00:00Z"), rec("u2", "2026-09-26T02:00:00Z"), rec("c1", "2026-09-27T01:00:00Z")] },
+    // B forked from A after C existed: it shares u1 and u2 with both, but not C's c1
+    [B]: { born: "2026-09-28T00:00:00Z", records: [rec("u1", "2026-09-26T01:00:00Z"), rec("u2", "2026-09-26T02:00:00Z"), rec("b1", "2026-09-28T01:00:00Z")] },
+    // D is born later and copies B whole: it must not become B's parent
+    [D]: { born: "2026-09-29T00:00:00Z", records: [rec("u1", "2026-09-26T01:00:00Z"), rec("u2", "2026-09-26T02:00:00Z"), rec("b1", "2026-09-28T01:00:00Z")] },
+  });
+  const byId = buildThreads({ bindings: [seatLine(B, { source: "resume" })], lineage });
+  assert.equal(byId.get(B).parent.session_id, A);
+  assert.match(byId.get(B).parent.evidence.tiebreak, /only aaaaaaaa/);
+});

@@ -42,6 +42,7 @@ h3 { font-size: 15px; margin: 18px 0 6px; color: var(--muted); font-weight: 600;
 code { font: 12px/1.4 ui-monospace, "SFMono-Regular", Menlo, monospace; }
 .parent { font-size: 13px; color: var(--muted); }
 .parent.known { color: var(--accent); }
+.parent.inferred { color: var(--warn); }
 details { margin-top: 4px; }
 summary { cursor: pointer; color: var(--muted); font-size: 13px; }
 blockquote { margin: 6px 0; padding: 8px 10px; background: var(--quote); border-left: 3px solid var(--accent); white-space: pre-wrap; font-size: 14px; }
@@ -58,7 +59,7 @@ button { font: inherit; font-size: 13px; background: var(--panel); color: var(--
   <div class="errors" id="errors"></div>
 
   <h2>Threads</h2>
-  <div class="meta">Every Claude Code session on this host, grouped by team and seat. A thread's parent comes only from its fork line in the binding file; without one, the parent is unknown. The last input is the last thing William typed there (peer messages and notices skipped). Those records carry no time.</div>
+  <div class="meta">Every Claude Code session on this host, grouped by team and seat. A parent is recorded when a fork line in the binding file names it, inferred from transcript when a seat thread's transcript holds records copied from an earlier one, and unknown otherwise. The last input is the last thing William typed there (peer messages and notices skipped). Those records carry no time.</div>
   <div id="threads"></div>
 
   <h2>Asks</h2>
@@ -73,9 +74,13 @@ const when = (iso) => iso ? new Date(iso).toLocaleString() : "unknown";
 
 function threadCard(node, threads) {
   const t = threads[node.session_id];
-  const parent = t.parent.known
-    ? `<div class="parent known">fork of ${esc(threads[t.parent.session_id]?.name ?? t.parent.session_id)} · ${esc(t.parent.via)}</div>`
-    : `<div class="parent">parent unknown: ${esc(t.parent.reason)}</div>`;
+  const parentName = esc(threads[t.parent.session_id]?.name ?? t.parent.session_id);
+  const ev = t.parent.evidence;
+  const parent = !t.parent.known
+    ? `<div class="parent">parent unknown: ${esc(t.parent.reason)}</div>`
+    : t.parent.basis === "recorded"
+      ? `<div class="parent known">fork of ${parentName} · recorded: ${esc(t.parent.via)}</div>`
+      : `<div class="parent inferred">fork of ${parentName} · inferred from transcript: ${esc(ev.shared_records)} records copied, the first a ${esc(ev.first_copied?.type ?? "?")} record from ${esc(when(ev.first_copied?.at))}${ev.tiebreak ? ` · ${esc(ev.tiebreak)}` : ""}</div>`;
   const tmux = t.tmux ? `tmux <code>${esc(t.tmux.session)}</code> ${esc(t.tmux.pane_id ?? "")}` : "no tmux";
   const names = t.names.length > 1
     ? `<details><summary>${t.names.length} names</summary><ul>${t.names.map((n) => `<li><code>${esc(n)}</code></li>`).join("")}</ul></details>` : "";
