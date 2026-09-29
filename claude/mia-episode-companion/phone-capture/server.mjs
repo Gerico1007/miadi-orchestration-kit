@@ -121,18 +121,25 @@ export class SpokenLanguageTranscriber {
 
 const MAX_REPLY_CHARS = 20_000;
 
-// mia-listen writes a heartbeat per episode while a seat is listening. The page asks for
-// it, so William can see whether anyone is in the room before he speaks.
+// mia-listen writes a heartbeat per episode (listenerOf in mia-listen.mjs holds the same
+// rules). The page asks for it, so William can see who is in the room: a seat listening,
+// a seat answering a take, a seat that has just answered and is re-arming, or nobody.
 const LISTENER_STALE_MS = 120_000;
+const ANSWERING_STALE_MS = 15 * 60 * 1000;
+const AWAY = Object.freeze({ state: "away" });
 
 export function listenerState(dir, episode) {
   try {
     const beat = JSON.parse(readFileSync(join(dir, `${episode}.listening.json`), "utf8"));
-    if (Date.now() - Date.parse(beat.at) > LISTENER_STALE_MS) return false;
-    try { process.kill(beat.pid, 0); } catch { return false; }
-    return true;
+    const age = Date.now() - Date.parse(beat.at);
+    const takes = Array.isArray(beat.takes) ? beat.takes.filter((take) => /^\d{12}$/.test(take)) : [];
+    if (beat.state === "answering") return age > ANSWERING_STALE_MS ? AWAY : { state: "answering", takes };
+    if (age > LISTENER_STALE_MS) return AWAY;
+    if (beat.state === "answered") return { state: "answered", takes };
+    try { process.kill(beat.pid, 0); } catch { return AWAY; }
+    return { state: "listening" };
   } catch {
-    return false;
+    return AWAY;
   }
 }
 
@@ -259,7 +266,8 @@ export function createApp({ service, chronicleRoot, uploadsDir, repliesDir, list
       .reverse()
       .slice(0, 10)
       .map((reply) => publicReply(reply, repliesDir));
-    return { success: true, episode, listening: listenerState(listenerDir, episode), replies };
+    const presence = listenerState(listenerDir, episode);
+    return { success: true, episode, listening: presence.state !== "away", presence, replies };
   }
 
   // Mia's voice for one reply, through the Miadi voice layer (persona mia, bound to the
@@ -330,6 +338,7 @@ export function createApp({ service, chronicleRoot, uploadsDir, repliesDir, list
         // Bound either way: the audio is safe in its episode, and a later
         // transcription re-stores the bundle rather than duplicating it.
         const assigned = await service.assign({ filename: stopped.filename, episode_path: episode });
+        const presence = listenerState(listenerDir, episode);
         return {
           success: true,
           episode,
@@ -337,7 +346,8 @@ export function createApp({ service, chronicleRoot, uploadsDir, repliesDir, list
           filename: stopped.filename,
           bytes: upload.bytes,
           bundle: assigned.bundle,
-          listening: listenerState(listenerDir, episode),
+          listening: presence.state !== "away",
+          presence,
           registered: assigned.registered,
           english,
           ...(transcriptError ? { transcriptError } : {}),

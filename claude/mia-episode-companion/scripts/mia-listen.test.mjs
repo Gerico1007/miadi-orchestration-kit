@@ -132,6 +132,12 @@ test("a worktree take is delivered once its signature holds across two polls", (
   assert.match(woke.stdout, /Turn budget/);
   assert.match(woke.stdout, /mia-listen\.mjs" reply 260101000004 --episode ".*" <<'MIA'/);
   assert.match(woke.stdout, /re-arm in the background: node ".*mia-listen\.mjs" await --episode/);
+
+  // The wake leaves the room occupied: the seat is answering, not gone.
+  const beat = JSON.parse(readFileSync(join(fx.state, `${FOLDER}.listening.json`), "utf8"));
+  assert.equal(beat.state, "answering");
+  assert.deepEqual(beat.takes, ["260101000004"]);
+  assert.match(run(fx, ["status", "--no-fetch"]).stdout, /listening now: answering 260101000004/);
 });
 
 test("reply posts the return on stdin to phone-capture with this invocation's origin", async () => {
@@ -154,7 +160,12 @@ test("reply posts the return on stdin to phone-capture with this invocation's or
     child.on("exit", (status) => done({ status, stdout, stderr }));
     child.stdin.end(input);
   });
-  const posted = await runReply({ MIADI_PHONE_CAPTURE_PORT: String(server.address().port), TMUX_PANE: "%999" }, "William, it arrived.\n");
+  mkdirSync(fx.state, { recursive: true });
+  writeFileSync(join(fx.state, `${FOLDER}.listening.json`), JSON.stringify({ state: "answering", takes: ["260101000001"], at: new Date().toISOString() }));
+  const posted = await runReply({ MIADI_PHONE_CAPTURE_PORT: String(server.address().port), TMUX_PANE: "%999", MIADI_MIA_COMPANION_STATE_DIR: fx.state }, "William, it arrived.\n");
+  const answered = JSON.parse(readFileSync(join(fx.state, `${FOLDER}.listening.json`), "utf8"));
+  assert.equal(answered.state, "answered", "a posted reply ends the answering; the re-arm comes next");
+  assert.deepEqual(answered.takes, ["260101000001"]);
   // A message that answers no take goes through the same command, with the same origin.
   const untaken = await runReply({ MIADI_PHONE_CAPTURE_PORT: String(server.address().port), TMUX_PANE: "%999" }, "Ready when you are.\n", []);
   server.close();

@@ -36,9 +36,9 @@ function element(id) {
   };
 }
 
-function harness({ search = "?episode=" + EPISODE, micDelay = 0, replyAfterTake = false, replyDelay = 0, takeAnswer = { success: true, take: "260922090000", english: "Heard.", listening: true }, takeStatus = 200, neverStop = false } = {}) {
+function harness({ search = "?episode=" + EPISODE, micDelay = 0, replyAfterTake = false, replyDelay = 0, takeAnswer = { success: true, take: "260922090000", english: "Heard.", listening: true }, takeStatus = 200, neverStop = false, presence = () => ({ state: "listening" }) } = {}) {
   const ids = ["episode", "filter", "matches", "listening", "record", "timer", "status", "result", "resultHead", "transcript",
-    "reply", "replyMeta", "replyText", "replyAudio", "hearReply", "copyReply", "replyStatus", "autoplay"];
+    "reply", "replyControls", "replyMeta", "replyText", "replyAudio", "hearReply", "copyReply", "replyStatus", "autoplay"];
   const elements = Object.fromEntries(ids.map((id) => [id, element(id)]));
   const made = [];
   const stoppedTracks = { count: 0 };
@@ -69,7 +69,7 @@ function harness({ search = "?episode=" + EPISODE, micDelay = 0, replyAfterTake 
     if (url.startsWith("api/replies")) {
       const sent = calls.find((c) => c.url.startsWith("api/takes"));
       const ready = replyAfterTake && sent && Date.now() - sent.at >= replyDelay;
-      return { json: async () => ({ success: true, listening: true, replies: ready ? [{ id: "r1", take: "260922090000", text: "Heard you.", at: new Date().toISOString(), audio: null }] : [] }) };
+      return { json: async () => ({ success: true, listening: true, presence: presence(), replies: ready ? [{ id: "r1", take: "260922090000", text: "Heard you.", at: new Date().toISOString(), audio: null }] : [] }) };
     }
     if (url.startsWith("api/takes")) {
       if (takeStatus !== 200) throw new Error("network down");
@@ -229,13 +229,30 @@ test("silence holds the audio open from Stop, so her reply plays without a tap",
   assert.ok(h.elements.replyAudio.played >= 1, "it was playing already, so no tap was needed");
 });
 
-test("a take sent to an episode nobody listens on says so, and does not wait in silence", async () => {
-  const h = harness({ takeAnswer: { success: true, take: "260923030846", english: "Heard.", listening: false } });
+test("a take sent while nobody listens says so, still waits, and her reply plays when a session answers", async () => {
+  // William, 2026-09-29: he recorded, then started the session. The page had stopped
+  // waiting, so her reply arrived without a tap and iOS refused to play it.
+  let state = "away";
+  const h = harness({
+    replyAfterTake: true, replyDelay: 4500,
+    presence: () => ({ state, takes: state === "answering" ? ["260923030846"] : [] }),
+    takeAnswer: { success: true, take: "260923030846", english: "Heard.", listening: false, presence: { state: "away" } },
+  });
   await settle(30);
   h.tap();
   await settle(60);
   h.tap();
   await settle(150);
-  assert.match(h.elements.resultHead.appended.map((c) => c.text || c.textContent).join(" "), /No session is listening/);
-  assert.notEqual(String(h.elements.replyAudio.src), "data:audio/wav", "no silence is left looping for a reply that is not coming");
+  assert.match(h.elements.resultHead.appended.map((c) => c.text || c.textContent).join(" "), /No session is listening yet/);
+  assert.match(String(h.elements.replyAudio.src), /^data:audio\/wav/, "silence holds the audio open for when a session answers");
+  assert.match(h.elements.replyStatus.textContent, /Waiting for a session to hear it/);
+
+  state = "answering"; // the session started and woke on the take
+  await settle(4100);
+  assert.equal(h.elements.listening.textContent, "Mia is answering take 260923030846.", "never 'nobody is listening' while she answers");
+  assert.match(h.elements.replyStatus.textContent, /Mia is answering…/);
+
+  await settle(4100);
+  assert.match(String(h.elements.replyAudio.src), /api\/replies\/r1\/audio/, "her reply plays without a tap");
+  assert.ok(h.elements.replyAudio.played >= 2);
 });

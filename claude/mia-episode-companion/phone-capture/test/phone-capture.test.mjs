@@ -219,19 +219,35 @@ test("the page is told whether a seat is listening on the episode", async () => 
 
     const quiet = await (await fetch(`${b.url}/api/replies?episode=${EPISODE}`)).json();
     assert.equal(quiet.listening, false, "no heartbeat means nobody is in the room");
+    assert.equal(quiet.presence.state, "away");
 
     beat(new Date().toISOString(), process.pid);
     const heard = await (await fetch(`${b.url}/api/replies?episode=${EPISODE}`)).json();
     assert.equal(heard.listening, true);
+    assert.equal(heard.presence.state, "listening");
 
     beat(new Date(Date.now() - 5 * 60 * 1000).toISOString(), process.pid);
-    assert.equal(listenerState(listeners, EPISODE), false, "a stale heartbeat is not a listener");
+    assert.equal(listenerState(listeners, EPISODE).state, "away", "a stale heartbeat is not a listener");
 
     beat(new Date().toISOString(), 2147480000);
-    assert.equal(listenerState(listeners, EPISODE), false, "a heartbeat from a dead process is not a listener");
+    assert.equal(listenerState(listeners, EPISODE).state, "away", "a heartbeat from a dead process is not a listener");
+
+    // await exits when it wakes, so its pid is gone while Mia answers. The room is not empty.
+    const state = (fields) => writeFileSync(join(listeners, `${EPISODE}.listening.json`), JSON.stringify(fields));
+    state({ state: "answering", takes: ["260929100901"], at: new Date(Date.now() - 6 * 60 * 1000).toISOString(), pid: 2147480000 });
+    const answering = await (await fetch(`${b.url}/api/replies?episode=${EPISODE}`)).json();
+    assert.equal(answering.listening, true, "a seat answering a take is in the room");
+    assert.deepEqual(answering.presence, { state: "answering", takes: ["260929100901"] });
+    state({ state: "answering", takes: ["260929100901"], at: new Date(Date.now() - 16 * 60 * 1000).toISOString() });
+    assert.equal(listenerState(listeners, EPISODE).state, "away", "an answer that never came ends after fifteen minutes");
+    state({ state: "answered", takes: ["260929100901"], at: new Date().toISOString() });
+    assert.equal(listenerState(listeners, EPISODE).state, "answered");
+    state({ state: "answered", takes: ["260929100901"], at: new Date(Date.now() - 3 * 60 * 1000).toISOString() });
+    assert.equal(listenerState(listeners, EPISODE).state, "away", "a seat that answered and never re-armed has left");
 
     const stored = await (await fetch(`${b.url}/api/takes`, { method: "POST", headers: { "content-type": "audio/mp4" }, body: Buffer.from("bytes") })).json();
     assert.equal(stored.listening, false, "the answer to a take says whether it will be heard");
+    assert.equal(stored.presence.state, "away");
   } finally {
     b.close();
   }

@@ -260,19 +260,29 @@ function statePath(episode) {
   return join(stateDir(), `${episode.folder}.json`);
 }
 
-// A heartbeat while this seat is listening, so the phone page can say whether anyone is
-// in the room before William speaks. Stale after two minutes; removed when await ends.
+// A heartbeat per episode, so the phone page can say who is in the room. Three states:
+//   listening  await is polling. Stale after two minutes, or when its process is gone.
+//   answering  await woke on a take and exited; the seat is drafting. Written at the wake
+//              and left in place, so the page does not say "nobody is listening" while
+//              Mia is answering (William, 2026-09-29). Stale after fifteen minutes.
+//   answered   reply posted; the seat re-arms next. Stale after two minutes.
+// The re-arm overwrites either of the last two with listening.
 export const HEARTBEAT_STALE_MS = 120_000;
+export const ANSWERING_STALE_MS = 15 * 60 * 1000;
 
 function heartbeatPath(episode) {
   return join(stateDir(), `${episode.folder}.listening.json`);
 }
 
-function beat(episode, since) {
+function writeBeat(episode, fields) {
   try {
     mkdirSync(stateDir(), { recursive: true });
-    writeFileSync(heartbeatPath(episode), `${JSON.stringify({ pid: process.pid, since, at: new Date().toISOString() })}\n`, { mode: 0o600 });
-  } catch { /* a heartbeat that cannot be written must not stop the listening */ }
+    writeFileSync(heartbeatPath(episode), `${JSON.stringify({ ...fields, at: new Date().toISOString() })}\n`, { mode: 0o600 });
+  } catch { /* a heartbeat that cannot be written must not stop the seat */ }
+}
+
+function beat(episode, since) {
+  writeBeat(episode, { state: "listening", pid: process.pid, since });
 }
 
 function stopBeating(episode) {
@@ -317,7 +327,10 @@ function ensureState(episode, takes) {
 export function listenerOf(episode) {
   try {
     const beat = JSON.parse(readFileSync(heartbeatPath(episode), "utf8"));
-    if (Date.now() - Date.parse(beat.at) > HEARTBEAT_STALE_MS) return null;
+    const age = Date.now() - Date.parse(beat.at);
+    if (beat.state === "answering") return age > ANSWERING_STALE_MS ? null : beat;
+    if (age > HEARTBEAT_STALE_MS) return null;
+    if (beat.state === "answered") return beat;
     process.kill(beat.pid, 0); // a heartbeat from a process that died is not a listener
     return beat;
   } catch {
@@ -455,6 +468,13 @@ export function formatWake(episode, takes, { rearm = true } = {}) {
   return lines.join("\n");
 }
 
+function presenceLine(beat) {
+  if (!beat) return "no";
+  if (beat.state === "answering") return `answering ${(beat.takes ?? []).join(", ")}`;
+  if (beat.state === "answered") return "answered, re-arm pending";
+  return "yes";
+}
+
 function printStatus(episode, state, scan, created) {
   const pending = unheard(state, scan.takes);
   const lastDelivered = state.delivered.at(-1);
@@ -464,7 +484,7 @@ function printStatus(episode, state, scan, created) {
     `state: ${statePath(episode)}${created ? " (new baseline taken now)" : ""}`,
     `takes validated: ${scan.takes.length} · baseline ${state.baseline.length} · heard by this seat ${state.delivered.length}`,
     `last heard: ${lastDelivered ?? "none"}`,
-    `listening now: ${listenerOf(episode) ? "yes" : "no"}`,
+    `listening now: ${presenceLine(listenerOf(episode))}`,
     `unheard: ${pending.length ? pending.map((take) => `${take.takeId} (${take.source})`).join(", ") : "none"}`,
     ...scan.blockers.map((result) => `waiting: ${result.takeId}@${result.source}: ${result.blocker}`),
     ...scan.warnings.map((warning) => `warning: ${warning}`),
@@ -577,6 +597,8 @@ async function main() {
     }
     try {
       const answer = await postReply(episode, takeId, text);
+      const present = listenerOf(episode);
+      if (present?.state === "answering") writeBeat(episode, { state: "answered", takes: present.takes, reply: answer.id });
       console.log(`mia-listen: reply${takeId ? ` to ${takeId}` : ""} delivered to the phone page (${answer.id})`);
       if (answer.unvoiced) console.error(`mia-listen: William can read it but not hear it: ${answer.unvoiced}`);
       return 0;
@@ -612,10 +634,11 @@ async function main() {
   let firstPoll = true;
   let lastWarning = "";
   const listeningSince = new Date().toISOString();
+  let woke = false; // a wake leaves the answering beat for the seat's turn
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
     process.on(signal, () => { stopBeating(episode); process.exit(signal === "SIGINT" ? 130 : 143); });
   }
-  process.on("exit", () => stopBeating(episode));
+  process.on("exit", () => { if (!woke) stopBeating(episode); });
 
   for (;;) {
     beat(episode, listeningSince);
@@ -640,6 +663,8 @@ async function main() {
     if (ready.length) {
       state.delivered = [...new Set([...state.delivered, ...ready.map((take) => take.key)])];
       saveState(episode, state);
+      woke = true;
+      writeBeat(episode, { state: "answering", takes: [...new Set(ready.map((take) => take.takeId))], since: listeningSince });
       console.log(formatWake(episode, ready));
       return 0;
     }

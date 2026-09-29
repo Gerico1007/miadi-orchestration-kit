@@ -22,7 +22,14 @@
   .matches button:active { background:#1b3129; }
   #filter { width:100%; min-height:44px; margin-bottom:8px; padding:8px 10px; border-radius:10px; border:1px solid var(--line); background:var(--panel); color:var(--ink); font-size:.95rem; }
   select { width:100%; min-height:44px; padding:8px 10px; border-radius:10px; border:1px solid var(--line); background:var(--panel); color:var(--ink); font-size:.95rem; }
-  .record { width:100%; min-height:120px; border:0; border-radius:22px; font-size:1.35rem; font-weight:800; background:var(--mint); color:#062117; }
+  /* Record and her controls stay at the top while the words scroll under them (William, 2026-09-29). */
+  .dock { position:sticky; top:0; z-index:5; display:flex; flex-direction:column; gap:10px;
+          margin:0 -16px; padding:10px 16px 12px; background:var(--bg); border-bottom:1px solid var(--line); }
+  .dock .reply-actions { margin-top:0; }
+  .dock audio { margin-top:0; }
+  .dock [hidden] { display:none; }
+  .dock .timer:empty, .dock .status:empty { display:none; }
+  .record { width:100%; min-height:96px; border:0; border-radius:22px; font-size:1.35rem; font-weight:800; background:var(--mint); color:#062117; }
   .record.live { background:var(--live); color:#2b0906; }
   .record:disabled { opacity:.5; }
   .timer { font: 700 2rem ui-monospace, monospace; text-align:center; color:var(--mint); min-height: 2.4rem; }
@@ -54,10 +61,20 @@
     <div id="matches" class="matches" hidden></div>
     <div id="listening" class="listening"></div>
   </div>
-  <button id="record" class="record" type="button" disabled>Record</button>
+  <div class="dock">
+    <button id="record" class="record" type="button" disabled>Record</button>
+    <div id="timer" class="timer" aria-live="off"></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <div id="replyControls" hidden>
+      <div class="reply-actions">
+        <button id="hearReply" class="primary" type="button">Hear Mia</button>
+        <button id="copyReply" type="button">Copy</button>
+      </div>
+      <audio id="replyAudio" controls preload="none" hidden></audio>
+    </div>
+    <div id="replyStatus" class="status" role="status" aria-live="polite"></div>
+  </div>
   <label class="autoplay"><input id="autoplay" type="checkbox"> Play her reply when it arrives</label>
-  <div id="timer" class="timer" aria-live="off"></div>
-  <div id="status" class="status" role="status" aria-live="polite"></div>
   <section id="result" class="result" hidden aria-live="polite">
     <div id="resultHead"></div>
     <div id="transcript" class="transcript"></div>
@@ -65,13 +82,7 @@
   <section id="reply" class="result reply" hidden aria-live="polite">
     <div class="reply-head"><strong>Mia</strong><small id="replyMeta"></small></div>
     <div id="replyText" class="transcript"></div>
-    <div class="reply-actions">
-      <button id="hearReply" class="primary" type="button">Hear Mia</button>
-      <button id="copyReply" type="button">Copy</button>
-    </div>
-    <audio id="replyAudio" controls preload="none" hidden></audio>
   </section>
-  <div id="replyStatus" class="status" role="status" aria-live="polite"></div>
   <small>Recorded on this phone, stored on gaia in the episode's captures, then heard by the session listening there. Mia's reply appears here. Keep the screen on while you speak.</small>
 </main>
 <script>
@@ -85,6 +96,7 @@
   var resultHead = document.getElementById("resultHead");
   var transcript = document.getElementById("transcript");
   var replyBox = document.getElementById("reply");
+  var replyControls = document.getElementById("replyControls");
   var replyMeta = document.getElementById("replyMeta");
   var replyText = document.getElementById("replyText");
   var replyAudio = document.getElementById("replyAudio");
@@ -100,7 +112,7 @@
   var SILENT = "data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA";
   var recorder = null, stream = null, chunks = [], startedAt = 0, tick = null, wakeLock = null;
   var state = "loading", pending = null;
-  var current = null, waiting = null;
+  var current = null, waiting = null, presence = null, needsTap = false;
   var WAIT_MS = 15 * 60 * 1000;
 
   function when(iso) {
@@ -108,7 +120,15 @@
     return isNaN(d) ? "" : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
-  function showReply(reply) {
+  // The reply's words scroll with the page; its controls sit in the dock beside Record.
+  function showReplyBox(visible) {
+    replyBox.hidden = !visible;
+    replyControls.hidden = !visible;
+  }
+
+  // Auto-play is for a reply that arrives while the page is open. One already there when
+  // the page opens is shown, not played: iOS would refuse it and leave "Tap ▶ below".
+  function showReply(reply, arrived) {
     var isNew = !current || current.id !== reply.id;
     current = reply;
     replyText.textContent = reply.text;
@@ -121,14 +141,14 @@
     hearButton.textContent = reply.unvoiced ? "No voice" : "Hear Mia";
     hearButton.disabled = !!reply.unvoiced;
     copyButton.textContent = "Copy";
-    replyBox.hidden = false;
+    showReplyBox(true);
     if (reply.unvoiced) {
       releaseAudioHold();
       replyStatus.textContent = reply.unvoiced + " Read it here or copy it.";
       return;
     }
     if (isNew) replyStatus.textContent = "";
-    if (isNew && autoplay.checked) playReply();
+    if (isNew && autoplay.checked && arrived !== false) playReply();
   }
 
   // The audio renders on demand, so play() starts inside the tap and needs no second one.
@@ -173,18 +193,32 @@
     replyAudio.removeAttribute("src");
   }
 
-  function showListening(isListening) {
-    if (isListening === null || !select.value) { listening.textContent = ""; listening.className = "listening"; return; }
-    listening.textContent = isListening
-      ? "A session is listening on this episode."
-      : "No session is listening on this episode. A take you record waits here until one starts.";
-    listening.className = "listening" + (isListening ? "" : " none");
+  // Who is in the room, read from the listener's heartbeat: listening, answering a take,
+  // just answered and re-arming, or away. Answering used to read as away, so the page said
+  // nobody was listening while Mia was writing her reply.
+  function showListening(seen) {
+    presence = seen || null;
+    if (!seen || !select.value) { listening.textContent = ""; listening.className = "listening"; return; }
+    var takes = (seen.takes || []).join(", ");
+    listening.textContent = {
+      listening: "A session is listening on this episode.",
+      answering: "Mia is answering" + (takes ? " take " + takes : "") + ".",
+      answered: "Mia has answered. The session is getting ready to listen again.",
+    }[seen.state] || "No session is listening on this episode. A take you record waits here until one starts.";
+    listening.className = "listening" + (seen.state === "away" ? " none" : "");
+  }
+
+  function waitingLabel(take) {
+    var state = presence ? presence.state : "";
+    if (state === "away") return "Waiting for a session to hear it… ";
+    if (state === "answering" && (presence.takes || []).indexOf(take) !== -1) return "Mia is answering… ";
+    return "Waiting for Mia… ";
   }
 
   async function replies(episode, take) {
     var query = "api/replies?episode=" + encodeURIComponent(episode) + (take ? "&take=" + take : "");
     var answer = await (await fetch(query)).json();
-    if (answer.success) showListening(answer.listening);
+    if (answer.success) showListening(answer.presence);
     return answer.success ? answer.replies : [];
   }
 
@@ -194,9 +228,9 @@
     if (!select.value || waiting) return;
     try {
       var found = await replies(select.value);
-      if (!found.length) { if (!current) replyBox.hidden = true; return; }
+      if (!found.length) { if (!current) showReplyBox(false); return; }
       if (current && current.id === found[0].id) return; // never interrupt audio already playing
-      showReply(found[0]);
+      showReply(found[0], !!current);
     } catch (_) {}
   }
 
@@ -227,8 +261,24 @@
       var w = JSON.parse(saved);
       if (!w.episode || w.episode !== select.value || Date.now() - w.since > WAIT_MS) { rememberWait(); return false; }
       waitForReply(w.episode, w.take, w.since);
+      armTapToHold();
       return true;
     } catch (_) { return false; }
+  }
+
+  // A reload loses the tap that lets her reply play by itself on iOS. While the page still
+  // waits, the first tap anywhere earns it back.
+  function armTapToHold() {
+    if (!autoplay.checked) return;
+    needsTap = true;
+    function once(event) {
+      document.removeEventListener("click", once, true);
+      document.removeEventListener("touchend", once, true);
+      needsTap = false;
+      if (waiting && event && event.target !== button) holdAudioOpen();
+    }
+    document.addEventListener("click", once, true);
+    document.addEventListener("touchend", once, true);
   }
 
   function stopWaiting() {
@@ -241,7 +291,7 @@
 
   function waitForReply(episode, take, startedAtMs) {
     stopWaiting();
-    replyBox.hidden = true;
+    showReplyBox(false);
     var since = startedAtMs || Date.now();
     rememberWait(episode, take);
     async function check() {
@@ -263,7 +313,8 @@
         replyStatus.textContent = "No reply after 15 minutes. It will appear here on its own if it still comes.";
         return;
       }
-      replyStatus.textContent = "Waiting for Mia… " + Math.floor(elapsed / 60) + ":" + String(elapsed % 60).padStart(2, "0");
+      replyStatus.textContent = waitingLabel(take) + Math.floor(elapsed / 60) + ":" + String(elapsed % 60).padStart(2, "0")
+        + (needsTap ? " · Tap anywhere once so her reply plays by itself." : "");
     }
     waiting = { timer: setInterval(check, 4000) };
     check();
@@ -326,7 +377,7 @@
     stopWaiting();
     rememberWait();
     current = null;
-    replyBox.hidden = true;
+    showReplyBox(false);
     replyStatus.textContent = "";
     remember("episode", select.value);
     urlKeepsState();
@@ -569,18 +620,23 @@
       var strong = document.createElement("strong");
       strong.textContent = "Take " + answer.take + " is in the episode.";
       resultHead.appendChild(strong);
-      showListening(answer.listening);
+      var seen = answer.presence || { state: answer.listening ? "listening" : "away" };
+      showListening(seen);
       resultHead.appendChild(document.createTextNode(answer.transcriptError
         ? " Transcription failed, so no session will wake yet: " + answer.transcriptError
-        : answer.listening
-          ? " The session listening there will hear it."
-          : " No session is listening on this episode, so it waits until one starts."));
+        : {
+          listening: " The session listening there will hear it.",
+          answering: " Mia is answering an earlier take. She hears this one next.",
+          answered: " The session there hears it as soon as it listens again.",
+        }[seen.state] || " No session is listening yet. It waits here, and her reply appears on this page when a session answers it."));
       transcript.textContent = answer.english || "";
       result.hidden = false;
       say("");
       timer.textContent = "";
       setState("idle");
-      if (answer.transcriptError || !answer.listening) releaseAudioHold(); else waitForReply(episode, answer.take);
+      // Wait even when nobody is listening: a session can start at any moment, and her
+      // reply should still play by itself when it comes.
+      if (answer.transcriptError) releaseAudioHold(); else waitForReply(episode, answer.take);
     } catch (error) {
       pending = blob;
       releaseAudioHold();
