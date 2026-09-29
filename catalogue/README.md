@@ -114,6 +114,8 @@ gaia crashed on Sunday 2026-09-27 at 19:31 and rebooted on Monday morning. That 
 - **What:** how the event inquiry is prepared before any broker is chosen, and an invitation to advise.
 - **Made by:** T2 Event path with Kherix, 2026-09-27 and 2026-09-28. Continues episode 547.
 - **Where:** https://miadi.sanctuaireagentique.com/chronicle/2026-09-27-episode-548-before-choosing-a-broker-preparing-the-question-together. Drafts in `~/.kherix/facebook/guillaume-coder/approvals/pending/`: `2026-09-28-episode-548-visual-preview-v2.md` (current), `2026-09-27-episode-548-preparing-the-question.md` (superseded), and `2026-09-26-miadi-event-broker-intent.md`. Tracker miadisabelle/kherix-hermeneia#70.
+- **Saved:** the episode's ten files (script, source ledger, inquiry source, the image with its renderer `images/render_preview.py`, the preview PDF and PNG) are in the episodes repository since commit 82b153d. The inquiry hub `_staging_for_new_episodes/miadi-event-broker-inquiry-hub/` since 685049e. The Page drafts live only in `~/.kherix` on gaia and are in no repository.
+- **Skills used:** `miadi-facebook-page-stewardship` and `miadi-facebook-page-publishing` from jgwill/dotagents (`~/.agents/skills/miadi/social-media/`, stewardship correction in jgwill/dotagents@aaa73e8). `miadi-chronicle-visual-production` and `miadi-community-inquiry-stewardship` from miadisabelle/kherix-hermeneia (`~/.hermes/skills/miadi/`).
 - **Visibility:** public episode page. The drafts are not approved and not posted.
 - **Before a post:** Guillaume's approval of the exact text.
 
