@@ -124,8 +124,9 @@ gaia crashed on Sunday 2026-09-27 at 19:31 and rebooted on Monday morning. That 
 - **What:** tide's documentation rewritten to match what shipped. The ironsilk README says the package is `ironsilk`, which was `hermes-navigator` up to 0.9.2, and that `tide-runtime` on PyPI belongs to someone else. A new page, `docs/how-tide-helps-the-work.md`, explains what tide does for the work. The tide specs gain `15-agent-continuity` and `16-steering-clients-and-cockpit`, and their STATUS is rewritten. The Miadi docs page for tide shows its four parts, the moments they serve, the gate and the restore.
 - **Made by:** T1, session `miadi-18-ba` in tmux `miadi-tide-runtime-pypi-org-ironsilk`, 2026-09-29.
 - **Where:** jgwill/Miadi@bdff1bc9 (`runtime/tide-runtime/README.md`, jgwill/Miadi#359), jgwill/Miadi@c1abc91f (`rispecs/tide-runtime`, jgwill/Miadi#265), jgwill/Miadi@3fe800e9 (`app/docs/miadi-agent/tide`, jgwill/Miadi#381), live on Miadi at `/docs/miadi-agent/tide`.
-- **Visibility:** private repository. The docs page is live on Miadi.
-- **Before a post:** PyPI still shows the old README until the next `ironsilk` release, and that release is William's call.
+- **Released (D17, 2026-09-29):** `ironsilk` 0.9.36 on PyPI carries the corrected README: it no longer names `hermes-navigator`, and `tide-runtime` appears only as the repository path and the service unit name. `@miadi/tide-contract` 0.3.2 and `@miadi/tide` 0.6.1 are on npm. jgwill/Miadi@fd87c7f7 removed the claims in the docs and specs that had not been checked against a source.
+- **Visibility:** private repository. The docs page is live on Miadi, and the README is public on PyPI.
+- **Before a post:** none.
 
 ## Episodes these results relate to
 
