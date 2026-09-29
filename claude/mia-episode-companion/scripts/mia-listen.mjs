@@ -493,7 +493,8 @@ const USAGE = `usage: mia-listen.mjs <command> [--episode <dir>] [--no-fetch]
                       [--interval <sec>=20] [--timeout <sec>=0 (none)] → exit 4 on timeout
   show <take-id>      print a take as a wake without marking it heard
   heard <take-id>     mark a take heard without printing it
-  reply <take-id>     post the return on stdin to the phone page (phone-capture on this host)
+  reply [<take-id>]   post the return on stdin to the phone page (phone-capture on this host);
+                      without a take id it is a message that answers no take
 The episode defaults to the nearest directory above the cwd carrying episode.yaml.
 State: $MIADI_MIA_COMPANION_STATE_DIR, else $XDG_STATE_HOME/miadi-mia-companion.`;
 
@@ -536,7 +537,7 @@ async function postReply(episode, takeId, text) {
   });
   const answer = await response.json().catch(() => ({}));
   if (!response.ok || !answer.success) throw new Error(answer.error || `HTTP ${response.status}`);
-  return answer.id;
+  return answer;
 }
 
 async function main() {
@@ -561,9 +562,12 @@ async function main() {
   }
 
   if (command === "reply") {
+    // A take id is optional: a message typed to Mia, not spoken, answers no take. Without
+    // this path a seat posted to phone-capture by hand, composed its origin, and the voice
+    // layer refused to speak it (2026-09-29).
     const takeId = args._[1];
-    if (!/^\d{12}$/.test(takeId ?? "")) {
-      console.error("mia-listen: reply needs a 12-digit take id, and the return on stdin");
+    if (takeId !== undefined && !/^\d{12}$/.test(takeId)) {
+      console.error("mia-listen: reply takes an optional 12-digit take id, and the return on stdin");
       return EXIT_NO_EPISODE;
     }
     const text = (await readStdin()).trim();
@@ -572,8 +576,9 @@ async function main() {
       return EXIT_NO_EPISODE;
     }
     try {
-      const id = await postReply(episode, takeId, text);
-      console.log(`mia-listen: reply to ${takeId} delivered to the phone page (${id})`);
+      const answer = await postReply(episode, takeId, text);
+      console.log(`mia-listen: reply${takeId ? ` to ${takeId}` : ""} delivered to the phone page (${answer.id})`);
+      if (answer.unvoiced) console.error(`mia-listen: William can read it but not hear it: ${answer.unvoiced}`);
       return 0;
     } catch (error) {
       console.error(`mia-listen: reply not delivered to phone-capture: ${message(error)}. It stays in this conversation.`);

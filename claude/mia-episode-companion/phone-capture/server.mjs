@@ -149,6 +149,24 @@ async function readJson(req, limit = 256 * 1024) {
   }
 }
 
+// The voice layer refuses a voice whose origin cannot be answered. Checking the same
+// rules here moves that refusal to the moment the reply is posted, where the seat can
+// fix it. On 2026-09-29 a seat posted by hand with a composed { host, tmux } origin,
+// the text reached the page, and every tap on Hear Mia ended in a player error.
+export function originProblem(origin) {
+  if (!origin || typeof origin !== "object") return "the reply carries no origin";
+  const missing = ["user", "host", "cwd", "multiplexer"].filter((key) => typeof origin[key] !== "string" || !origin[key]);
+  if (missing.length) return `origin is missing ${missing.join(", ")}`;
+  if (origin.multiplexer === "tmux") return origin.session ? null : "a tmux origin needs its session";
+  if (origin.multiplexer === "herdr") {
+    const absent = ["session", "workspace", "pane"].filter((key) => !origin[key]);
+    return absent.length ? `a herdr origin needs ${absent.join(", ")}` : null;
+  }
+  return `origin.multiplexer is "${origin.multiplexer}": the voice layer answers a tmux or herdr seat only`;
+}
+
+const POST_WITH_MIA_LISTEN = "Post replies with `mia-listen.mjs reply`, which reads the seat's origin in the same invocation.";
+
 // tailscale serve adds these to every request it forwards. A request without them came
 // from a process on this host, which is the only place a reply may come from.
 function fromThisHost(req) {
@@ -174,9 +192,11 @@ function findReply(repliesDir, id) {
 
 function publicReply(reply, repliesDir) {
   const voiced = existsSync(join(repliesDir, "audio", `${reply.id}.mp3`));
+  const problem = voiced ? null : originProblem(reply.origin);
   return {
     id: reply.id, episode: reply.episode, take: reply.take, text: reply.text, seat: reply.seat, at: reply.at,
     audio: voiced ? `api/replies/${reply.id}/audio` : null,
+    ...(problem ? { unvoiced: `This reply cannot be voiced: ${problem}.` } : {}),
   };
 }
 
@@ -225,7 +245,9 @@ export function createApp({ service, chronicleRoot, uploadsDir, repliesDir, list
     };
     mkdirSync(repliesDir, { recursive: true });
     appendFileSync(join(repliesDir, `${reply.episode}.jsonl`), `${JSON.stringify(reply)}\n`, { mode: 0o600 });
-    return { success: true, id: reply.id };
+    // The text is kept either way: William can still read and copy it.
+    const problem = originProblem(reply.origin);
+    return { success: true, id: reply.id, ...(problem ? { unvoiced: `${problem}. ${POST_WITH_MIA_LISTEN}` } : {}) };
   }
 
   function listReplies(url) {
@@ -249,6 +271,8 @@ export function createApp({ service, chronicleRoot, uploadsDir, repliesDir, list
     const file = join(repliesDir, "audio", `${id}.mp3`);
     if (existsSync(file)) return { success: true, audio: `api/replies/${id}/audio` };
     if (!voice) throw new Refusal(503, "the voice layer is not configured on this host");
+    const problem = originProblem(reply.origin);
+    if (problem) throw new Refusal(422, `this reply cannot be voiced: ${problem}. ${POST_WITH_MIA_LISTEN}`);
     if (!voicing.has(id)) {
       voicing.set(id, (async () => {
         const bytes = await voice.render({

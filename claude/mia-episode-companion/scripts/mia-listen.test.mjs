@@ -146,8 +146,8 @@ test("reply posts the return on stdin to phone-capture with this invocation's or
   });
   await new Promise((done) => server.listen(0, "127.0.0.1", done));
   // Async: the stub server lives in this process and must answer while the child waits.
-  const runReply = (env, input) => new Promise((done) => {
-    const child = spawn("node", [SCRIPT, "reply", "260101000001", "--episode", fx.episodeRoot], { env: { ...process.env, ...env } });
+  const runReply = (env, input, take = ["260101000001"]) => new Promise((done) => {
+    const child = spawn("node", [SCRIPT, "reply", ...take, "--episode", fx.episodeRoot], { env: { ...process.env, ...env } });
     let stdout = "", stderr = "";
     child.stdout.on("data", (chunk) => { stdout += chunk; });
     child.stderr.on("data", (chunk) => { stderr += chunk; });
@@ -155,7 +155,13 @@ test("reply posts the return on stdin to phone-capture with this invocation's or
     child.stdin.end(input);
   });
   const posted = await runReply({ MIADI_PHONE_CAPTURE_PORT: String(server.address().port), TMUX_PANE: "%999" }, "William, it arrived.\n");
+  // A message that answers no take goes through the same command, with the same origin.
+  const untaken = await runReply({ MIADI_PHONE_CAPTURE_PORT: String(server.address().port), TMUX_PANE: "%999" }, "Ready when you are.\n", []);
   server.close();
+  assert.equal(untaken.status, 0, untaken.stderr);
+  assert.match(untaken.stdout, /reply delivered to the phone page \(stub-id\)/);
+  assert.equal(received[1].body.take, undefined);
+  assert.equal(received[1].body.origin.pane, "%999");
   assert.equal(posted.status, 0, posted.stderr);
   assert.match(posted.stdout, /delivered to the phone page \(stub-id\)/);
   assert.equal(received[0].url, "/api/replies");

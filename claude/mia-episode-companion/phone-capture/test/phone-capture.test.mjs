@@ -131,7 +131,7 @@ test("Hear Mia renders once through the voice layer as persona mia, then serves 
   const b = await bridge({ transcriber: stubTranscriber, voice });
   try {
     const { id } = await (await fetch(`${b.url}/api/replies`, { method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ episode: EPISODE, take: "260920235421", text: "🧠: **William**, it arrived.\n\n🌸: You can speak from the desk.", origin: { multiplexer: "tmux", session: "s", pane: "%1" } }) })).json();
+      body: JSON.stringify({ episode: EPISODE, take: "260920235421", text: "🧠: **William**, it arrived.\n\n🌸: You can speak from the desk.", origin: { user: "mia", host: "gaia", cwd: "/srv", multiplexer: "tmux", session: "s", pane: "%1" } }) })).json();
     const voiced = await (await fetch(`${b.url}/api/replies/${id}/voice`, { method: "POST" })).json();
     assert.equal(voiced.success, true);
     await fetch(`${b.url}/api/replies/${id}/voice`, { method: "POST" });
@@ -146,6 +146,29 @@ test("Hear Mia renders once through the voice layer as persona mia, then serves 
     assert.equal(await ranged.text(), "ID3-");
     const listed = await (await fetch(`${b.url}/api/replies?episode=${EPISODE}`)).json();
     assert.equal(listed.replies[0].audio, voiced.audio);
+  } finally {
+    b.close();
+  }
+});
+
+test("a reply whose origin the voice layer would refuse is kept as text, flagged, and never sent to be voiced", async () => {
+  const requests = [];
+  const voice = { async render(request) { requests.push(request); return Buffer.from("ID3"); } };
+  const b = await bridge({ transcriber: stubTranscriber, voice });
+  try {
+    // The origin a seat composed by hand on 2026-09-29.
+    const posted = await (await fetch(`${b.url}/api/replies`, { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ episode: EPISODE, text: "🧠: Ready.", origin: { host: "gaia", tmux: "some-session" } }) })).json();
+    assert.equal(posted.success, true);
+    assert.match(posted.unvoiced, /origin is missing user, cwd, multiplexer/);
+    assert.match(posted.unvoiced, /mia-listen\.mjs reply/);
+    const listed = await (await fetch(`${b.url}/api/replies?episode=${EPISODE}`)).json();
+    assert.equal(listed.replies[0].text, "🧠: Ready.");
+    assert.match(listed.replies[0].unvoiced, /cannot be voiced/);
+    const refused = await fetch(`${b.url}/api/replies/${posted.id}/voice`, { method: "POST" });
+    assert.equal(refused.status, 422);
+    assert.equal((await fetch(`${b.url}/api/replies/${posted.id}/audio`)).status, 422);
+    assert.equal(requests.length, 0, "the voice layer is not asked");
   } finally {
     b.close();
   }

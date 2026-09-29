@@ -118,10 +118,16 @@
       replyAudio.removeAttribute("src");
       replyAudio.hidden = true;
     }
-    hearButton.textContent = "Hear Mia";
-    hearButton.disabled = false;
+    hearButton.textContent = reply.unvoiced ? "No voice" : "Hear Mia";
+    hearButton.disabled = !!reply.unvoiced;
     copyButton.textContent = "Copy";
     replyBox.hidden = false;
+    if (reply.unvoiced) {
+      releaseAudioHold();
+      replyStatus.textContent = reply.unvoiced + " Read it here or copy it.";
+      return;
+    }
+    if (isNew) replyStatus.textContent = "";
     if (isNew && autoplay.checked) playReply();
   }
 
@@ -270,10 +276,23 @@
     hearButton.disabled = false;
   });
 
+  // The player only knows that the audio failed. The server knows why, so ask it.
   replyAudio.addEventListener("error", function () {
     hearButton.textContent = "Hear Mia";
     hearButton.disabled = false;
-    if (replyAudio.getAttribute("src")) replyStatus.textContent = "Her voice could not be rendered.";
+    var src = replyAudio.getAttribute("src") || "";
+    if (!current || src.indexOf("api/replies/") !== 0) return;
+    replyStatus.textContent = "Her voice could not be rendered.";
+    var id = current.id;
+    fetch("api/replies/" + id + "/voice", { method: "POST" })
+      .then(function (response) { return response.json(); })
+      .then(function (answer) {
+        if (!current || current.id !== id) return;
+        replyStatus.textContent = answer.success
+          ? "Her voice is ready now. Tap Hear Mia."
+          : "Her voice could not be rendered: " + answer.error;
+      })
+      .catch(function () {});
   });
 
   autoplay.addEventListener("change", function () {
