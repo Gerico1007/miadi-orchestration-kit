@@ -59,7 +59,7 @@ button { font: inherit; font-size: 13px; background: var(--panel); color: var(--
   <div class="errors" id="errors"></div>
 
   <h2>Threads</h2>
-  <div class="meta">Every Claude Code session on this host, grouped by team and seat. A parent is recorded when a fork line in the binding file names it, inferred from transcript when a seat thread's transcript holds records copied from an earlier one, and unknown otherwise. The last input is the last thing William typed there (peer messages and notices skipped). Those records carry no time.</div>
+  <div class="meta">Every Claude Code session on this host, grouped by team and seat. A parent is recorded when a fork line in the binding file names it, inferred from transcript when a seat thread's transcript holds records copied from an earlier one. A thread whose binding line records a startup is fresh. Otherwise the parent is unknown. The last input is the last thing William typed there (peer messages and notices skipped). Those records carry no time.</div>
   <div id="threads"></div>
 
   <h2>Asks</h2>
@@ -76,7 +76,9 @@ function threadCard(node, threads) {
   const t = threads[node.session_id];
   const parentName = esc(threads[t.parent.session_id]?.name ?? t.parent.session_id);
   const ev = t.parent.evidence;
-  const parent = !t.parent.known
+  const parent = t.parent.basis === "fresh"
+    ? `<div class="parent">fresh (recorded): ${esc(t.parent.via)}</div>`
+    : !t.parent.known
     ? `<div class="parent">parent unknown: ${esc(t.parent.reason)}</div>`
     : t.parent.basis === "recorded"
       ? `<div class="parent known">fork of ${parentName} · recorded: ${esc(t.parent.via)}</div>`

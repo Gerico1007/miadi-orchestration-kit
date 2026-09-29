@@ -13,8 +13,9 @@
 // The parent of a thread comes from its fork line and nothing else. A thread with no fork
 // line is "recorded". For threads in a configured seat, lineage.mjs can infer a parent from
 // records a fork copied out of its parent's transcript; that parent is "inferred from
-// transcript" and carries its evidence. Otherwise the parent is "unknown", even when the
-// thread's name says "fork".
+// transcript" and carries its evidence. A thread whose binding line is a session.start with
+// source "startup" has no parent: it is "fresh", recorded. Otherwise the parent is "unknown",
+// even when the thread's name says "fork".
 
 import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
@@ -231,6 +232,7 @@ export function buildThreads({ bindings = [], sessions = [], teams = null, seats
     if (line.cwd && !thread.cwd) thread.cwd = line.cwd;
     if (line.transcript_path) thread.transcript_path = line.transcript_path;
     if (line.team?.id) thread.team = { id: line.team.id, source: `binding (${line.team.source || "?"})` };
+    if (line.event === "session.start" && line.source === "startup" && !thread.startup) thread.startup = { at: line.at ?? null };
     if (line.event === "session.start" && line.source === "fork" && !thread.fork) {
       thread.fork = { at: line.at ?? null, ...forkParentRef(line.argv), argv: line.argv ?? [] };
     }
@@ -262,13 +264,17 @@ export function buildThreads({ bindings = [], sessions = [], teams = null, seats
     }
     thread.name ??= thread.names.at(-1) ?? null;
     thread.team ??= teamFor({ tmuxSession: thread.tmux?.session, name: thread.name, cwd: thread.cwd }, teams);
-    thread.seat = seatFor({ cwd: thread.cwd, names: thread.names }, seats);
+    thread.seat = seatFor({ cwd: thread.cwd, names: [...thread.names, thread.tmux?.session].filter(Boolean) }, seats);
     thread.last_input = sessiondata ? lastWilliamInput(sessiondata, thread.session_id) : null;
   };
   for (const thread of byId.values()) finish(thread);
 
   // Parents, recorded: a fork line. A name resolves when exactly one other thread carried it.
+  // A startup line with no fork line records a fresh thread, which has no parent.
   for (const thread of byId.values()) {
+    if (!thread.fork && thread.startup) {
+      thread.parent = { session_id: null, known: false, basis: "fresh", via: `session.start with source "startup" at ${thread.startup.at ?? "an unknown time"}` };
+    }
     if (!thread.fork) continue;
     const { ref, reason } = thread.fork;
     if (!ref) {
@@ -297,7 +303,7 @@ export function buildThreads({ bindings = [], sessions = [], teams = null, seats
   // Parents, inferred: records a fork copied from its parent's transcript. A parent known only
   // by its transcript joins the model as a thread of its own, and is inferred in turn.
   if (lineage) {
-    const pending = [...byId.values()].filter((thread) => !thread.parent.known && lineage.infer(thread));
+    const pending = [...byId.values()].filter((thread) => !thread.parent.known && thread.parent.basis !== "fresh" && lineage.infer(thread));
     const tried = new Set();
     while (pending.length) {
       const thread = pending.shift();

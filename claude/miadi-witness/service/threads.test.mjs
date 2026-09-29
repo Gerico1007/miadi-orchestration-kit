@@ -164,3 +164,16 @@ test("a later-born transcript is never a parent, and a tie is broken only by the
   assert.equal(byId.get(B).parent.session_id, A);
   assert.match(byId.get(B).parent.evidence.tiebreak, /only aaaaaaaa/);
 });
+
+test("fresh (recorded): a startup line with no fork line has no parent, and is not inferred", () => {
+  const { lineage } = projects({
+    [A]: { born: "2026-09-26T00:00:00Z", records: [rec("u1", "2026-09-26T01:00:00Z")] },
+    // even a shared record does not turn a recorded startup into a fork
+    [B]: { born: "2026-09-28T00:00:00Z", records: [rec("u1", "2026-09-26T01:00:00Z")] },
+  });
+  const byId = buildThreads({ bindings: [seatLine(B, { source: "startup", at: "2026-09-28T00:00:01Z" }), seatLine(B, { event: "session.rename", source: "" })], lineage });
+  assert.equal(byId.get(B).parent.basis, "fresh");
+  assert.equal(byId.get(B).parent.known, false);
+  assert.match(byId.get(B).parent.via, /startup.*2026-09-28T00:00:01Z/);
+  assert.equal(byId.has(A), false);
+});
