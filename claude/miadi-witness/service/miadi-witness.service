@@ -8,6 +8,7 @@ Wants=network-online.target
 Type=simple
 Environment=WITNESS_HOST=127.0.0.1
 Environment=WITNESS_PORT=3340
+Environment=WITNESS_TIDE_BIN=@TIDE@
 ExecStart=@NODE@ @SERVICE_DIR@/witness-service.mjs
 Restart=always
 RestartSec=3

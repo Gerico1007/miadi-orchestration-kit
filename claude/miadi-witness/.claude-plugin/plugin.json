@@ -1,7 +1,7 @@
 {
   "name": "miadi-witness",
-  "description": "The witness team's practices (T3) for any Claude Code seat that works beside William. Read another agent's session and the page it published, speak a first impression he can play on his phone, and hold any revision until he answers. Keep the session inventory: one record per tmux session, with its id, name and team read from the session continuity team's binding line, and an observation at each visit.",
-  "version": "0.1.0",
+  "description": "The witness team's practices and loop (T3). A service on 127.0.0.1:3340 shows every thread by team and seat, with each parent recorded, inferred from its transcript, or unknown, and William's asks with their evidence. It opens mino threads and prepares tide sends for idle ones. /witness-listen wakes the seat on William's new input blocks, new threads and threads that finish a turn. The witness-editor checks a reply for dropped asks, unsourced claims, density and forbidden phrases. The inventory-keeper writes the session inventory keyed by session id. Also: read a peer session and its page, speak a first impression William can play, and hold revisions until he answers.",
+  "version": "0.2.0",
   "author": {
     "name": "jgwill"
   },

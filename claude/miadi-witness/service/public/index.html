@@ -49,6 +49,9 @@ blockquote { margin: 6px 0; padding: 8px 10px; background: var(--quote); border-
 ul { margin: 4px 0; padding-left: 20px; }
 .ask-id { font: 600 13px ui-monospace, Menlo, monospace; }
 .errors { color: var(--warn); font-size: 13px; }
+textarea { width: 100%; margin-top: 6px; font: inherit; font-size: 14px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--quote); padding: 8px; border-radius: 6px; margin: 6px 0; }
+.compose .row { margin-top: 6px; }
 button { font: inherit; font-size: 13px; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 2px 10px; cursor: pointer; }
 </style>
 </head>
@@ -84,6 +87,11 @@ function threadCard(node, threads) {
       ? `<div class="parent known">fork of ${parentName} · recorded: ${esc(t.parent.via)}</div>`
       : `<div class="parent inferred">fork of ${parentName} · inferred from transcript: ${esc(ev.shared_records)} records copied, the first a ${esc(ev.first_copied?.type ?? "?")} record from ${esc(when(ev.first_copied?.at))}${ev.tiebreak ? ` · ${esc(ev.tiebreak)}` : ""}</div>`;
   const tmux = t.tmux ? `tmux <code>${esc(t.tmux.session)}</code> ${esc(t.tmux.pane_id ?? "")}` : "no tmux";
+  const alias = t.launch_alias ? ` · launched with <code>${esc(t.launch_alias)}</code>` : "";
+  const compose = t.live && t.status === "idle" && t.tmux?.pane_id ? `<details class="compose"><summary>prepare a message</summary>
+      <textarea rows="3" data-target="${esc(t.session_id)}" placeholder="What should this thread receive?"></textarea>
+      <div class="row"><button type="button" data-prepare="${esc(t.session_id)}">Prepare the tide command</button></div>
+      <div class="prepared" data-for="${esc(t.session_id)}"></div></details>` : "";
   const names = t.names.length > 1
     ? `<details><summary>${t.names.length} names</summary><ul>${t.names.map((n) => `<li><code>${esc(n)}</code></li>`).join("")}</ul></details>` : "";
   const input = t.last_input
@@ -93,8 +101,8 @@ function threadCard(node, threads) {
   return `<div class="card">
     <div class="row"><span class="name">${esc(t.name ?? "(no name)")}</span>
       <span class="chip ${statusClass(t.status)}">${esc(t.status)}</span>
-      <span class="meta">${tmux} · <code>${esc(short(t.session_id))}</code> · last seen ${esc(when(t.last_seen))}</span></div>
-    ${parent}${names}${input}
+      <span class="meta">${tmux} · <code>${esc(short(t.session_id))}</code>${alias} · last seen ${esc(when(t.last_seen))}</span></div>
+    ${parent}${names}${input}${compose}
   </div>${kids}`;
 }
 
@@ -102,12 +110,43 @@ function seatLabel(id) {
   return id.startsWith("folder:") ? `folder ${id.slice(7)}` : `seat ${id}`;
 }
 
+// A prepared message stays a dry run: the page shows tide's exact command and William runs it
+// in his own terminal, because tide sends only from an interactive terminal in controller mode.
+document.addEventListener("click", async (event) => {
+  const prepare = event.target.closest("[data-prepare]");
+  const copy = event.target.closest("[data-copy]");
+  if (prepare) {
+    const id = prepare.dataset.prepare;
+    const message = document.querySelector(`textarea[data-target="${id}"]`).value;
+    const out = document.querySelector(`.prepared[data-for="${id}"]`);
+    const result = await fetch("/api/send", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ target: id, message }) })
+      .then((r) => r.json()).catch((e) => ({ error: e.message }));
+    out.innerHTML = result.ok
+      ? `<div class="meta">Run this in your terminal (tide sends only from an interactive terminal in controller mode):</div>
+         <pre><code>${esc(result.run_this_in_your_terminal)}</code></pre><button type="button" data-copy="${esc(result.run_this_in_your_terminal)}">Copy</button>`
+      : `<div class="errors">${esc(result.error ?? "not prepared")}</div>`;
+  }
+  if (copy) {
+    try {
+      await navigator.clipboard.writeText(copy.dataset.copy);
+      copy.textContent = "Copied";
+    } catch {
+      copy.textContent = "Select the command and copy it";
+    }
+  }
+});
+
+let composing = false;
+document.addEventListener("focusin", (e) => { if (e.target.matches("textarea")) composing = true; });
+document.addEventListener("toggle", (e) => { if (e.target.matches?.(".compose")) composing = [...document.querySelectorAll(".compose")].some((d) => d.open); }, true);
+
 async function loadThreads() {
   const model = await fetch("/api/threads").then((r) => r.json());
   const count = Object.keys(model.threads).length;
   const live = Object.values(model.threads).filter((t) => t.live).length;
+  const listening = Object.entries(model.listening ?? {}).map(([seat, l]) => `witness ${seat} ${l ? "listening" : "not listening"}`).join(" · ");
   document.getElementById("meta").textContent =
-    `${count} threads, ${live} running · ${model.sources.bindings.lines} binding lines · read ${when(model.generated_at)}`;
+    `${count} threads, ${live} running · ${listening} · ${model.sources.bindings.lines} binding lines · read ${when(model.generated_at)}`;
   document.getElementById("errors").textContent = model.sources.errors.join(" · ");
   const running = (node) => model.threads[node.session_id].live || node.children.some(running);
   const teams = [...model.tree].sort((a, b) => (b.id === model.home_team) - (a.id === model.home_team));
@@ -151,7 +190,8 @@ function refresh() {
   loadAsks().catch((e) => { document.getElementById("asks-meta").textContent = `asks: ${e.message}`; });
 }
 refresh();
-setInterval(() => loadThreads().catch(() => {}), 15000);
+// refreshing would erase a message being written, so the tree holds still while one is open
+setInterval(() => { if (!composing) loadThreads().catch(() => {}); }, 15000);
 </script>
 </body>
 </html>

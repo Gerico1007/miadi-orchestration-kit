@@ -231,6 +231,7 @@ export function buildThreads({ bindings = [], sessions = [], teams = null, seats
     if (line.tmux?.session) thread.tmux = { session: line.tmux.session, window: line.tmux.window ?? null, pane_id: line.tmux.pane_id ?? null };
     if (line.cwd && !thread.cwd) thread.cwd = line.cwd;
     if (line.transcript_path) thread.transcript_path = line.transcript_path;
+    if (line.launch_alias) thread.launch_alias = line.launch_alias;
     if (line.team?.id) thread.team = { id: line.team.id, source: `binding (${line.team.source || "?"})` };
     if (line.event === "session.start" && line.source === "startup" && !thread.startup) thread.startup = { at: line.at ?? null };
     if (line.event === "session.start" && line.source === "fork" && !thread.fork) {

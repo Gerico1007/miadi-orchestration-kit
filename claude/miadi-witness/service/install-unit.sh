@@ -5,7 +5,8 @@
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 node_bin="$(command -v node)"
-unit="$(sed -e "s|@NODE@|${node_bin}|" -e "s|@SERVICE_DIR@|${here}|" "${here}/miadi-witness.service")"
+tide_bin="$(command -v tide || echo tide)"
+unit="$(sed -e "s|@NODE@|${node_bin}|" -e "s|@SERVICE_DIR@|${here}|" -e "s|@TIDE@|${tide_bin}|" "${here}/miadi-witness.service")"
 if [[ "${1:-}" == "--print" ]]; then
   printf '%s\n' "$unit"
   exit 0
@@ -20,3 +21,4 @@ sleep 1
 systemctl --user is-active miadi-witness.service
 echo "installed ${target}"
 echo "node ${node_bin} (nvm-versioned: re-run this script after a node upgrade)"
+echo "tide ${tide_bin}"

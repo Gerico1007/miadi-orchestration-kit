@@ -26,8 +26,8 @@
     {
       "name": "miadi-witness",
       "source": "./claude/miadi-witness",
-      "description": "The witness team's practices (T3): read a peer session and its page, speak a first impression William can play, hold revisions until he answers, and keep the session inventory from the binding line.",
-      "version": "0.1.0"
+      "description": "The witness team's practices and loop (T3): a loopback thread service with the asks ledger, a wake loop, an editor pass for replies to William, the inventory keeper, a first impression he can play, and revisions held until he answers.",
+      "version": "0.2.0"
     }
   ]
 }
