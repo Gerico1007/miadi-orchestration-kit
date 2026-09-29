@@ -37,6 +37,10 @@ those rules here goes there too.
   what remains. Earned in jgwill/binscripts@2064dd07858668206702214d0a8949d36c48befc.
 - **Nothing on stdout.** Claude Code injects the stdout of SessionStart and UserPromptSubmit
   hooks into the conversation. The binding writer prints nothing.
+- **SessionEnd returns at once.** Claude Code cancels SessionEnd hooks after 1.5 s and prints
+  "Hook cancelled" on exit. `session_end_hook.sh` reads the agent's pid and command line, then
+  runs everything else in a detached copy of itself. Work added to SessionEnd goes after the
+  `--detached` line. Earned in 0.1.1.
 
 ## Where it is installed
 

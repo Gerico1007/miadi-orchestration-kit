@@ -17,7 +17,12 @@
 
 # The agent process: the nearest ancestor that Claude Code registered in
 # ~/.claude/sessions/<pid>.json, else the nearest ancestor named claude.
+# _TB_AGENT_PID, when set, is the answer already found by a hook that detached its work.
 _tb_agent_pid() {
+    if [ -n "${_TB_AGENT_PID:-}" ]; then
+        printf '%s' "$_TB_AGENT_PID"
+        return 0
+    fi
     local pid="$PPID" first_claude="" comm i
     for i in 1 2 3 4 5 6 7 8; do
         case "$pid" in ''|0|1) break ;; esac
@@ -111,6 +116,16 @@ _tb_team_json() {
         || printf '{"id":"unassigned","source":"unreadable teams file"}'
 }
 
+# The agent's command line as a JSON array, [] when the process is gone.
+_tb_argv_json() {
+    if [ -n "$1" ] && [ -r "/proc/$1/cmdline" ]; then
+        jq -Rsc 'split("\u0000") | map(select(length > 0))' < "/proc/$1/cmdline" 2>/dev/null \
+            || printf '[]'
+    else
+        printf '[]'
+    fi
+}
+
 _tb_append() {
     local session_id="$1" line
     line=$(claude_sanitize_text "$2")
@@ -148,9 +163,10 @@ claude_write_terminal_binding() {
             "$state" 2>/dev/null)
         [ -n "$name_json" ] || name_json="null"
     fi
-    if [ -n "$agent_pid" ] && [ -r "/proc/$agent_pid/cmdline" ]; then
-        argv_json=$(jq -Rsc 'split("\u0000") | map(select(length > 0))' \
-            < "/proc/$agent_pid/cmdline" 2>/dev/null) || argv_json="[]"
+    if [ -n "${_TB_ARGV_JSON:-}" ]; then
+        argv_json="$_TB_ARGV_JSON"
+    else
+        argv_json=$(_tb_argv_json "$agent_pid")
     fi
     local team_json
     team_json=$(_tb_team_json \
