@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # terminal_binding.sh — join an agent session to the terminal it runs in.
 #
-# One line per session start, end, rename and first sighting, with the session's team, appended to
+# One line per session start, end, rename and first sighting, with the session's team and episode, appended to
 #   $CLAUDE_SESSIONDATA_ROOT/data/terminal_bindings.jsonl     every session, one file
 #   $CLAUDE_SESSIONDATA_ROOT/<session_id>/_terminal_binding.jsonl
 #
@@ -116,6 +116,38 @@ _tb_team_json() {
         || printf '{"id":"unassigned","source":"unreadable teams file"}'
 }
 
+# {id, source} for the chronicle episode the session works in, or null. This is how an
+# episode knows its terminals (Q1 on the Tmux Agent Restore page). An episode is a directory
+# directly under MIADI_CHRONICLE_ROOT named <yyyy-mm-dd>-episode-<n>-<slug>. Order: a
+# directory the agent was given with --add-dir, then the agent's folder, then
+# MIADI_CHRONICLE_PROD_EPISODE. The variable comes last because it is exported in every
+# shell: alone it names the episode in production, not the one this session works in.
+_tb_episode_json() {
+    local cwd="$1" argv_json="${2:-[]}" root="${MIADI_CHRONICLE_ROOT:-}" real=""
+    [ -n "$root" ] && real=$(realpath -m "$root" 2>/dev/null)
+    jq -cn --arg cwd "$cwd" --argjson argv "$argv_json" --arg root "${root%/}" --arg real "${real%/}" \
+        --arg declared "${MIADI_CHRONICLE_PROD_EPISODE:-}" '
+        def episode($path): ($path | sub("/+$"; "")) as $p
+            | [$root, $real][] | select(. != "") as $r
+            | select($p | startswith($r + "/"))
+            | $p | ltrimstr($r + "/") | split("/")[0]
+            | select(test("^[0-9]{4}-[0-9]{2}-[0-9]{2}-episode-[0-9]+"));
+        ($argv | reduce .[] as $a ({on: false, dirs: []};
+            if $a == "--add-dir" then .on = true
+            elif ($a | startswith("--add-dir=")) then .dirs += [$a | ltrimstr("--add-dir=")] | .on = false
+            elif ($a | startswith("-")) then .on = false
+            elif .on then .dirs += [$a]
+            else . end) | .dirs
+          | map(if startswith("/") then . else $cwd + "/" + . end)) as $dirs
+        | ([$dirs[] | episode(.)] | first) as $by_dir
+        | ([episode($cwd)] | first) as $by_cwd
+        | ($declared | split("/") | map(select(. != "")) | last) as $by_name
+        | if $by_dir then {id: $by_dir, source: "add-dir"}
+          elif $by_cwd then {id: $by_cwd, source: "cwd"}
+          elif $by_name then {id: $by_name, source: "declared"}
+          else null end' 2>/dev/null || printf 'null'
+}
+
 # The agent's command line as a JSON array, [] when the process is gone.
 _tb_argv_json() {
     if [ -n "$1" ] && [ -r "/proc/$1/cmdline" ]; then
@@ -168,11 +200,13 @@ claude_write_terminal_binding() {
     else
         argv_json=$(_tb_argv_json "$agent_pid")
     fi
-    local team_json
+    local team_json episode_json cwd
+    cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
     team_json=$(_tb_team_json \
-        "$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)" \
+        "$cwd" \
         "$(printf '%s' "${tmux_json:-null}" | jq -r '.session? // empty' 2>/dev/null)" \
         "$(printf '%s' "${name_json:-null}" | jq -r '.name? // empty' 2>/dev/null)")
+    episode_json=$(_tb_episode_json "$cwd" "${argv_json:-[]}")
 
     line=$(printf '%s' "$input" | jq -c \
         --arg at "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)" \
@@ -184,10 +218,12 @@ claude_write_terminal_binding() {
         --argjson name "${name_json:-null}" \
         --argjson tmux "${tmux_json:-null}" \
         --argjson team "${team_json:-null}" \
+        --argjson episode "${episode_json:-null}" \
         '{at: $at, event: $event, source: (.source // .reason // ""), agent: "claude",
           session_id: .session_id, cwd: (.cwd // ""), transcript_path: (.transcript_path // ""),
           host: $host, pid: ($pid | tonumber? // null), argv: $argv,
-          launch_alias: $launch_alias, name: $name, tmux: $tmux, team: $team}' 2>/dev/null) || return 0
+          launch_alias: $launch_alias, name: $name, tmux: $tmux, team: $team,
+          episode: $episode}' 2>/dev/null) || return 0
     [ -n "$line" ] || return 0
 
     _tb_append "$session_id" "$line"

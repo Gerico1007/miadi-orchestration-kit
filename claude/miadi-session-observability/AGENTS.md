@@ -9,10 +9,11 @@ jgwill/miadi-orchestration-kit#56. The README says how to install it and how tea
 - `hooks/hooks.json`: the 12 events and 14 commands that `/opt/binscripts/hooks/claude_hooks`
   wires by hand in `settings.json`, with every path through `${CLAUDE_PLUGIN_ROOT}`.
 - `hooks/claude_hooks/`: the capture scripts, with `terminal_binding.sh` (the binding line,
-  its name history, and the team).
+  its name history, the team and the episode).
 - `hooks/secret_capture_sanitizer.sh`, `hooks/git_command_validator.sh`: bundled copies.
 - `skills/session-continuity/`: T1's practice.
 - `tests/team-resolution.sh`: the team rules, 13 checks.
+- `tests/episode-resolution.sh`: the episode rules, 13 checks.
 
 ## This is the canonical copy
 

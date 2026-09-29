@@ -10,7 +10,8 @@ jgwill/miadi-orchestration-kit#56.
 - **Binding line.** Every session start, end and rename appends one line to
   `<root>/data/terminal_bindings.jsonl`. The line holds the session id, the tmux
   `session:window.pane` and pane id, the agent's command line, its name and name history, and
-  its team. tmux restore and `tide agents restore` read these lines to bring agents back.
+  its team, and the chronicle episode it works in. tmux restore and `tide agents restore` read
+  these lines to bring agents back.
 - **Skill.** `session-continuity` carries T1's practice: the binding line, tmux save and
   restore, tide, and rebuilding what each pane held after a crash.
 
@@ -73,6 +74,7 @@ installed plugin is a copy of this folder, so it cannot reach the kit by a relat
 
 ```bash
 bash tests/team-resolution.sh
+bash tests/episode-resolution.sh
 CLAUDE_SESSIONDATA_ROOT=$(mktemp -d) claude --restricted --plugin-dir . --model haiku
 ```
 

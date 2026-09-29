@@ -31,7 +31,7 @@ computer rebooted."
 
 | part | what it keeps | where |
 |---|---|---|
-| binding line | each Claude session's id, tmux `session:window.pane`, pane id, command line, name history, team | this plugin's `hooks/claude_hooks/terminal_binding.sh`, written to `<root>/data/terminal_bindings.jsonl` |
+| binding line | each Claude session's id, tmux `session:window.pane`, pane id, command line, name history, team, chronicle episode | this plugin's `hooks/claude_hooks/terminal_binding.sh`, written to `<root>/data/terminal_bindings.jsonl` |
 | tmux save and restore | layout, folders, visible screens, every 15 minutes | `jgwill/gaia` `linux_migration/14-tmux-resurrect.sh` and its two hooks |
 | tide | the agent in each pane, every 60 s, and the relaunch after a restore | `ironsilk` 0.9.35 and later, `tide agents list`, `tide agents restore` |
 | recovery list | what each pane probably held, when the three above had nothing | built by hand as in "After a crash" below |
@@ -94,6 +94,7 @@ Try it without touching anything: `tide agents restore --dry-run --force`.
 - tide: an agent launched with an alias that adds tools, then a snapshot, a save, a kill and a
   restart. The pane resumes the same session with the same MCP configs.
 - Team: `bash tests/team-resolution.sh` in this plugin.
+- Episode: `bash tests/episode-resolution.sh` in this plugin.
 
 Never test against the live tmux server. Starting a private server loads the same plugins, and
 its `run-shell` jobs get `TMUX` for that server, so they stay on it.
@@ -129,6 +130,15 @@ Every session belongs to one team, and the binding line says which one and how i
 then its folders (the longest prefix wins), then its name patterns, else `unassigned`. The list
 is `MIADI_TEAMS_FILE`, else `$MIADI_ORCHESTRATION_KIT_ROOT/teams/teams.json`. Keep it in step
 with `teams/README.md`. Naming a new team is William's.
+
+## Episodes
+
+The binding line also names the chronicle episode a session works in, so an episode can list
+its terminals: `{"id": "2026-09-27-episode-548-...", "source": "cwd"}`. An episode is a
+directory directly under `MIADI_CHRONICLE_ROOT` named `<yyyy-mm-dd>-episode-<n>-<slug>`. The
+order is a directory given with `--add-dir` (`add-dir`), then the agent's folder (`cwd`), then
+`MIADI_CHRONICLE_PROD_EPISODE` (`declared`), else `null`. The variable comes last because every
+shell exports it: alone it names the episode in production, not the one the session works in.
 
 ## Related
 
