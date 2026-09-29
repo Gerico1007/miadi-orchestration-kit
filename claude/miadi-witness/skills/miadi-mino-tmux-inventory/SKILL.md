@@ -1,6 +1,6 @@
 ---
 name: miadi-mino-tmux-inventory
-description: Close a tmux session and capture its work as inventory in a chart for future reference
+description: Keep the session inventory. For a tmux session William names, find its session id (from its binding line, or /exit or /status), read what it did, and write one JSON record in ~/workspace/.mino/session-inventory/ following SCHEMA.md there, closed or ongoing
 metadata:
   type: skill
   version: 1.0.0
@@ -17,7 +17,7 @@ The Claude Code `/exit` command prints a **SESSION ID** to the terminal. This ID
 
 ## What This Is
 
-When a tmux session completes work, Mino closes it and captures what happened in a chart. This creates a ledger: work is traceable, returnable, findable by SESSION ID.
+When a tmux session completes work, Mino closes it and records what happened in the session inventory, a JSON file per session. This creates a ledger: work is traceable, returnable, findable by SESSION ID.
 
 ## The Ritual
 
@@ -74,7 +74,12 @@ Wait for output showing the SESSION ID. Read it from the pane output. Do not ski
 
 ### Step 4: Record in Schema-Based Inventory (SESSION ID as Primary Key)
 
-Save the session inventory in JSON format following the schema at `~/.mino/session-inventory/SCHEMA.md`.
+Save the session inventory in JSON format following the schema at `~/workspace/.mino/session-inventory/SCHEMA.md` (William rejected `~/.mino/` on 2026-09-27). The filename is `<SESSION_ID>.json`, and an ongoing session is `ONGOING-<tmux name>.json` with its `session_id` field filled.
+
+**References and origin, William's rules of 2026-09-27:**
+- Write every issue as `owner/repo#number`, never a bare `#number`.
+- To know which repo a session worked in, read its start: `head -1 /src/_sessiondata/<session_id>/_claude_session_starts.jsonl | jq -r .cwd`, then `git -C <cwd> remote get-url origin`.
+- `miadi-hooks-interpret session <session_id>` summarises a session from its hook capture before you read the transcript.
 
 **File location:** `~/workspace/.mino/session-inventory/{SESSION_ID}.json` (use the SESSION ID from /exit, not tmux name)
 
@@ -107,7 +112,7 @@ The schema is machine-readable. Code can later parse these files to:
 
 ## Why This Matters
 
-- **Sessions don't disappear**: their work lives in a chart
+- **Sessions don't disappear**: their work lives in the inventory
 - **SESSION ID is the reference**: a stable identifier to return to the session's transcript
 - **Work is discoverable**: "what did that closing do?" has an answer in the ledger
 - **Continuity across restarts**: future instances know what was standing when this session closed
@@ -115,7 +120,7 @@ The schema is machine-readable. Code can later parse these files to:
 
 ## Example Inventory
 
-**Chart entry for a completed session:**
+**Inventory record for a completed session:**
 
 - **Session**: miadi-react-issue-688-ok-skill-57
 - **SESSION ID**: (would be captured from /exit)
@@ -153,7 +158,7 @@ This transforms the session from "work done" into "decisions ready for approval 
 
 Mino closes the session with `/exit`. The harness fires a SessionEnd hook that captures the SESSION ID. That ID becomes the permanent address for this session's work in the charts.
 
-The inventory chart is queryable: ask "show me sessions that touched jgwill/Miadi#688" and the chart should answer.
+The inventory is queryable: ask "show me sessions that touched jgwill/Miadi#688" and the chart should answer.
 
 **ONGOING sessions** (marked `do_not_close: true`) capture proposals and related infrastructure work. These sessions are held open until human decisions are made and work can proceed.
 

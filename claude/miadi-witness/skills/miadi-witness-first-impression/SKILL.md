@@ -81,6 +81,12 @@ Sometimes William records his screen while the reply plays, then publishes the v
 - **Explain any term a community listener would not know**, such as tmux or hooks, in one clause.
 - **After he shares the video:** add its link and a QR code to the page. Generate the code with `qrencode -t SVG --inline --svg-path -m 2 "<short url>"` and inline it on a white background so it scans in both themes. Record the URL in the chart, and hold the video as an internal source for `miadi-review` until he decides to review it.
 
+## Before any answer
+
+- Read every file, page and session William names before you answer about it. On 2026-09-27 he had to ask "have you even peeked and looked at these files before producing your last output?"
+- Keep his asks. Before a reply, list what his last message asked for and check each one against what you did. When a conversation grows long, send his own words (not your summary) to readers, and have them report what was dropped. On 2026-09-29 this found asks from three days back that had been narrowed.
+- Act on what is not a name, not a new public act, and not already his. Report it done. End with at most one item that needs him.
+
 ## What not to do
 
 - Do not send the peer a revision before William has heard the page. The first version is for the witness to read.
