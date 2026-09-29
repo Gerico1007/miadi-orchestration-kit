@@ -49,7 +49,7 @@ Named 2026-09-28, the morning gaia rebooted, in the witness session `mino-260928
 - **Makes:** spoken first impressions and walkthroughs, revision messages, the session inventory (`miadisabelle/workspace` `.mino/session-inventory/`), charts.
 - **Uses:** T1's hook capture and Claude Code's transcripts and session list, to see what other sessions received and did.
 - **Sessions:** `stcbot`, `mino-260928-fork-01`, `miadi-review-in-episode`.
-- **Skill:** `skills/miadi-witness-first-impression` (jgwill/miadi-orchestration-kit#59).
+- **Plugin:** `claude/miadi-witness` (0.1.0), with the skills `miadi-witness-first-impression` and `miadi-mino-tmux-inventory` (jgwill/miadi-orchestration-kit#59).
 - **Proposed, William 2026-09-28: an inventory agent.** Until now the inventory was made by hand. William gives a session name, Mino looks at the session, works out what it is doing and where it stands, and records it, either after `/exit` gives the session id or while it keeps running. An inventory agent would do this for every session. It would read T1's binding line (every start, rename and end, with the terminal and the launch) and the session's transcript, then write and update the inventory entry with its meaning: mission, relations, state, and what needs William. It builds on T1's line (A5 in the Tmux Agent Restore proposal). Where it runs is not decided.
 
 ## Not named yet

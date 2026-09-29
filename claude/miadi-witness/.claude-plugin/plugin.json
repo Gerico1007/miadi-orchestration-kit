@@ -1,0 +1,9 @@
+{
+  "name": "miadi-witness",
+  "description": "The witness team's practices (T3) for any Claude Code seat that works beside William. Read another agent's session and the page it published, speak a first impression he can play on his phone, and hold any revision until he answers. Keep the session inventory: one record per tmux session, with its id, name and team read from the session continuity team's binding line, and an observation at each visit.",
+  "version": "0.1.0",
+  "author": {
+    "name": "jgwill"
+  },
+  "homepage": "https://github.com/jgwill/miadi-orchestration-kit/tree/main/claude/miadi-witness"
+}

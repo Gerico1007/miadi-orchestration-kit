@@ -22,6 +22,12 @@
       "source": "./claude/miadi-session-observability",
       "description": "Session capture installed once per host: every Claude Code event under <root>/<session_id>/, and a binding line per session start, end and rename with its tmux pane, command line, name history and team. Carries the session-continuity skill (T1).",
       "version": "0.1.1"
+    },
+    {
+      "name": "miadi-witness",
+      "source": "./claude/miadi-witness",
+      "description": "The witness team's practices (T3): read a peer session and its page, speak a first impression William can play, hold revisions until he answers, and keep the session inventory from the binding line.",
+      "version": "0.1.0"
     }
   ]
 }
