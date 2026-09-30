@@ -314,6 +314,30 @@ def legacy(path):
         return False
 
 
+def env_file(path):
+    """The KEY=VALUE pairs a plain env file sets; comments and blank lines skipped."""
+    values = {}
+    try:
+        lines = path.read_text(errors="replace").splitlines()
+    except OSError:
+        return values
+    for line in lines:
+        key, sep, value = line.strip().partition("=")
+        if sep and key and not key.startswith("#"):
+            values[key.strip()] = value.strip().strip('"').strip("'")
+    return values
+
+
+def legacy_overrides():
+    """(key, its value, the host's value) for each key the old installer's
+    environment file sets that the host's miadi.env sets too: those are the
+    values a login session takes from the old file instead of the host."""
+    if not legacy(LEGACY_ENVIRONMENT):
+        return []
+    host = env_file(Path(os.environ.get("MIADI_ETC") or "/etc/miadi") / "miadi.env")
+    return [(key, value, host[key]) for key, value in env_file(LEGACY_ENVIRONMENT).items() if key in host]
+
+
 def park_legacy():
     """Move the old installer's plugin and wrapper aside, where they shadow nothing."""
     for path in LEGACY_FILES:
@@ -417,9 +441,12 @@ def status():
     for path in LEGACY_FILES:
         if legacy(path):
             print(f"earlier inquiry-weave copy still here: {path} — miadi-terminal enable moves it aside")
-    if legacy(LEGACY_ENVIRONMENT):
+    overrides = legacy_overrides()
+    if overrides:
         print(f"earlier inquiry-weave environment file, read at login: {LEGACY_ENVIRONMENT}")
-        print("  its MIADI_URL_BASE wins over miadi.env in GUI sessions; delete it to use the host's")
+        for key, value, host in overrides:
+            print(f"  {key}={value} wins over miadi.env's {key}={host}")
+        print("  delete the file, or those lines, to use the host's values")
     return 0
 
 

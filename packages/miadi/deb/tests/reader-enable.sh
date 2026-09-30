@@ -26,7 +26,11 @@ test -f ~/.config/terminator/config.bak-miadi-terminal
 test ! -e ~/bin/miadi-chronicle-open
 test -f ~/.local/share/miadi-terminal/legacy/miadi-chronicle-open
 test -f ~/.config/environment.d/50-miadi-chronicle.conf
+! miadi-terminal status | grep -q 'earlier inquiry-weave environment file'
+printf 'MIADI_URL_BASE=https://old.test\nMIADI_CHRONICLE_ROOT=/old\n' >> ~/.config/environment.d/50-miadi-chronicle.conf
 miadi-terminal status | grep -q 'earlier inquiry-weave environment file'
+miadi-terminal status | grep -qx '  MIADI_URL_BASE=https://old.test wins over miadi.env.s MIADI_URL_BASE=https://example.test'
+! miadi-terminal status | grep -q 'MIADI_CHRONICLE_ROOT'
 for scheme in miadi-chronicle miadi-ceremony miadi-circle; do
 	test "$(xdg-mime query default x-scheme-handler/$scheme)" = miadi-chronicle-open.desktop
 done

@@ -31,6 +31,9 @@ for control in "$here"/*/DEBIAN/control; do
 	arch=$(sed -n 's/^Architecture: //p' "$control")
 	stage=$(mktemp -d)
 	cp -a "$root/." "$stage/"
+	# Running the tests from the source tree leaves bytecode beside the scripts;
+	# it is git-ignored, and it must not reach a package either (#66).
+	find "$stage" -name __pycache__ -type d -prune -exec rm -rf {} +
 	find "$stage" -type d -exec chmod 0755 {} +
 	find "$stage" -type f -exec chmod 0644 {} +
 	if [ -d "$stage/usr/bin" ]; then find "$stage/usr/bin" -type f -exec chmod 0755 {} +; fi
@@ -70,6 +73,7 @@ for control in "$here"/termux/*/control; do
 		mkdir -p "$stage$PREFIX/$(dirname "${path#usr/}")"
 		cp -a "$here/$package/$path" "$stage$PREFIX/${path#usr/}"
 	done < "$variant/include"
+	find "$stage" -name __pycache__ -type d -prune -exec rm -rf {} +
 	find "$stage$PREFIX" -type f -exec sed -i "s#/usr/#$PREFIX/#g; s#/etc/miadi#$PREFIX/etc/miadi#g" {} +
 	find "$stage" -type d -exec chmod 0755 {} +
 	find "$stage$PREFIX" -type f -exec chmod 0644 {} +

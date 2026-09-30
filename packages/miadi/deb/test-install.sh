@@ -8,8 +8,15 @@ set -euo pipefail
 debs=$(mktemp -d)
 trap 'rm -rf "$debs"' EXIT
 cp "$@" "$debs/"
+# A package carries its sources, never the bytecode a test run leaves beside them (#66).
+for deb in "$@"; do
+	if dpkg-deb -c "$deb" | grep -E '\.pyc$|/__pycache__/'; then
+		echo "$deb carries bytecode" >&2
+		exit 1
+	fi
+done
 tests=$(cd "$(dirname "$0")/tests" && pwd)
-docker run --rm -v "$debs:/tmp/debs:ro" -v "$tests:/tmp/tests:ro" "${IMAGE:-ubuntu:22.04}" bash -euc '
+docker run --rm -e DEBIAN_FRONTEND=noninteractive -v "$debs:/tmp/debs:ro" -v "$tests:/tmp/tests:ro" "${IMAGE:-ubuntu:22.04}" bash -euc '
   # miadi-terminal depends on python3 and xdg-utils, which a bare image lacks.
   apt-get update -qq >/dev/null
   # miadi-tide needs Python >= 3.11 with venv: native on 24.04, deadsnakes on 22.04.
