@@ -118,7 +118,7 @@ inquiry-weave status  --episode ep<N> --json
 ## S8. Lineage
 
 1. API. `POST $MIADI_API_URL/api/chronicle/episodes/<ref>/lineage` with `{field: continues_from|relates_to, to: <ref>, relation, reverse?, land?, dryRun?}`: the manifest edge, the wheel edge, then land.
-2. MCP. `chronicle_episode_lineage` on `inquiry-weave-mcp` (published 0.9.0). `$MIADI_MCP_CONFIG_INQUIRY_WEAVE` (`$MIADI_SRC/etc/mcp-config-inquiry-weave.json`) loads it with `MIADI_EPISODE_DOOR=http` at `MIADI_API_URL`, so the write takes the app's door; `claudeyolochronicle` and the aliases built on it carry that config. `medicine-wheel-miadi-chronicle` is not a lineage door: it writes the wheel alone and `episode.yaml` never hears of it.
+2. MCP. `chronicle_episode_lineage` on `inquiry-weave-mcp` (published 0.9.0). The `miadi-chronicle-episode-kit` plugin (`claude/miadi-chronicle-episode-kit`, `.mcp.json`) starts it from npm with `MIADI_EPISODE_DOOR=http` at `MIADI_API_URL`, so the write takes the app's door on any host; `claudeyolochronicle` and the aliases built on it load that plugin. The tool arrives as `mcp__plugin_miadi-chronicle-episode-kit_inquiry-weave__chronicle_episode_lineage`. `medicine-wheel-miadi-chronicle` is not a lineage door: it writes the wheel alone and `episode.yaml` never hears of it.
 3. CLI. `inquiry-weave lineage --from ep<N> --to ep<M> --relation "<one sentence true from both doors>" --kind continues-from|relates-to [--reverse] [--dry-run]`.
 4. Page. On `/chronicle/<episode>`, a signed-in writer uses "+ Add related episode" on the Lineage card: the other episode by number or title, relates to or continues from, the sentence (required), an optional reverse with its own sentence. It posts to door 1.
 

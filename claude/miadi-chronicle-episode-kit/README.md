@@ -1,12 +1,14 @@
 # miadi-chronicle-episode-kit
 
-A Claude Code plugin that carries the Chronicle skill and one hook that refuses the move
-that breaks episodes. Anchor issue: jgwill/miadi-orchestration-kit#41.
+A Claude Code plugin that carries the Chronicle skill, the chronicle's two MCP servers, and one
+hook that refuses the move that breaks episodes. Anchor issues: jgwill/miadi-orchestration-kit#41,
+jgwill/miadi-orchestration-kit#64 (MCP).
 
 ## What is here
 
 ```
 .claude-plugin/plugin.json
+.mcp.json                                                       (inquiry-weave, medicine-wheel-miadi-chronicle)
 skills/chronicle-episode -> ../../../skills/chronicle-episode   (symlink, not a copy)
 hooks/hooks.json
 hooks/guard-mkdir-in-chronicle.sh
@@ -33,6 +35,30 @@ So the runtime follows it and the validator does not. Two consequences:
 - Validate the skill body separately: `claude plugin validate "$MIADI_ORCHESTRATION_KIT_ROOT/skills"`.
 - Do **not** put `--strict` on this plugin in CI without accepting that warning — `--strict`
   turns it into a failure (measured: exit 1).
+
+## The MCP servers
+
+Loading the plugin starts two stdio servers from the npm registry, so a host needs no Miadi
+checkout, only `npx`:
+
+| server | package | what it does |
+|---|---|---|
+| `inquiry-weave` | `${MIADI_INQUIRY_WEAVE_MCP:-@miadi/inquiry-weave@0.14.3}` | the episode verbs: `chronicle_episode_mint`, `_status`, `_land`, `_review`, `_lineage` (relate two episodes with the sentence saying why), `_inquiry`, `_register`, `chronicle_resolve`, the attention tools |
+| `medicine-wheel-miadi-chronicle` | `${MWCV:-@medicine-wheel/mcp@4.16.1}` | the chronicle wheel itself: nodes, edges (`create_relational_edge` takes a `description`), ceremonies, circles |
+
+`inquiry-weave` runs with `MIADI_EPISODE_DOOR=http`: every episode write goes through the app at
+`MIADI_API_URL`, the same door the episode page uses, so manifest, wheel and commit move together.
+Relate episodes with `chronicle_episode_lineage`, not the wheel server's `create_relational_edge`,
+which writes the wheel alone and leaves `episode.yaml` behind.
+
+Tools arrive under the plugin prefix, e.g.
+`mcp__plugin_miadi-chronicle-episode-kit_inquiry-weave__chronicle_episode_lineage`. Where MCP tools
+are deferred, load them with ToolSearch first. Servers start with the session; a version change
+needs a new session.
+
+Proved 2026-09-30 from a scratch directory: `claude --plugin-dir … mcp list` shows both
+`plugin:miadi-chronicle-episode-kit:*` servers connected, and a headless session loading only this
+plugin called `chronicle_episode_status` for episode 40 through the app (`capabilities.mint: true`).
 
 ## The hook
 
@@ -91,6 +117,10 @@ rather than proceeding, per `claude/AGENTS.md` rule 3.
 | `MIADI_CHRONICLE_ROOT` | the chronicle. Read from the environment, never a literal. `/srv/miadi/episodes/miadi-chronicle` on Gaia; `/data/data/com.termux/files/srv/miadi/episodes/miadi-chronicle` on Ilex. |
 | `MIADI_CHRONICLE_MW_URL` | the wheel. `MW_API_URL` derives from it. `https://mw.tail3b11eb.ts.net` is retired and offline since 2026-07-29. |
 | `MIADI_ORCHESTRATION_KIT_ROOT` | this repo. |
+| `MIADI_API_URL` | the Miadi app whose `/api/chronicle/episodes` door the `inquiry-weave` server uses. Default `https://miadi.tail3b11eb.ts.net`. |
+| `MIADI_API_TOKEN_WRITER` | passes that door's write gate. Without it the episode tools read and every write answers 401. |
+| `MIADI_PERSON_TOKEN` | optional; names the person who opens a review's talking circle. |
+| `MIADI_INQUIRY_WEAVE_MCP`, `MWCV` | optional package pins for the two servers. |
 
 ## No `agents/`
 
