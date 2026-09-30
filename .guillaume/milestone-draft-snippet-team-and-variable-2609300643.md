@@ -1,18 +1,34 @@
 ## Environment variables
 
-The plugin reads these variables. Claude Code sets `CLAUDE_PLUGIN_ROOT` itself. Everything else comes from the shell the agent starts in.
+The plugin is installed from GitHub:
 
-| variable | what the plugin does with it | on gaia |
-|---|---|---|
-| `CLAUDE_SESSIONDATA_ROOT` | Folder where captures are written, as `<root>/<session_id>/` and `<root>/data/terminal_bindings.jsonl`. If it is unset, the plugin uses `MIADI_SESSION_DIR`, then `MIADI_SESSIONDATA_ROOT`, then `SESSION_DATA_ROOT`, then `/src/_sessiondata` if that folder exists. Otherwise it uses `_sessiondata` next to the plugin. | unset, so `MIADI_SESSION_DIR=/src/_sessiondata` is used |
-| `MIADI_ORCHESTRATION_KIT_ROOT` | Used to find `teams/teams.json`. An installed plugin is a copy in `~/.claude/plugins/cache/`, so it cannot find the kit without this. If neither this nor `MIADI_TEAMS_FILE` is set, every session's team is `unassigned`, with source `no teams file`. | `/workspace/repos/jgwill/miadi-orchestration-kit` |
-| `MIADI_TEAMS_FILE` | Path to a different teams list. Replaces the kit's list. | unset |
-| `MIADI_TEAM` | Sets the team for one agent. Takes precedence over every other team rule. | unset |
-| `MIADI_LAUNCH_ALIAS` | Saved as `launch_alias` in the binding line. The launchers in `bash_aliases_common` export it (for example `claudeyolo`). | set per launcher |
-| `MIADI_CHRONICLE_ROOT` | Folder that holds the episodes. A folder directly inside it named `<yyyy-mm-dd>-episode-<n>-<slug>` counts as an episode. | `/srv/miadi/episodes/miadi-chronicle` |
-| `MIADI_CHRONICLE_PROD_EPISODE` | Last choice for the binding line's `episode`, used only when no `--add-dir` folder and no working folder is an episode. Every shell exports it, so on its own it names the production episode, not the session's episode. | `2026-06-28-episode-103-film-preprod-report-phase-2` |
-| `MIADI_HOOKS_SCRIPT_DIR` | Folder where PreToolUse looks for `git_command_validator.sh`. Defaults to the plugin's own `hooks/` folder. | unset |
-| `TMUX`, `TMUX_PANE` | Set by tmux. They give the binding line its `tmux` block (`session`, `window`, `pane`, `pane_id`, `socket`). | set inside tmux |
+```bash
+claude plugin marketplace add jgwill/miadi-orchestration-kit
+claude plugin install miadi-session-observability@miadi-orchestration-kit
+```
+
+It reads these variables from the shell the agent starts in.
+
+| variable | what it is for |
+|---|---|
+| `MIADI_SESSION_DIR` | Where captures are written: one folder per session, `$MIADI_SESSION_DIR/<session_id>/`, and one line per session start, end and rename in `$MIADI_SESSION_DIR/data/terminal_bindings.jsonl` |
+| `MIADI_ORCHESTRATION_KIT_ROOT` | A clone of `jgwill/miadi-orchestration-kit`. The plugin reads the team list from `teams/teams.json` in it. Without it, every session's team is `unassigned`. |
+| `MIADI_TEAM` | Optional. Sets the team for one agent, over every other rule. |
+| `MIADI_LAUNCH_ALIAS` | The name of the launcher that started the agent. Saved as `launch_alias` in the binding line. |
+| `MIADI_CHRONICLE_ROOT` | The Miadi Chronicle, one folder per episode, created with `mkepisode` from npm [`passages`](https://www.npmjs.com/package/passages). The folder name, `<yyyy-mm-dd>-episode-<n>-<slug>`, is the episode's key in [`@miadi/episodic-memory-schema`](https://www.npmjs.com/package/@miadi/episodic-memory-schema). When a session runs in an episode folder, or is given one with `--add-dir`, the binding line's `episode.id` is that name. |
+| `MIADI_CHRONICLE_PROD_EPISODE` | The episode in production. The binding line uses it only when the session's folders name no episode. |
+
+Inside tmux, the binding line also records the pane: `session`, `window`, `pane` and `pane_id`.
+
+### Launchers
+
+A launcher is a shell alias that starts an agent with its model, tools, MCP servers and folders. It exports its own name:
+
+```bash
+alias claudehaiku='MIADI_LAUNCH_ALIAS=${MIADI_LAUNCH_ALIAS:-claudehaiku} claude --model haiku'
+```
+
+After a reboot or a crash, `tide agents restore` (PyPI [`ironsilk`](https://pypi.org/project/ironsilk/) 0.9.35 or later) starts each agent again through the launcher named on its binding line, with `--resume <session_id>`. The agent comes back with the same tools. When no launcher is named, tide infers one from the command line, and otherwise resumes with the plain command.
 
 ## Teams
 
@@ -54,7 +70,7 @@ The first rule that matches decides. The binding line's `source` says which rule
 2. `session`: the tmux session name or the agent session's name is listed in a team's `sessions`
 3. `folder`: the agent's working folder is one of a team's `folders` or inside one. When several match, the longest path wins.
 4. `name`: a team's `name_patterns` match the tmux session name or the agent session's name
-5. `unassigned`: no rule matched (`no rule matched`), no teams list was found (`no teams file`), or the list could not be read (`unreadable teams file`)
+5. `unassigned`: no rule matched
 
 To set a team without editing the list:
 
