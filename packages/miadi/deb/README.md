@@ -12,6 +12,10 @@ echo "deb [signed-by=/usr/share/keyrings/sanctuaire-agentique.gpg] https://apt.s
 sudo apt update && sudo apt install miadi
 ```
 
+`miadi` brings `miadi-tide`, whose tide runtime needs Python 3.11 or newer with
+`venv`. Ubuntu 24.04 has it. On 22.04, add the deadsnakes PPA before installing
+(see [miadi-tide](#miadi-tide)).
+
 | package | gives the host | since |
 |---|---|---|
 | `miadi` | its dependencies (through 0.1.x it held the settings itself) | 0.1.0 |
@@ -86,7 +90,9 @@ default in `~/.config/mimeapps.list`. Each config it changes keeps a
 `.bak-miadi-terminal` copy of how it was before the first change. The plugin
 and wrapper an earlier `inquiry-weave terminal install` left are moved to
 `~/.local/share/miadi-terminal/legacy/`; its environment drop-in stays, since
-the session may read its values. The front is `MIADI_CHRONICLE_OPEN_URL`, else `MIADI_URL_BASE`.
+the session may read its values. `status` names each key that drop-in still
+sets over `/etc/miadi/miadi.env`, with both values, and says nothing when it
+overrides none. The front is `MIADI_CHRONICLE_OPEN_URL`, else `MIADI_URL_BASE`.
 A Termux build of the same tree is made by `build.sh` (`termux/README.md`).
 Contract: jgwill/Miadi `rispecs/miadi-chronicle-dsl/SPEC-TERMINAL.md` §3.
 

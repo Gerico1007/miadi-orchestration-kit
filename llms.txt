@@ -41,7 +41,7 @@ sudo apt install miadi-terminal                # a client
 | `miadi` | the host umbrella; each part joins as a dependency | — |
 | `miadi-config` | `/etc/miadi/miadi.env`, the defaults in `/usr/share/miadi/env.sh`, loaded into login shells | `miadi-config [get\|set\|unset\|check\|settings]` |
 | `miadi-terminal` | clickable references: `miadi-chronicle:126`, `miadi-circle:<id>`, `miadi-ceremony:<id>`, and a bare `circle:1790787727155:2slscw`, from the desktop scheme handler, Terminator and tmux; a Termux build installs from the file | `miadi-terminal [status\|enable\|disable\|front]`, `miadi-chronicle-open <reference>` |
-| `miadi-tide` | the review loop (`tan`, `plannotator-tui`) and the tide runtime; on 2026-09-30 built here but not yet published (jgwill/miadi-orchestration-kit#55) | `tan`, `plannotator-tmux-review`, `plannotator-tui`, `tide` |
+| `miadi-tide` | the review loop (`tan`, `plannotator-tui`) and the tide runtime (`tide`, a per-user `tide-runtime.service`); needs Python 3.11+ (on Ubuntu 22.04, the deadsnakes PPA first) | `tan`, `plannotator-tmux-review`, `plannotator-tui`, `tide` |
 
 - `miadi-terminal` resolves nothing on the client: it opens `<front>/api/chronicle/open?uri=<reference>`, where the front is `MIADI_CHRONICLE_OPEN_URL`, else `MIADI_URL_BASE`. Each user runs `miadi-terminal enable` once, and again for `desktop` after an upgrade that adds a scheme.
 - Confirm what the repository serves with `apt-cache policy <package>` before recommending a package or a version.
