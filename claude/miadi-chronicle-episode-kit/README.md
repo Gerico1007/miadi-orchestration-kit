@@ -1,6 +1,6 @@
 # miadi-chronicle-episode-kit
 
-A Claude Code plugin that carries the Chronicle skill, the chronicle's two MCP servers, and one
+A Claude Code plugin that carries the Chronicle skill, the chronicle's three MCP servers, and one
 hook that refuses the move that breaks episodes. Anchor issues: jgwill/miadi-orchestration-kit#41,
 jgwill/miadi-orchestration-kit#64 (MCP).
 
@@ -8,7 +8,7 @@ jgwill/miadi-orchestration-kit#64 (MCP).
 
 ```
 .claude-plugin/plugin.json
-.mcp.json                                                       (inquiry-weave, medicine-wheel-miadi-chronicle)
+.mcp.json                                                       (inquiry-weave, miadi-voice, medicine-wheel-miadi-chronicle)
 skills/chronicle-episode -> ../../../skills/chronicle-episode   (symlink, not a copy)
 hooks/hooks.json
 hooks/guard-mkdir-in-chronicle.sh
@@ -38,12 +38,13 @@ So the runtime follows it and the validator does not. Two consequences:
 
 ## The MCP servers
 
-Loading the plugin starts two stdio servers from the npm registry, so a host needs no Miadi
+Loading the plugin starts three stdio servers from the npm registry, so a host needs no Miadi
 checkout, only `npx`:
 
 | server | package | what it does |
 |---|---|---|
 | `inquiry-weave` | `${MIADI_INQUIRY_WEAVE_MCP:-@miadi/inquiry-weave@0.14.3}` | the episode verbs: `chronicle_episode_mint`, `_status`, `_land`, `_review`, `_lineage` (relate two episodes with the sentence saying why), `_inquiry`, `_register`, `chronicle_resolve`, the attention tools |
+| `miadi-voice` | `${MIADI_VOICE_MCP:-@miadi/voice-mcp@0.4.4}` | an episode's voice: `voice_resolve_episode`, `voice_publish_to_episode`, `voice_play_episode`, `voice_list_episode_voices`, `voice_create_episode`, `voice_episode_closing_status`. The only sanctioned voice path (the `miadi-voice` skill). 0.4.4 is the first version whose bin starts under npx (jgwill/Miadi#704). |
 | `medicine-wheel-miadi-chronicle` | `${MWCV:-@medicine-wheel/mcp@4.16.1}` | the chronicle wheel itself: nodes, edges (`create_relational_edge` takes a `description`), ceremonies, circles |
 
 `inquiry-weave` runs with `MIADI_EPISODE_DOOR=http`: every episode write goes through the app at
@@ -56,9 +57,14 @@ Tools arrive under the plugin prefix, e.g.
 are deferred, load them with ToolSearch first. Servers start with the session; a version change
 needs a new session.
 
-Proved 2026-09-30 from a scratch directory: `claude --plugin-dir … mcp list` shows both
+Proved 2026-09-30 from a scratch directory: `claude --plugin-dir … mcp list` shows all three
 `plugin:miadi-chronicle-episode-kit:*` servers connected, and a headless session loading only this
 plugin called `chronicle_episode_status` for episode 40 through the app (`capabilities.mint: true`).
+A server that failed once (e.g. `npx` answering `ETARGET` before a fresh publish is visible) is
+skipped for 15 minutes by Claude Code; editing the plugin config retries it sooner.
+
+Maintenance (moving a pin, adding a server, proving it): the `chronicle-episode-kit-plugin` skill
+in jgwill/Miadi (`skills/chronicle-episode-kit-plugin`).
 
 ## The hook
 
@@ -120,7 +126,9 @@ rather than proceeding, per `claude/AGENTS.md` rule 3.
 | `MIADI_API_URL` | the Miadi app whose `/api/chronicle/episodes` door the `inquiry-weave` server uses. Default `https://miadi.tail3b11eb.ts.net`. |
 | `MIADI_API_TOKEN_WRITER` | passes that door's write gate. Without it the episode tools read and every write answers 401. |
 | `MIADI_PERSON_TOKEN` | optional; names the person who opens a review's talking circle. |
-| `MIADI_INQUIRY_WEAVE_MCP`, `MWCV` | optional package pins for the two servers. |
+| `MIADI_ASSEMBLY_VOICE_AUDIO_DIR` | where `miadi-voice` finds generated audio; default `/srv/miadi/voice-audio`. |
+| `MIADI_SRC` | optional; `miadi-voice` reads the writer token from `$MIADI_SRC/.env` when the environment lacks it. |
+| `MIADI_INQUIRY_WEAVE_MCP`, `MIADI_VOICE_MCP`, `MWCV` | optional package pins for the three servers. |
 
 ## No `agents/`
 
