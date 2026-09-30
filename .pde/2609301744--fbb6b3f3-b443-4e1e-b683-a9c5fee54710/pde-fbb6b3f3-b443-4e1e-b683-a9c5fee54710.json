@@ -1,0 +1,374 @@
+{
+  "id": "fbb6b3f3-b443-4e1e-b683-a9c5fee54710",
+  "timestamp": "2026-09-30T21:44:10.688Z",
+  "engine": "claude",
+  "model": "sonnet",
+  "prompt": "Milestone: Miadi-Factory-Observability-Doc4Chronicle (jgwill/miadi-orchestration-kit#milestone-1). Due: 2026-10-29T00:00:00Z. State: open.\n\nThe goal is not just to document well the observability layer that has got a bump since the migration of the 'jgwill/binscripts' claude-code hooks into a plugin 'miadi-session-observability @ miadi-orchestration-kit'\nhome_page: `https://github.com/jgwill/miadi-orchestration-kit/tree/main/claude/miadi-session-observability`\n\nPlugin Installed components:\n   ● Skills: session-continuity\n   ● Hooks: SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, PostToolUseFailure, PermissionRequest, Notification, SubagentStart, SubagentStop, \n     PreCompact, Stop, SessionEnd\n\nTo this date it also do a new interesting thing into the `$MIADI_SESSION_DIR/data/terminal_bindings.jsonl` you get informations collected about the multiplexer running with the system services codename Ironsilk tide-runtime.\n\n\nI will be interested in this miadi-chronicle to explore the relation of that with these packages:\n* `https://www.npmjs.com/package/@miadi/tide`\n* `https://www.npmjs.com/package/@miadi/tide-contract`\n* `https://pypi.org/project/ironsilk/`\n* `https://www.npmjs.com/package/@miadi/annotate-core`\n* `https://www.npmjs.com/package/@miadi/annotate-ui`\n## setup\n\nThe plugin is installed from GitHub:\n\n```bash\nclaude plugin marketplace add jgwill/miadi-orchestration-kit\nclaude plugin install miadi-session-observability@miadi-orchestration-kit\n```\n\n## Environment variables\n\nIt reads these variables from the shell the agent starts in.\n\n| variable | what it is for |\n|---|---|\n| `MIADI_SESSION_DIR` | Where captures are written: one folder per session, `$MIADI_SESSION_DIR/<session_id>/`, and one line per session start, end and rename in `$MIADI_SESSION_DIR/data/terminal_bindings.jsonl` |\n| `MIADI_ORCHESTRATION_KIT_ROOT` | A clone of `jgwill/miadi-orchestration-kit`. The plugin reads the team list from `teams/teams.json` in it. Without it, every session's team is `unassigned`. |\n| `MIADI_TEAM` | Optional. Sets the team for one agent, over every other rule. |\n| `MIADI_LAUNCH_ALIAS` | The name of the launcher that started the agent. Saved as `launch_alias` in the binding line. |\n| `MIADI_CHRONICLE_ROOT` | The Miadi Chronicle, one folder per episode, created with `mkepisode` from npm [`passages`](https://www.npmjs.com/package/passages). The folder name, `<yyyy-mm-dd>-episode-<n>-<slug>`, is the episode's key in [`@miadi/episodic-memory-schema`](https://www.npmjs.com/package/@miadi/episodic-memory-schema). When a session runs in an episode folder, or is given one with `--add-dir`, the binding line's `episode.id` is that name. |\n| `MIADI_CHRONICLE_PROD_EPISODE` | The episode in production. The binding line uses it only when the session's folders name no episode. |\n\nInside tmux, the binding line also records the pane: `session`, `window`, `pane` and `pane_id`.\n\n### Launchers\n\nA launcher is a shell function or alias that starts an agent with its model, permissions, MCP servers and plugins. It sets `MIADI_LAUNCH_ALIAS` to its own name unless a launcher that called it already set one, so the binding line records the name that was typed.\n\nThe two most used on gaia (binding lines up to 2026-09-30: `claudeyolochroniclehoncho` 22, `claudeyolo` 18), for `~/.bashrc`:\n\n```bash\n# Claude Code without permission prompts\nclaudeyolo() {\n  MIADI_LAUNCH_ALIAS=\"${MIADI_LAUNCH_ALIAS:-claudeyolo}\" claude \"$@\" --dangerously-skip-permissions\n}\n\n# claudeyolo with the chronicle's MCP servers (voice, medicine wheel), then with Honcho memory\nalias claudeyolochronicle='MIADI_LAUNCH_ALIAS=${MIADI_LAUNCH_ALIAS:-claudeyolochronicle} claudeyolo --mcp-config $MIADI_MCP_CONFIG_VOICE $MIADI_MCP_CONFIG_MW_CHRONICLE'\nalias claudeyolochroniclehoncho='MIADI_LAUNCH_ALIAS=${MIADI_LAUNCH_ALIAS:-claudeyolochroniclehoncho} claudeyolochronicle --mcp-config $MIADI_MCP_CONFIG_HONCHO'\n\nexport MIADI_MCP_CONFIG_VOICE=~/.config/miadi/mcp-config-voice.json\nexport MIADI_MCP_CONFIG_MW_CHRONICLE=~/.config/miadi/mcp-config-mw-chronicle.json\nexport MIADI_MCP_CONFIG_HONCHO=~/.config/miadi/mcp-config-honcho.json\n```\n\nThe three MCP config files. Claude Code fills in `${VAR}` from the environment, so tokens stay in `~/.env`:\n\n```json\n{ \"mcpServers\": { \"miadi-voice\": {\n  \"command\": \"npx\", \"args\": [\"-y\", \"@miadi/voice-mcp\"],\n  \"env\": { \"MIADI_API_URL\": \"${MIADI_API_URL}\", \"MIADI_API_TOKEN_WRITER\": \"${MIADI_API_TOKEN_WRITER}\",\n           \"MIADI_CHRONICLE_ROOT\": \"${MIADI_CHRONICLE_ROOT}\", \"MW_API_URL\": \"${MIADI_CHRONICLE_MW_URL}\",\n           \"ASSEMBLY_VOICE_AUDIO_DIR\": \"${MIADI_ASSEMBLY_VOICE_AUDIO_DIR}\" } } } }\n```\n\n```json\n{ \"mcpServers\": { \"medicine-wheel-miadi-chronicle\": {\n  \"command\": \"npx\", \"args\": [\"-y\", \"@medicine-wheel/mcp\"],\n  \"env\": { \"MW_API_URL\": \"${MIADI_CHRONICLE_MW_URL}\" } } } }\n```\n\n```json\n{ \"mcpServers\": { \"honcho\": {\n  \"type\": \"http\", \"url\": \"${HONCHO_MCP_URL}\",\n  \"headers\": { \"Authorization\": \"Bearer ${HONCHO_API_KEY}\" } } } }\n```\n\nAfter a reboot or a crash, `tide agents restore` (PyPI [`ironsilk`](https://pypi.org/project/ironsilk/) 0.9.35 or later) starts each agent again through the launcher named on its binding line, with `--resume <session_id>`. The agent comes back with the same tools. When no launcher is named, tide infers one from the command line, and otherwise resumes with the plain command.\n\n## Teams\n\n### Definition\n\nA team is a group of terminal sessions with one human lead and one agent lead. Every session belongs to one team. The team is recorded as `team` in every binding line in `$MIADI_SESSION_DIR/data/terminal_bindings.jsonl`:\n\n```json\n\"team\": { \"id\": \"T1\", \"source\": \"session\" }\n```\n\nA team is defined twice, and both copies change together:\n\n- `teams/teams.json` in `jgwill/miadi-orchestration-kit`, which the plugin reads\n- `teams/README.md` in the same kit, which people read\n\nEntry in `teams/teams.json`:\n\n```json\n{\n  \"id\": \"T4\",\n  \"name\": \"<what the team keeps working>\",\n  \"level\": \"<the machine | the application | between William and the teams that build>\",\n  \"human_lead\": \"<person>\",\n  \"agent_lead\": \"<session name of the lead agent>\",\n  \"sessions\": [\"<tmux session name or agent session name>\"],\n  \"folders\": [\"<absolute path: the agent's folder or any folder below it>\"],\n  \"name_patterns\": [\"<regular expression tested on the same two names>\"]\n}\n```\n\nSection in `teams/README.md`: Level, Desired outcome, Leads, Makes, Uses, Sessions, Skill.\n\n### How a session's team is found\n\nThe first rule that matches decides. The binding line's `source` says which rule it was.\n\n1. `declared`: `MIADI_TEAM` in the agent's environment, or the tmux session option `@miadi-team`\n2. `session`: the tmux session name or the agent session's name is listed in a team's `sessions`\n3. `folder`: the agent's working folder is one of a team's `folders` or inside one. When several match, the longest path wins.\n4. `name`: a team's `name_patterns` match the tmux session name or the agent session's name\n5. `unassigned`: no rule matched\n\nTo set a team without editing the list:\n\n```bash\nexport MIADI_TEAM=T1                                    # one agent\ntmux set-option -t gaia-screen-reboot @miadi-team T1    # every pane of one tmux session\n```\n\n### Teams named so far (2026-09-28)\n\n| id | name | level | agent lead |\n|---|---|---|---|\n| T1 | Session continuity | the machine | `gaia-tmux-rebooted-restore-finetuning-260928` |\n| T2 | Event path | the application | the episode 548 session |\n| T3 | Witness | between William and the teams that build | Mino, the `stcbot` seat |\n\n----\n\n## miadi-reviews\n* Related miadi-review to consider in what we will document, process and explore and do...\n\n### [MINO] Tmux Agent Restore & Session Continuity Architecture 260929-001 `https://miadi-review-service.vercel.app/review/cec27c7a-9b7d-40ae-8f48-7f4046e7b4a9`\n\n### [MINO] Engineering Review: The Witness Loop & Session Continuity 260929-002  `https://miadi-review-service.vercel.app/review/bf53f04c-c402-455f-8c1b-8c830156c420`",
+  "result": {
+    "primary": {
+      "action": "document",
+      "target": "the miadi-session-observability plugin and its terminal_bindings.jsonl output as a Miadi Chronicle deliverable, including its relation to the Ironsilk tide-runtime and the @miadi/tide, @miadi/tide-contract, ironsilk, @miadi/annotate-core and @miadi/annotate-ui packages",
+      "urgency": "persistent",
+      "confidence": 0.85
+    },
+    "secondary": [
+      {
+        "action": "explore",
+        "target": "relation between terminal_bindings.jsonl multiplexer data (Ironsilk tide-runtime) and the five named npm/PyPI packages",
+        "implicit": false,
+        "dependency": null,
+        "confidence": 0.85
+      },
+      {
+        "action": "document",
+        "target": "plugin setup: marketplace add, plugin install, installed components (session-continuity skill, 12 hooks)",
+        "implicit": false,
+        "dependency": null,
+        "confidence": 0.8
+      },
+      {
+        "action": "document",
+        "target": "environment variables (MIADI_SESSION_DIR, MIADI_ORCHESTRATION_KIT_ROOT, MIADI_TEAM, MIADI_LAUNCH_ALIAS, MIADI_CHRONICLE_ROOT, MIADI_CHRONICLE_PROD_EPISODE) and tmux pane fields in the binding line",
+        "implicit": false,
+        "dependency": null,
+        "confidence": 0.8
+      },
+      {
+        "action": "document",
+        "target": "launchers (claudeyolo, claudeyolochronicle, claudeyolochroniclehoncho) and the three MCP config files (voice, medicine wheel chronicle, honcho)",
+        "implicit": false,
+        "dependency": null,
+        "confidence": 0.75
+      },
+      {
+        "action": "document",
+        "target": "restore flow: tide agents restore (ironsilk 0.9.35+), resume via launcher named on binding line, fallback inference",
+        "implicit": false,
+        "dependency": "document launchers and MCP configs",
+        "confidence": 0.75
+      },
+      {
+        "action": "document",
+        "target": "teams model: definition, teams.json and README.md kept in sync, the five-rule team resolution order, teams T1 to T3",
+        "implicit": false,
+        "dependency": null,
+        "confidence": 0.8
+      },
+      {
+        "action": "incorporate",
+        "target": "the two MINO reviews (260929-001 restore and continuity architecture, 260929-002 witness loop) into what is documented and explored",
+        "implicit": false,
+        "dependency": null,
+        "confidence": 0.75
+      },
+      {
+        "action": "verify",
+        "target": "that documented facts (hook list, env vars, version numbers, launcher counts to 2026-09-30, package names) match the current plugin source and live package registries",
+        "implicit": true,
+        "dependency": "document the plugin",
+        "confidence": 0.6
+      },
+      {
+        "action": "create",
+        "target": "a Chronicle episode (vessel via mkepisode or episode API) that holds the documentation, following the five-stage gate: created, committed, pushed, registered, receipt-verified",
+        "implicit": true,
+        "dependency": null,
+        "confidence": 0.6
+      },
+      {
+        "action": "thread",
+        "target": "downstream issues under milestone-1, using owner/repo#number references and the structural-issue-authoring sections",
+        "implicit": true,
+        "dependency": "decompose the milestone scope",
+        "confidence": 0.65
+      },
+      {
+        "action": "position",
+        "target": "this observability documentation within Miadi Factory intent: making agent-made work inspectable and revisitable (session trace linked to question, evidence, criteria, human judgment)",
+        "implicit": true,
+        "dependency": null,
+        "confidence": 0.5
+      },
+      {
+        "action": "assign",
+        "target": "teams T1, T2, T3 (Session continuity, Event path, Witness) to the parts of the documentation they own",
+        "implicit": true,
+        "dependency": null,
+        "confidence": 0.4
+      }
+    ],
+    "context": {
+      "files_needed": [
+        "claude/miadi-session-observability/ (plugin source, hooks, skills/session-continuity)",
+        "teams/teams.json",
+        "teams/README.md",
+        "$MIADI_SESSION_DIR/data/terminal_bindings.jsonl",
+        "$MIADI_CHRONICLE_ROOT episode folders",
+        "~/.config/miadi/mcp-config-voice.json",
+        "~/.config/miadi/mcp-config-mw-chronicle.json",
+        "~/.config/miadi/mcp-config-honcho.json",
+        "~/.bashrc launcher definitions"
+      ],
+      "tools_required": [
+        "mkepisode (npm passages)",
+        "chronicle-episode skill",
+        "tide CLI (ironsilk)",
+        "tmux",
+        "gh",
+        "miadi-review skill (to read the two MINO reviews)",
+        "WebFetch (npm and PyPI package pages)",
+        "miaco / pde-vessel-ceremony"
+      ],
+      "assumptions": [
+        "The binding-line file terminal_bindings.jsonl is a new output recorded by the plugin since the migration from jgwill/binscripts hooks",
+        "The hooks were migrated from jgwill/binscripts into the plugin",
+        "ironsilk 0.9.35 or later provides tide agents restore",
+        "Ironsilk tide-runtime is the system service that collects multiplexer information",
+        "The five named packages relate to the multiplexer/binding data in ways worth exploring",
+        "Launcher usage counts (22 and 18) are current to 2026-09-30",
+        "Both MINO review URLs are reachable and relevant to this documentation",
+        "Teams T1 to T3 list is current as of 2026-09-28"
+      ]
+    },
+    "outputs": {
+      "artifacts": [
+        "Chronicle episode vessel documenting the observability layer",
+        "Documentation of the terminal_bindings.jsonl binding-line schema",
+        "Relation map between the plugin and @miadi/tide, @miadi/tide-contract, ironsilk, @miadi/annotate-core, @miadi/annotate-ui",
+        ".pde/ decomposition folder for this milestone"
+      ],
+      "updates": [
+        "claude/miadi-session-observability README or docs",
+        "teams/README.md and teams/teams.json if team details change (both change together)",
+        "STC.md / STCISSUE.md for milestone-1"
+      ],
+      "communications": [
+        "Child issues under milestone-1 (Miadi-Factory-Observability-Doc4Chronicle)",
+        "Chronicle episode registration on the medicine wheel"
+      ]
+    },
+    "directions": {
+      "east": [
+        {
+          "text": "Desired outcome: a Chronicle episode by 2026-10-29 that explains the observability layer and its Ironsilk tide-runtime relation so a person can verify what a session did",
+          "confidence": 0.75,
+          "implicit": true
+        },
+        {
+          "text": "The goal is stated as more than good documentation, but the additional goal is left unnamed",
+          "confidence": 0.5,
+          "implicit": true
+        },
+        {
+          "text": "Position the work within Miadi Factory: connect originating question, session trace, evidence, criteria and human judgment",
+          "confidence": 0.5,
+          "implicit": true
+        }
+      ],
+      "south": [
+        {
+          "text": "Study the plugin source: 12 hooks, session-continuity skill, binding-line fields",
+          "confidence": 0.8,
+          "implicit": false
+        },
+        {
+          "text": "Study how Ironsilk tide-runtime feeds multiplexer data into terminal_bindings.jsonl",
+          "confidence": 0.85,
+          "implicit": false
+        },
+        {
+          "text": "Study each of the five packages and how it relates to the binding data",
+          "confidence": 0.85,
+          "implicit": false
+        },
+        {
+          "text": "Read the two MINO reviews and extract what applies",
+          "confidence": 0.75,
+          "implicit": false
+        },
+        {
+          "text": "Read current teams.json and README to confirm the team resolution rules",
+          "confidence": 0.6,
+          "implicit": true
+        }
+      ],
+      "west": [
+        {
+          "text": "Check documented claims against source and registries (versions, hook names, env vars, counts)",
+          "confidence": 0.6,
+          "implicit": true
+        },
+        {
+          "text": "Test that tide agents restore resumes an agent through the launcher on its binding line",
+          "confidence": 0.4,
+          "implicit": true
+        },
+        {
+          "text": "Confirm teams.json and teams/README.md agree",
+          "confidence": 0.6,
+          "implicit": true
+        },
+        {
+          "text": "Validate the decomposition against the schema before threading issues",
+          "confidence": 0.4,
+          "implicit": true
+        }
+      ],
+      "north": [
+        {
+          "text": "Mint the Chronicle episode and pass the five-stage gate",
+          "confidence": 0.6,
+          "implicit": true
+        },
+        {
+          "text": "Write the documentation sections: setup, env vars, launchers, MCP configs, restore, teams, tide relation",
+          "confidence": 0.8,
+          "implicit": false
+        },
+        {
+          "text": "Thread child issues under the milestone",
+          "confidence": 0.65,
+          "implicit": true
+        },
+        {
+          "text": "Commit and push only the files edited for this work",
+          "confidence": 0.5,
+          "implicit": true
+        }
+      ]
+    },
+    "actionStack": [
+      {
+        "text": "Decompose the milestone scope and record it in a committed .pde folder",
+        "direction": "east",
+        "dependency": null,
+        "completed": false
+      },
+      {
+        "text": "Name the desired outcome and current reality for the milestone",
+        "direction": "east",
+        "dependency": "Decompose the milestone scope and record it in a committed .pde folder",
+        "completed": false
+      },
+      {
+        "text": "Read the plugin source under claude/miadi-session-observability",
+        "direction": "south",
+        "dependency": "Name the desired outcome and current reality for the milestone",
+        "completed": false
+      },
+      {
+        "text": "Inspect terminal_bindings.jsonl lines for session start, end, rename and tmux pane fields",
+        "direction": "south",
+        "dependency": "Read the plugin source under claude/miadi-session-observability",
+        "completed": false
+      },
+      {
+        "text": "Read the two MINO reviews",
+        "direction": "south",
+        "dependency": "Name the desired outcome and current reality for the milestone",
+        "completed": false
+      },
+      {
+        "text": "Study @miadi/tide, @miadi/tide-contract and ironsilk against the binding data",
+        "direction": "south",
+        "dependency": "Inspect terminal_bindings.jsonl lines for session start, end, rename and tmux pane fields",
+        "completed": false
+      },
+      {
+        "text": "Study @miadi/annotate-core and @miadi/annotate-ui and decide how they relate to the observability layer",
+        "direction": "south",
+        "dependency": "Inspect terminal_bindings.jsonl lines for session start, end, rename and tmux pane fields",
+        "completed": false
+      },
+      {
+        "text": "Read teams.json and teams/README.md",
+        "direction": "south",
+        "dependency": "Name the desired outcome and current reality for the milestone",
+        "completed": false
+      },
+      {
+        "text": "Mint the Chronicle episode vessel and commit it",
+        "direction": "north",
+        "dependency": "Study @miadi/tide, @miadi/tide-contract and ironsilk against the binding data",
+        "completed": false
+      },
+      {
+        "text": "Write the documentation sections for setup, env vars, launchers, MCP configs, restore and teams",
+        "direction": "north",
+        "dependency": "Mint the Chronicle episode vessel and commit it",
+        "completed": false
+      },
+      {
+        "text": "Write the relation map between the plugin and the five packages",
+        "direction": "north",
+        "dependency": "Study @miadi/annotate-core and @miadi/annotate-ui and decide how they relate to the observability layer",
+        "completed": false
+      },
+      {
+        "text": "Verify documented facts against source and registries",
+        "direction": "west",
+        "dependency": "Write the documentation sections for setup, env vars, launchers, MCP configs, restore and teams",
+        "completed": false
+      },
+      {
+        "text": "Run tide agents restore on a test session and compare with the documented flow",
+        "direction": "west",
+        "dependency": "Verify documented facts against source and registries",
+        "completed": false
+      },
+      {
+        "text": "Push the episode and register it on the chronicle medicine wheel",
+        "direction": "north",
+        "dependency": "Verify documented facts against source and registries",
+        "completed": false
+      },
+      {
+        "text": "Thread child issues under the milestone with structural-issue-authoring sections",
+        "direction": "north",
+        "dependency": "Push the episode and register it on the chronicle medicine wheel",
+        "completed": false
+      }
+    ],
+    "ambiguities": [
+      {
+        "text": "\"The goal is not just to document well the observability layer\" ends without stating what the goal is besides documenting",
+        "suggestion": "Name the second goal, for example what a reader should be able to verify, or which decision the documentation supports"
+      },
+      {
+        "text": "\"explore the relation of that with these packages\" does not say what a relation means (dependency, data flow, shared schema, UI over the data)",
+        "suggestion": "State whether the output is a dependency map, a data-flow description, or a proposal for integration"
+      },
+      {
+        "text": "The role of @miadi/annotate-core and @miadi/annotate-ui is not stated and they do not obviously relate to terminal bindings",
+        "suggestion": "Say whether annotation of sessions is an intended use of the binding data"
+      },
+      {
+        "text": "\"miadi-chronicle\" is used for the deliverable without saying whether it is one episode, several, or a book",
+        "suggestion": "Name the number of episodes and whether Twine promotion is expected"
+      },
+      {
+        "text": "Team ownership of the documentation is not assigned, only the team list given",
+        "suggestion": "Say whether T1, T2 or T3 leads each section"
+      },
+      {
+        "text": "The milestone is titled Doc4Chronicle but the content also sets out plugin setup instructions as if already final",
+        "suggestion": "Clarify whether the pasted setup text is source material to reuse or a draft to revise"
+      },
+      {
+        "text": "\"related miadi-review to consider\" does not say how the reviews should influence the work",
+        "suggestion": "State whether they are evidence to cite, criteria to satisfy, or background reading"
+      },
+      {
+        "text": "Due date 2026-10-29 has no intermediate checkpoints",
+        "suggestion": "Name the steps or dates at which progress is reviewed"
+      }
+    ]
+  },
+  "options": {
+    "extractImplicit": true,
+    "mapDependencies": true
+  },
+  "folder_name": "2609301744--fbb6b3f3-b443-4e1e-b683-a9c5fee54710",
+  "pde_dir": "/workspace/repos/jgwill/miadi-orchestration-kit/.pde/2609301744--fbb6b3f3-b443-4e1e-b683-a9c5fee54710",
+  "child_kind": "milestone"
+}

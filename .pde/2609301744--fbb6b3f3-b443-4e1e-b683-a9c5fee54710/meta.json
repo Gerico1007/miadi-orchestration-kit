@@ -1,0 +1,43 @@
+{
+  "schema_version": 10,
+  "root_pde_id": "fbb6b3f3-b443-4e1e-b683-a9c5fee54710",
+  "child_kind": "milestone",
+  "provenance": {
+    "repository": "jgwill/miadi-orchestration-kit",
+    "milestoneNumber": 1,
+    "milestoneTitle": "Miadi-Factory-Observability-Doc4Chronicle",
+    "kind": "milestone-root"
+  },
+  "origin": {
+    "user": "mia",
+    "host": "gaia",
+    "platform": "linux",
+    "miaco_version": "0.20.3",
+    "git": {
+      "commit": "1ecaad31954e15f6a8e75dcc6e3e359810ff453f",
+      "branch": "main",
+      "dirty": true
+    },
+    "invoked_by": {
+      "kind": "agent",
+      "evidence": [
+        "env:CLAUDECODE",
+        "env:CLAUDE_CODE_ENTRYPOINT",
+        "no-tty:stdin"
+      ]
+    }
+  },
+  "engine": "claude",
+  "model": "sonnet",
+  "memory_within": [
+    "circle:1789964509905:ab9tnq",
+    "2026-09-30-episode-549-a-milestone-enters-the-circle",
+    "2026-08-25-episode-339-relation-to-mia-on-mobile-devops"
+  ],
+  "session_id": "6cf4ef25-09d2-4e4f-889e-a64321d69810",
+  "session_id_source": "engine",
+  "strategy": "standard",
+  "strategy_pass_count": 1,
+  "created_at": "2026-09-30T21:44:10.716Z",
+  "updated_at": "2026-09-30T21:45:41.824Z"
+}
