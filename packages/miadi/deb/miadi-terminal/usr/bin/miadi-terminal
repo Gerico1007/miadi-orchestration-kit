@@ -9,8 +9,9 @@ Installed by miadi-terminal (jgwill/miadi-orchestration-kit).
     miadi-terminal front [URL]             show, or set, the Miadi a click opens on
 
 Integrations:
-    desktop     the miadi-chronicle: scheme opens in the browser from any
-                application — OSC 8 links in a terminal, links in a page
+    desktop     the miadi-chronicle:, miadi-ceremony: and miadi-circle: schemes
+                open in the browser from any application — OSC 8 links in a
+                terminal, links in a page
     terminator  Ctrl+click a bare reference in Terminator's output
     tmux        click (or tap, on Termux) a bare reference in a tmux pane
 
@@ -30,7 +31,8 @@ OPENER = "/usr/bin/miadi-chronicle-open"
 PLUGIN_CLASS = "MiadiChronicleURLHandler"
 PLUGIN_PATH = Path("/usr/lib/python3/dist-packages/terminatorlib/plugins/miadi_chronicle_url_handler.py")
 DESKTOP_FILE = "miadi-chronicle-open.desktop"
-SCHEME_MIME = "x-scheme-handler/miadi-chronicle"
+SCHEME_MIMES = ("x-scheme-handler/miadi-chronicle", "x-scheme-handler/miadi-ceremony",
+                "x-scheme-handler/miadi-circle")
 TMUX_CONF = SHARE / "tmux" / "miadi-chronicle.conf"
 TMUX_LINE = f"source-file -q {TMUX_CONF}  # miadi-terminal"
 # Terminator's own default, which a config that sets enabled_plugins replaces.
@@ -85,8 +87,11 @@ class Desktop:
         return shutil.which("xdg-mime") is not None
 
     def enabled(self):
-        result = run("xdg-mime", "query", "default", SCHEME_MIME)
-        return bool(result and result.stdout.strip() == DESKTOP_FILE)
+        return all(self.default(mime) == DESKTOP_FILE for mime in SCHEME_MIMES)
+
+    def default(self, mime):
+        result = run("xdg-mime", "query", "default", mime)
+        return result.stdout.strip() if result else ""
 
     def enable(self):
         mimeapps = CONFIG_HOME / "mimeapps.list"
@@ -95,19 +100,19 @@ class Desktop:
             if not backup.exists():
                 shutil.copy2(mimeapps, backup)
                 print(f"  backup: {backup}")
-        result = run("xdg-mime", "default", DESKTOP_FILE, SCHEME_MIME)
+        result = run("xdg-mime", "default", DESKTOP_FILE, *SCHEME_MIMES)
         if result and result.returncode == 0:
-            print(f"desktop: {SCHEME_MIME} opens with {DESKTOP_FILE}")
+            print(f"desktop: {', '.join(SCHEME_MIMES)} open with {DESKTOP_FILE}")
         else:
-            print(f"desktop: could not set {SCHEME_MIME}")
+            print(f"desktop: could not set {', '.join(SCHEME_MIMES)}")
 
     def disable(self):
         print("desktop: the scheme handler stays registered system-wide; "
               "other applications may claim it with xdg-mime")
 
     def describe(self):
-        default = run("xdg-mime", "query", "default", SCHEME_MIME)
-        return default.stdout.strip() if default and default.stdout.strip() else "no default handler"
+        return "; ".join(f"{mime.rsplit('/', 1)[1]}: {self.default(mime) or 'no default handler'}"
+                         for mime in SCHEME_MIMES)
 
 
 # --- terminator --------------------------------------------------------------

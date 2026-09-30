@@ -61,7 +61,10 @@ Termux cannot install Ubuntu packages. There, set `MIADI_ETC` and source
 
 For a machine that reads chronicle references, not one that serves them. A
 click turns `miadi-chronicle:126` into `<front>/api/chronicle/open?uri=…` and the
-Miadi server redirects to the room, so nothing is resolved here.
+Miadi server redirects to the room, so nothing is resolved here. A ceremony or
+circle reference opens its page the same way: `miadi-circle:<id>`,
+`miadi-ceremony:<id>`, or the bare wheel id `circle:1790787727155:2slscw`
+(jgwill/Miadi `rispecs/miadi-chronicle-dsl/SPEC.md` §9).
 
 ```bash
 sudo apt install miadi-terminal
@@ -72,7 +75,7 @@ miadi-terminal status
 
 | integration | a click is | file |
 |---|---|---|
-| `desktop` | an OSC 8 link or a page link carrying `miadi-chronicle:` | `/usr/share/applications/miadi-chronicle-open.desktop` |
+| `desktop` | an OSC 8 link or a page link carrying `miadi-chronicle:`, `miadi-ceremony:` or `miadi-circle:` | `/usr/share/applications/miadi-chronicle-open.desktop` |
 | `terminator` | Ctrl+click a bare reference | `/usr/share/miadi-terminal/terminator/`, linked into Terminator's plugin directory |
 | `tmux` | click, or tap on Termux, a bare reference in a pane | `/usr/share/miadi-terminal/tmux/miadi-chronicle.conf` |
 

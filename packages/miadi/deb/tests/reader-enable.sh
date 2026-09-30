@@ -27,7 +27,9 @@ test ! -e ~/bin/miadi-chronicle-open
 test -f ~/.local/share/miadi-terminal/legacy/miadi-chronicle-open
 test -f ~/.config/environment.d/50-miadi-chronicle.conf
 miadi-terminal status | grep -q 'earlier inquiry-weave environment file'
-test "$(xdg-mime query default x-scheme-handler/miadi-chronicle)" = miadi-chronicle-open.desktop
+for scheme in miadi-chronicle miadi-ceremony miadi-circle; do
+	test "$(xdg-mime query default x-scheme-handler/$scheme)" = miadi-chronicle-open.desktop
+done
 grep -qx 'text/html=firefox.desktop' ~/.config/mimeapps.list.bak-miadi-terminal
 miadi-terminal enable terminator | grep -q 'already enabled'
 miadi-terminal status | grep -qx 'terminator: its application is not installed here'

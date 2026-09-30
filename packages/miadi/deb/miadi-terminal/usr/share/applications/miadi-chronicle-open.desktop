@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
 Name=Miadi Chronicle reference
-Comment=Open a miadi-chronicle: reference in the browser
+Comment=Open a miadi-chronicle:, miadi-ceremony: or miadi-circle: reference in the browser
 Exec=/usr/bin/miadi-chronicle-open --open %u
-MimeType=x-scheme-handler/miadi-chronicle;
+MimeType=x-scheme-handler/miadi-chronicle;x-scheme-handler/miadi-ceremony;x-scheme-handler/miadi-circle;
 NoDisplay=true
 Terminal=false

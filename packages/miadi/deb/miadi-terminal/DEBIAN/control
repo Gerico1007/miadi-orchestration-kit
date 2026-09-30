@@ -1,5 +1,5 @@
 Package: miadi-terminal
-Version: 0.1.3
+Version: 0.1.4
 Section: misc
 Priority: optional
 Architecture: all
@@ -9,9 +9,10 @@ Suggests: terminator, tmux
 Maintainer: Miadi <mia@jgwill.com>
 Homepage: https://github.com/jgwill/miadi-orchestration-kit
 Description: Clickable miadi-chronicle references on a Miadi client
- A bare miadi-chronicle:126 in a terminal opens the episode in the browser.
+ A bare miadi-chronicle:126 in a terminal opens the episode in the browser,
+ and a circle:1790787727155:2slscw or miadi-ceremony:<id> opens its page.
  Each integration is enabled per user with `miadi-terminal enable`:
-  desktop     the miadi-chronicle: scheme, for OSC 8 links and web pages
+  desktop     the miadi-chronicle:, miadi-ceremony:, miadi-circle: schemes
   terminator  Ctrl+click a reference in Terminator
   tmux        click a reference in a tmux pane
  /usr/bin/miadi-chronicle-open builds <front>/api/chronicle/open?uri=... and

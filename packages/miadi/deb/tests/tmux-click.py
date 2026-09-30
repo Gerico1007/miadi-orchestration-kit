@@ -186,6 +186,21 @@ try:
 finally:
     s.close()
 
+# A bare circle id and a ceremony by its scheme: the row holds neither word
+# when it has no scheme, so "circle:" is what tmux looks for.
+s = Scenario(60, lines_program(["seated in circle:1790787727155:2slscw.", "see miadi-ceremony:ceremony:ep343:talk:1", "the circle: people"]))
+try:
+    s.click(14)
+    check("a bare circle id opens its circle", s.opened_lines(),
+          [f"{FRONT}miadi-circle%3Acircle%3A1790787727155%3A2slscw"])
+    s.click(8, row=1)
+    check("a ceremony reference opens its ceremony", s.opened_lines()[1:],
+          [f"{FRONT}miadi-ceremony%3Aceremony%3Aep343%3Atalk%3A1"])
+    s.click(6, row=2)
+    check("the word circle: is not a reference", s.opened_lines()[2:], [])
+finally:
+    s.close()
+
 
 def streaming(width, name):
     """A pane still printing: the click opens what was under it when it landed."""

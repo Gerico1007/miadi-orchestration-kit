@@ -47,10 +47,14 @@ docker run --rm -v "$debs:/tmp/debs:ro" -v "$tests:/tmp/tests:ro" "${IMAGE:-ubun
     test "$(miadi-chronicle-open "miadi-chronicle:092/126#scene=river).")" = "${open}miadi-chronicle%3A092%2F126%23scene%3Driver"
     test "$(MIADI_CHRONICLE_OPEN_URL=https://tailnet.test/ miadi-chronicle-open miadi-chronicle://311)" = \
       "https://tailnet.test/api/chronicle/open?uri=miadi-chronicle%3A%2F%2F311"
-    echo "the opener builds the open door on the configured front"
+    test "$(miadi-chronicle-open "circle:1790787727155:2slscw.")" = "${open}miadi-circle%3Acircle%3A1790787727155%3A2slscw"
+    test "$(miadi-chronicle-open miadi-circle:circle:1790787727155:2slscw)" = "${open}miadi-circle%3Acircle%3A1790787727155%3A2slscw"
+    test "$(miadi-chronicle-open ceremony:ep343:talking-circle:1)" = "${open}miadi-ceremony%3Aceremony%3Aep343%3Atalking-circle%3A1"
+    echo "the opener builds the open door on the configured front, for a chronicle, ceremony or circle reference"
     code() { set +e; "$@" >/dev/null 2>&1; echo $?; set -e; }
     test "$(code miadi-chronicle-open)" = 64
     test "$(code miadi-chronicle-open https://example.test)" = 65
+    test "$(code miadi-chronicle-open circle:foo)" = 65
     empty=$(mktemp -d)
     test "$(code env -i PATH=/usr/bin:/bin MIADI_ETC="$empty" miadi-chronicle-open miadi-chronicle:126)" = 78
     echo "usage 64, not a reference 65, no front 78"
@@ -65,16 +69,24 @@ pattern = re.compile(match)
 for text, want in [("see miadi-chronicle:126.", "miadi-chronicle:126"),
                    ("git log: miadi-chronicle://092/126#scene=river end", "miadi-chronicle://092/126#scene=river"),
                    ("(miadi-chronicle:311/services-inventory)", "miadi-chronicle:311/services-inventory"),
-                   ("see MIADI-CHRONICLE:126.", "MIADI-CHRONICLE:126")]:
+                   ("see MIADI-CHRONICLE:126.", "MIADI-CHRONICLE:126"),
+                   ("seated in circle:1790787727155:2slscw.", "circle:1790787727155:2slscw"),
+                   ("<miadi-circle:circle:1790787727155:2slscw?mc.show=card>", "miadi-circle:circle:1790787727155:2slscw?mc.show=card"),
+                   ("opened ceremony:ep343:talking-circle:1 today", "ceremony:ep343:talking-circle:1"),
+                   ("see miadi-ceremony:3f2a9c1e", "miadi-ceremony:3f2a9c1e")]:
     found = pattern.search(text)
     assert found, text
     assert found.group(0).rstrip(".,;:!?)]}\x27\"") == want, (found.group(0), want)
-print("the plugin parses and its pattern finds references in running text")
+for text in ["the circle: people", "circle:12", "a ceremony:opening"]:
+    assert not pattern.search(text), text
+print("the plugin parses and its pattern finds chronicle, ceremony and circle references in running text")
 PY
     apt-get install -y -qq desktop-file-utils >/dev/null 2>&1
     desktop-file-validate /usr/share/applications/miadi-chronicle-open.desktop
-    grep -q "x-scheme-handler/miadi-chronicle=miadi-chronicle-open.desktop" /usr/share/applications/mimeinfo.cache
-    echo "the scheme handler is valid and registered"
+    for scheme in miadi-chronicle miadi-ceremony miadi-circle; do
+      grep -q "x-scheme-handler/$scheme=miadi-chronicle-open.desktop" /usr/share/applications/mimeinfo.cache
+    done
+    echo "the scheme handler is valid and registered for all three schemes"
 
     apt-get install -y -qq tmux python3-configobj >/dev/null 2>&1
     useradd -m reader
