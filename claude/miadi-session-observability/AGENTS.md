@@ -48,6 +48,12 @@ those rules here goes there too.
 - gaia, mia: installed on 2026-09-28 from this kit's marketplace, with the `hooks` block removed
   from `~/.claude/settings.json` (backup: `~/.claude/settings.json.bak.260928-before-a9-cutover`).
   Checked: a new session wrote each event once, with its pane and team.
+- eury, mia: installed on 2026-09-30 from the GitHub marketplace (`jgwill/miadi-orchestration-kit`),
+  with the 14 `claude_hooks` commands removed from `~/.claude/settings.json` (backup:
+  `~/.claude/settings.json.bak.260930-before-session-observability`). They pointed at
+  `/src/scripts/claude_hooks`, a copy last changed on 2026-07-16. The plugin writes the same 30
+  capture files plus `agents/<id>.transcript.jsonl` and the binding line. The herdr
+  `SessionStart` hook stays in `settings.json`.
 - gaia, jgi and ava: still wired to `/opt/binscripts/hooks/claude_hooks` in their own
   `settings.json`, until each of them switches.
 
