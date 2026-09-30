@@ -60,7 +60,7 @@ Upgrade: `npm i -g passages@latest @miadi/inquiry-weave@latest`. Source run when
 ## S4. Mint
 
 1. API. `POST $MIADI_API_URL/api/chronicle/episodes` with `{title, goal, references[], number?, date?, lineage?[], inquiry?, register?, land?, dryRun?}`. It writes the mkepisode-shaped manifest, registers the card, writes the receipt, lands (S5), and returns `{ok, episode, number, manifest, files, registration, landing, closing[5], drift, owedActions}`; `ok` is computed from `closing`, never asserted. `GET …/episodes?number=N` says whether N is free on disk, on `origin/main`, and on the wheel; `?allocate=1` previews max+1 and never fills a hole (an explicit `number` is how a lower free number is taken). A taken number is `409 number_taken` with where it was seen. A wheel card with no directory is a reservation and counts as taken.
-2. MCP. `chronicle_episode_mint` and `chronicle_episode_number` on `inquiry-weave-mcp` (same fields; the tool calls the library on disk when `MIADI_CHRONICLE_ROOT` is set, otherwise forwards to the API through `MIADI_INQUIRY_API_BASE` and `MIADI_API_TOKEN_WRITER`). Published in `@miadi/inquiry-weave` 0.9.0 (2026-09-05). On miadi-voice, `voice_resolve_episode` first ("no episode is adequate" is a valid answer); `voice_create_episode` mints and registers but does not commit or push (closing.ts:14), so its caller finishes S5.
+2. MCP. `chronicle_episode_mint` and `chronicle_episode_number` on `inquiry-weave-mcp` (same fields; the tool calls the library on disk when `MIADI_CHRONICLE_ROOT` is set, otherwise forwards to the API through `MIADI_INQUIRY_API_BASE` and `MIADI_API_TOKEN_WRITER`; `MIADI_EPISODE_DOOR=http` forwards even where the root is set, 0.14.2). Published in `@miadi/inquiry-weave` 0.9.0 (2026-09-05). On miadi-voice, `voice_resolve_episode` first ("no episode is adequate" is a valid answer); `voice_create_episode` mints and registers but does not commit or push (closing.ts:14), so its caller finishes S5.
 3. CLI.
 
 ```bash
@@ -118,10 +118,13 @@ inquiry-weave status  --episode ep<N> --json
 ## S8. Lineage
 
 1. API. `POST $MIADI_API_URL/api/chronicle/episodes/<ref>/lineage` with `{field: continues_from|relates_to, to: <ref>, relation, reverse?, land?, dryRun?}`: the manifest edge, the wheel edge, then land.
-2. MCP. `chronicle_episode_lineage` on `inquiry-weave-mcp` (published 0.9.0).
+2. MCP. `chronicle_episode_lineage` on `inquiry-weave-mcp` (published 0.9.0). `$MIADI_MCP_CONFIG_INQUIRY_WEAVE` (`$MIADI_SRC/etc/mcp-config-inquiry-weave.json`) loads it with `MIADI_EPISODE_DOOR=http` at `MIADI_API_URL`, so the write takes the app's door; `claudeyolochronicle` and the aliases built on it carry that config. `medicine-wheel-miadi-chronicle` is not a lineage door: it writes the wheel alone and `episode.yaml` never hears of it.
 3. CLI. `inquiry-weave lineage --from ep<N> --to ep<M> --relation "<one sentence true from both doors>" --kind continues-from|relates-to [--reverse] [--dry-run]`.
+4. Page. On `/chronicle/<episode>`, a signed-in writer uses "+ Add related episode" on the Lineage card: the other episode by number or title, relates to or continues from, the sentence (required), an optional reverse with its own sentence. It posts to door 1.
 
-Both manifests must exist (lineage.ts:117-121; the error names `--adopt`). Idempotent by target (lineage.ts:160). The edge is projected onto the wheel by default; `--no-wheel` writes the manifest only (cli.ts:660-663). `--json` carries `wheel.state`; the room's Lineage card rendering the link is the proof.
+`relation` is the sentence a person reads. It is written to `episode.yaml` and to the wheel edge's `description` (medicine-wheel 0.16.1, jgwill/medicine-wheel#150), and it is shown under the row on the episode page. Write why the two episodes belong together, in plain words, true from both rooms. An edge the wheel already holds without a description receives the manifest's sentence the next time the relation is authored (`@miadi/inquiry-weave` 0.14.3).
+
+Both manifests must exist (lineage.ts:117-121; the error names `--adopt`). Idempotent by target (lineage.ts:160): an existing entry keeps its sentence, and a new sentence for the same target is not written over it. The edge is projected onto the wheel by default; `--no-wheel` writes the manifest only (cli.ts:660-663). One pair is one wheel edge: an edge of the other type for the pair is reported in `wheel.error` and left as it is. `--json` carries `wheel.state`; the proof is the room's Lineage row showing the link with the sentence under it.
 
 ## S9. Attention
 
