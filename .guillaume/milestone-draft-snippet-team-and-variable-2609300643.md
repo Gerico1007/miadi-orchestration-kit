@@ -1,4 +1,4 @@
-## Environment variables
+## setup
 
 The plugin is installed from GitHub:
 
@@ -6,6 +6,8 @@ The plugin is installed from GitHub:
 claude plugin marketplace add jgwill/miadi-orchestration-kit
 claude plugin install miadi-session-observability@miadi-orchestration-kit
 ```
+
+## Environment variables
 
 It reads these variables from the shell the agent starts in.
 
@@ -22,10 +24,45 @@ Inside tmux, the binding line also records the pane: `session`, `window`, `pane`
 
 ### Launchers
 
-A launcher is a shell alias that starts an agent with its model, tools, MCP servers and folders. It exports its own name:
+A launcher is a shell function or alias that starts an agent with its model, permissions, MCP servers and plugins. It sets `MIADI_LAUNCH_ALIAS` to its own name unless a launcher that called it already set one, so the binding line records the name that was typed.
+
+The two most used on gaia (binding lines up to 2026-09-30: `claudeyolochroniclehoncho` 22, `claudeyolo` 18), for `~/.bashrc`:
 
 ```bash
-alias claudehaiku='MIADI_LAUNCH_ALIAS=${MIADI_LAUNCH_ALIAS:-claudehaiku} claude --model haiku'
+# Claude Code without permission prompts
+claudeyolo() {
+  MIADI_LAUNCH_ALIAS="${MIADI_LAUNCH_ALIAS:-claudeyolo}" claude "$@" --dangerously-skip-permissions
+}
+
+# claudeyolo with the chronicle's MCP servers (voice, medicine wheel), then with Honcho memory
+alias claudeyolochronicle='MIADI_LAUNCH_ALIAS=${MIADI_LAUNCH_ALIAS:-claudeyolochronicle} claudeyolo --mcp-config $MIADI_MCP_CONFIG_VOICE $MIADI_MCP_CONFIG_MW_CHRONICLE'
+alias claudeyolochroniclehoncho='MIADI_LAUNCH_ALIAS=${MIADI_LAUNCH_ALIAS:-claudeyolochroniclehoncho} claudeyolochronicle --mcp-config $MIADI_MCP_CONFIG_HONCHO'
+
+export MIADI_MCP_CONFIG_VOICE=~/.config/miadi/mcp-config-voice.json
+export MIADI_MCP_CONFIG_MW_CHRONICLE=~/.config/miadi/mcp-config-mw-chronicle.json
+export MIADI_MCP_CONFIG_HONCHO=~/.config/miadi/mcp-config-honcho.json
+```
+
+The three MCP config files. Claude Code fills in `${VAR}` from the environment, so tokens stay in `~/.env`:
+
+```json
+{ "mcpServers": { "miadi-voice": {
+  "command": "npx", "args": ["-y", "@miadi/voice-mcp"],
+  "env": { "MIADI_API_URL": "${MIADI_API_URL}", "MIADI_API_TOKEN_WRITER": "${MIADI_API_TOKEN_WRITER}",
+           "MIADI_CHRONICLE_ROOT": "${MIADI_CHRONICLE_ROOT}", "MW_API_URL": "${MIADI_CHRONICLE_MW_URL}",
+           "ASSEMBLY_VOICE_AUDIO_DIR": "${MIADI_ASSEMBLY_VOICE_AUDIO_DIR}" } } } }
+```
+
+```json
+{ "mcpServers": { "medicine-wheel-miadi-chronicle": {
+  "command": "npx", "args": ["-y", "@medicine-wheel/mcp"],
+  "env": { "MW_API_URL": "${MIADI_CHRONICLE_MW_URL}" } } } }
+```
+
+```json
+{ "mcpServers": { "honcho": {
+  "type": "http", "url": "${HONCHO_MCP_URL}",
+  "headers": { "Authorization": "Bearer ${HONCHO_API_KEY}" } } } }
 ```
 
 After a reboot or a crash, `tide agents restore` (PyPI [`ironsilk`](https://pypi.org/project/ironsilk/) 0.9.35 or later) starts each agent again through the launcher named on its binding line, with `--resume <session_id>`. The agent comes back with the same tools. When no launcher is named, tide infers one from the command line, and otherwise resumes with the plain command.
