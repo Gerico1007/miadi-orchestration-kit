@@ -15,6 +15,7 @@ editing that host's system policy.
 | `miette/` | a full plugin — manifest, skill, agent, command, and the repo's **first hook** |
 | `mia-episode-companion/` | a plugin — the Claude Code counterpart of Episode 339's Pi episode-companion: voice-take listener, skill, developmental-editor agent, `/mia-listen`, and `phone-capture/` (iPhone → episode on this host), kept running by a SessionStart hook |
 | `miadi-session-observability/` | a plugin (0.1.0) — the session capture hooks from `/opt/binscripts/hooks/claude_hooks/` with the binding line (tmux pane, command line, name history, team) and the `session-continuity` skill; installed from this kit's marketplace. jgwill/miadi-orchestration-kit#56 |
+| `miadi-stateloom/` | a plugin (0.1.0) — the stateloom loom's MCP server (`@miadi/stateloom-mcp`, pinned) and its eight design skills, copied from jgwill/smcraft by that repo's `scripts/sync-kit-plugin.mjs`; `/system-open`, `/system-check`. jgwill/miadi-orchestration-kit#67 |
 | `miadi-witness/` | a plugin (0.1.0), the witness team's practices: `miadi-witness-first-impression` and `miadi-mino-tmux-inventory`, moved here from `skills/`. jgwill/miadi-orchestration-kit#59 |
 | `miadi-storyweaver-orchestration-kit/` | `CLAUDE.md` + `README.md` + `prompts/` — a prompt wrapper, not a plugin; declared as *"not a fork of the kit"* |
 
