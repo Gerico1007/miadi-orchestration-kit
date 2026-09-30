@@ -21,7 +21,31 @@ Some plugins, skills, or packages may move between the two repositories. When so
 | `claude/mia-episode-companion` | `@miadi/capture`, `capture-client`, `capture-service`, `episode-capture`, `transcription`, `episodic-memory-schema`, `node-service-kit`, `voice`, `voice-client` |
 | `claude/miadi-session-orchestrator` | the `@miadi/plan-insight` pipeline |
 | `pi/miadi-pi-network` | publishes its own `@miadi/pi-network` hub from this repository |
-| `packages/miadi/deb` | apt packaging of a Miadi host: `miadi` umbrella and `miadi-config` |
+| `packages/miadi/deb` | apt packages for a Miadi host and client: `miadi`, `miadi-config`, `miadi-terminal`, `miadi-tide`; they call the Miadi server's `GET /api/chronicle/open` and read `MIADI_*` settings |
+
+## Apt packages
+
+A Miadi host or client installs from `https://apt.sanctuaireagentique.com` (`stable main`, `amd64`). The packages are built from [`packages/miadi/deb`](packages/miadi/deb/README.md), which holds each package's files, `build.sh`, and the container and tmux tests.
+
+```bash
+curl -fsSL https://apt.sanctuaireagentique.com/sanctuaire-agentique.gpg \
+  | sudo tee /usr/share/keyrings/sanctuaire-agentique.gpg >/dev/null
+echo "deb [signed-by=/usr/share/keyrings/sanctuaire-agentique.gpg] https://apt.sanctuaireagentique.com stable main" \
+  | sudo tee /etc/apt/sources.list.d/sanctuaire-agentique.list
+sudo apt update && sudo apt install miadi     # a host
+sudo apt install miadi-terminal                # a client
+```
+
+| Package | Gives the machine | Commands |
+| --- | --- | --- |
+| `miadi` | the host umbrella; each part joins as a dependency | — |
+| `miadi-config` | `/etc/miadi/miadi.env`, the defaults in `/usr/share/miadi/env.sh`, loaded into login shells | `miadi-config [get\|set\|unset\|check\|settings]` |
+| `miadi-terminal` | clickable references: `miadi-chronicle:126`, `miadi-circle:<id>`, `miadi-ceremony:<id>`, and a bare `circle:1790787727155:2slscw`, from the desktop scheme handler, Terminator and tmux; a Termux build installs from the file | `miadi-terminal [status\|enable\|disable\|front]`, `miadi-chronicle-open <reference>` |
+| `miadi-tide` | the review loop (`tan`, `plannotator-tui`) and the tide runtime; on 2026-09-30 built here but not yet published (jgwill/miadi-orchestration-kit#55) | `tan`, `plannotator-tmux-review`, `plannotator-tui`, `tide` |
+
+- `miadi-terminal` resolves nothing on the client: it opens `<front>/api/chronicle/open?uri=<reference>`, where the front is `MIADI_CHRONICLE_OPEN_URL`, else `MIADI_URL_BASE`. Each user runs `miadi-terminal enable` once, and again for `desktop` after an upgrade that adds a scheme.
+- Confirm what the repository serves with `apt-cache policy <package>` before recommending a package or a version.
+- Reference grammar: jgwill/Miadi `rispecs/miadi-chronicle-dsl/SPEC.md` §9 and `SPEC-TERMINAL.md` §3.
 
 ## Reading this site
 

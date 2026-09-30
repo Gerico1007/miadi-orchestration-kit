@@ -16,7 +16,7 @@ sudo apt update && sudo apt install miadi
 |---|---|---|
 | `miadi` | its dependencies (through 0.1.x it held the settings itself) | 0.1.0 |
 | `miadi-config` | the `MIADI_*` settings and the `miadi-config` command | 0.2.0 |
-| `miadi-terminal` | a client's clickable `miadi-chronicle:` references: desktop, Terminator, tmux | 0.1.0 |
+| `miadi-terminal` | a client's clickable `miadi-chronicle:`, `miadi-ceremony:` and `miadi-circle:` references, and bare circle ids (0.1.4): desktop, Terminator, tmux | 0.1.0 |
 | `miadi-tide` | the review loop (`tan`, `plannotator-tui`) and the tide runtime (`tide`, its daemon) | 0.1.0 |
 
 Each package is a directory here holding its `DEBIAN/control` and the files it
