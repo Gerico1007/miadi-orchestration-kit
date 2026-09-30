@@ -54,8 +54,16 @@ those rules here goes there too.
   `/src/scripts/claude_hooks`, a copy last changed on 2026-07-16. The plugin writes the same 30
   capture files plus `agents/<id>.transcript.jsonl` and the binding line. The herdr
   `SessionStart` hook stays in `settings.json`.
-- gaia, jgi and ava: still wired to `/opt/binscripts/hooks/claude_hooks` in their own
-  `settings.json`, until each of them switches.
+- gaia, jgi: installed on 2026-09-30 from the GitHub marketplace, with the 14 `claude_hooks`
+  commands removed from `~/.claude/settings.json` (backup:
+  `~/.claude/settings.json.bak.260930-before-session-observability`). The herdr `SessionStart`
+  hook stays. Checked: the resumed session and a headless session with a subagent wrote each
+  event once, with Stop, SessionEnd, `_transcript_final.jsonl`, `agents/<id>.transcript.jsonl`
+  and a start and end binding line (pane `%3`). The session that made the edit stopped
+  capturing at the edit: Claude Code reloaded `settings.json` at once, and the plugin's hooks
+  load only at the next start. Its last tool calls, its Stop and its SessionEnd were not written.
+- gaia, ava: still wired to `/opt/binscripts/hooks/claude_hooks` in `settings.json`, until ava
+  switches.
 
 An installed plugin is a copy in `~/.claude/plugins/cache/`. A change here reaches an installed
 host only after the version in `.claude-plugin/plugin.json` and in the kit's

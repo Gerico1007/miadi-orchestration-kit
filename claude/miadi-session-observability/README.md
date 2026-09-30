@@ -25,8 +25,9 @@ claude plugin install miadi-session-observability@miadi-orchestration-kit
 Then remove the `hooks` block from `~/.claude/settings.json` on that host, in the same step. If
 both are wired, every event fires twice and every capture line is written twice.
 
-Hooks load when a session starts and do not hot-swap. A session started before the install
-keeps its old wiring until it is restarted.
+The plugin's hooks load when a session starts. Removing the `hooks` block takes effect at once,
+so a running session captures nothing from that edit until it is restarted. Restart it right
+after the edit (seen on gaia, 2026-09-30).
 
 To try the plugin without installing it: `claude --plugin-dir <path to this folder>`.
 
