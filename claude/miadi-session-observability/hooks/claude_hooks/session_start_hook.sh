@@ -17,3 +17,11 @@ claude_write_jsonl "$session_common_data_file" "$input" #so we have a common fil
 # Bind this session to its terminal (jgwill/binscripts#158).
 . "$SCRIPT_DIR/terminal_binding.sh"
 claude_write_terminal_binding "session.start" "$input"
+
+# Copy what earlier sessions left uncopied before Claude Code's cleanup deletes
+# it (lib.sh, claude_archive_sweep). Detached, and silent: SessionStart stdout
+# goes into the conversation.
+transcript_path=$(echo "$input" | jq -r '.transcript_path // empty')
+if [ -n "$transcript_path" ]; then
+    claude_detach bash "$SCRIPT_DIR/transcript_archive.sh" sweep "$(dirname "$(dirname "$transcript_path")")"
+fi

@@ -20,6 +20,10 @@ if [ -f "$transcript_path" ]; then
   rm -f "$progressive.tmp.$$"
 fi
 
+# Keep the whole transcript, its subagents and tool-results (lib.sh,
+# claude_archive_session). Detached: the turn does not wait for it.
+claude_detach bash "$SCRIPT_DIR/transcript_archive.sh" session "$transcript_path" "$output_dir"
+
 # Save last_assistant_message as its own event stream for ceremony-session-observer
 last_msg=$(echo "$input" | jq -r '.last_assistant_message // empty')
 if [ -n "$last_msg" ]; then

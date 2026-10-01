@@ -31,5 +31,5 @@ mkdir -p "$output_dir"
 claude_write_jsonl "$output_dir/_claude_SessionEnd.jsonl" "$input"
 claude_write_json "$output_dir/last_claude_SessionEnd.jsonl" "$input"
 
-# Archive complete transcript on session end
-claude_sanitize_file_to "$transcript_path" "$output_dir/_transcript_final.jsonl"
+# Archive the complete transcript, its subagents and tool-results (lib.sh)
+claude_with_lock "$output_dir/.archive.lock" claude_archive_session "$transcript_path" "$output_dir"

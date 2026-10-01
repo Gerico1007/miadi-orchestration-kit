@@ -76,6 +76,7 @@ installed plugin is a copy of this folder, so it cannot reach the kit by a relat
 ```bash
 bash tests/team-resolution.sh
 bash tests/episode-resolution.sh
+bash tests/transcript-archive.sh
 CLAUDE_SESSIONDATA_ROOT=$(mktemp -d) claude --restricted --plugin-dir . --model haiku
 ```
 

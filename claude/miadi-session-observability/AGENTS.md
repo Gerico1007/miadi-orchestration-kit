@@ -14,6 +14,7 @@ jgwill/miadi-orchestration-kit#56. The README says how to install it and how tea
 - `skills/session-continuity/`: T1's practice.
 - `tests/team-resolution.sh`: the team rules, 13 checks.
 - `tests/episode-resolution.sh`: the episode rules, 13 checks.
+- `tests/transcript-archive.sh`: the transcript archive rules, 21 checks.
 
 ## This is the canonical copy
 
@@ -31,11 +32,21 @@ those rules here goes there too.
   resolves `MIADI_SESSION_DIR`, `MIADI_SESSIONDATA_ROOT`, `SESSION_DATA_ROOT`, then
   `/src/_sessiondata`). `_sessiondata/scripts/token_counter.py` (jgwill/src), the Miadi
   `/token-usage` page, plan-insight and the session observers all read that layout.
-- **The three copies the token counter depends on.** `_responses_progressive.jsonl` (Stop),
-  `_transcript_final.jsonl` (SessionEnd), and `agents/<id>.transcript.jsonl` (SubagentStop).
-  Each is written to a temp file and renamed into place, so a killed hook keeps the previous
-  copy. Claude Code deletes its own transcripts after `cleanupPeriodDays`, and these copies are
-  what remains. Earned in jgwill/binscripts@2064dd07858668206702214d0a8949d36c48befc.
+- **The copies the token counter depends on.** `_responses_progressive.jsonl` (Stop),
+  `_transcript_final.jsonl` and `agents/<id>.transcript.jsonl`. Claude Code deletes its own
+  transcripts, subagent transcripts and tool-results after `cleanupPeriodDays` (default 30),
+  and these copies are what remains. Earned in
+  jgwill/binscripts@2064dd07858668206702214d0a8949d36c48befc.
+- **The transcript archive** (`lib.sh`, `transcript_archive.sh`, since 0.1.3). Stop,
+  SubagentStop and SessionEnd bring the session's copies up to date: the whole transcript to
+  `_transcript_final.jsonl`, each subagent to `agents/<id>.transcript.jsonl` with
+  `agents/<id>.meta.json`, and `tool-results/` and `session-memory/` at the same path. Each
+  call sanitizes only the lines added since the last one (`.<copy>.offset` beside the copy),
+  because sanitizing a 33 MB transcript whole takes 18 s. Stop and SubagentStop run it
+  detached. SessionStart sweeps every session of that user with a folder under the root, which
+  catches sessions killed before SessionEnd and sessions the legacy hooks captured before the
+  plugin (on gaia, 112 of 293 live sessions had no full copy on 2026-09-30).
+  `tests/transcript-archive.sh` holds the rules, 21 checks.
 - **Nothing on stdout.** Claude Code injects the stdout of SessionStart and UserPromptSubmit
   hooks into the conversation. The binding writer prints nothing.
 - **SessionEnd returns at once.** Claude Code cancels SessionEnd hooks after 1.5 s and prints

@@ -70,7 +70,9 @@ fi
 # Keep a sanitized copy of the subagent transcript. Claude Code deletes it
 # after cleanupPeriodDays; a symlink here used to die with it, and with it
 # the subagent's token usage (scripts/token_counter.py reads these copies).
-if [ -n "$agent_id" ] && [ -n "$agent_transcript" ] && [ -f "$agent_transcript" ]; then
-    mkdir -p "$output_dir/agents"
-    claude_sanitize_file_to "$agent_transcript" "$output_dir/agents/$agent_id.transcript.jsonl"
+# The session archive writes agents/<agent_id>.transcript.jsonl, detached so
+# the parent's turn does not wait for it.
+transcript_path=$(echo "$input" | jq -r '.transcript_path // empty')
+if [ -n "$agent_id" ] && [ -n "$transcript_path" ]; then
+    claude_detach bash "$SCRIPT_DIR/transcript_archive.sh" session "$transcript_path" "$output_dir"
 fi
