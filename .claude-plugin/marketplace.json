@@ -27,7 +27,7 @@
       "name": "miadi-witness",
       "source": "./claude/miadi-witness",
       "description": "The witness team's practices and loop (T3): a loopback thread service with the asks ledger, a wake loop, an editor pass for replies to William, the inventory keeper, a first impression he can play, and revisions held until he answers.",
-      "version": "0.2.0"
+      "version": "0.2.1"
     },
     {
       "name": "miadi-stateloom",

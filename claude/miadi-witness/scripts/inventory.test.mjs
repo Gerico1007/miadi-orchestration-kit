@@ -51,9 +51,9 @@ function fixture() {
   return fx;
 }
 
-function bind(fx, id, { name, tmux, event = "session.start", source = "startup" }) {
+function bind(fx, id, { name, tmux, event = "session.start", source = "startup", argv = ["claude"] }) {
   appendFileSync(fx.bindings, `${JSON.stringify({
-    at: "2026-09-29T10:00:00.000Z", event, source, agent: "claude", session_id: id, cwd: "/fixture/not-a-repo",
+    at: "2026-09-29T10:00:00.000Z", event, source, agent: "claude", session_id: id, cwd: "/fixture/not-a-repo", argv,
     name: { name, former: [] }, tmux: { session: tmux, pane_id: "%9" }, team: { id: "T3", source: "folder" }, launch_alias: "claudeyolo",
   })}\n`);
 }
@@ -114,6 +114,15 @@ test("an update adds facts in place and never touches what an agent wrote", () =
   assert.equal(record.observations.length, 2);
   assert.match(record.observations[1].what, /Facts updated/);
   assert.equal(existsSync(join(fx.inventory, `${KEPT}.json`)), false, "no second file for the same session");
+});
+
+test("verify-names: a headless -p child bound in the same pane is not the pane's session", () => {
+  const fx = fixture();
+  const CHILD = "eeeeeeee-0000-4000-8000-000000000005";
+  bind(fx, CHILD, { name: "scratchpad-57", tmux: "tmux-new", argv: ["claude", "-p", "--plugin-dir", "x"] });
+  bind(fx, CHILD, { name: "scratchpad-57", tmux: "tmux-new", event: "session.end", argv: ["claude", "-p", "--plugin-dir", "x"] });
+  const [bound] = JSON.parse(run(fx, ["verify-names", "tmux-new", "--json"]).stdout);
+  assert.deepEqual([bound.verified, bound.session_id], [true, NEW]);
 });
 
 test("verify-names: a binding line, an exact pane reading, or unverified", () => {

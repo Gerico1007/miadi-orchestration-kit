@@ -82,6 +82,10 @@ function repoOf(cwd) {
   }
 }
 
+export function isHeadless(argv) {
+  return Array.isArray(argv) && argv.some((arg) => arg === "-p" || arg === "--print");
+}
+
 export function sessionsFromBindings(lines) {
   const sessions = new Map();
   for (const line of lines) {
@@ -92,6 +96,9 @@ export function sessionsFromBindings(lines) {
       if (name && !entry.names.includes(name)) entry.names.push(name);
     }
     entry.ended = line.event === "session.end";
+    // A `claude -p` / `--print` run in a pane is a headless child (an editor pass, a PDE
+    // call), never the pane's occupant, though its binding line carries the pane's name.
+    entry.headless = entry.headless || isHeadless(line.argv);
     sessions.set(line.session_id, entry);
   }
   return sessions;
@@ -212,7 +219,7 @@ export function paneReadings(name, transcriptsDir) {
 }
 
 export function verifyName(name, { sessions, transcriptsDir, inventory }) {
-  const bound = [...sessions.entries()].filter(([, entry]) => entry.latest.tmux?.session === name || entry.first.tmux?.session === name);
+  const bound = [...sessions.entries()].filter(([, entry]) => !entry.headless && (entry.latest.tmux?.session === name || entry.first.tmux?.session === name));
   let verdict;
   if (bound.length === 1) {
     verdict = { verified: true, session_id: bound[0][0], basis: `binding line at ${bound[0][1].latest.at}` };

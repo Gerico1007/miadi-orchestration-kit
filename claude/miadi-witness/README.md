@@ -42,4 +42,4 @@ Tests: `node --test claude/miadi-witness/service/*.test.mjs claude/miadi-witness
 - **0.3: the seat's tools from the plugin.** The seat's MCP configs (voice, the chronicle wheel, honcho) could move into this plugin, so a thread gets its tools from the plugin and not from an alias. Counterparts for pi and hermes would follow, organised by team.
 - **The podcast dialogue layer** (ask 4 in the ledger) is not in 0.2.
 - **The inventory keeper over the live sessions.** Its dry run lists 27 records to create, 7 to update, and 8 records with no session id, which are William's to rename or retire.
-- An `<input>` block without `</input>` never wakes the seat. The older scratchpads use that style.
+- An `<input>` block without `</input>` never wakes the seat. The older scratchpads use that style. Since 0.2.1 it ends where the next `<input>` opens, so it no longer hides a closed block below it.

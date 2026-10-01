@@ -180,6 +180,16 @@ test("an <input> quoted inside a sentence is a mention, not a block", () => {
   assert.equal(unclosed, 0);
 });
 
+test("an unclosed block does not swallow the closed block below it", () => {
+  const text = "<input>\nfirst, never closed\n\n<input>\nsecond, never closed\n\n<input tmux=\"t-261001\">\nthird\n</input>\n";
+  const { blocks, unclosed } = parseInputBlocks(text, "S.md");
+  assert.equal(unclosed, 2);
+  assert.equal(blocks.length, 1);
+  assert.deepEqual(blocks[0].attrs, { tmux: "t-261001" });
+  assert.equal(blocks[0].line, 7);
+  assert.match(blocks[0].text, /^<input tmux="t-261001">\nthird\n<\/input>$/);
+});
+
 test("helpers: block attributes with straight or curly quotes, and this process's own session", () => {
   const { blocks } = parseInputBlocks("<input type=ava goal=“ a goal “>\nx\n</input>", "S.md");
   assert.deepEqual(blocks[0].attrs, { type: "ava", goal: " a goal " });

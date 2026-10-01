@@ -44,9 +44,20 @@ const sha = (text) => createHash("sha256").update(text).digest("hex");
 export function parseInputBlocks(text, file) {
   const blocks = [];
   // A block opens at the start of a line; an <input …> quoted inside a sentence is a mention.
-  const pattern = /^<input(\s[^>\n]*)?>([\s\S]*?)<\/input>/gm;
-  let match;
-  while ((match = pattern.exec(text))) {
+  // It ends at its </input>, and only before the next opening: an unclosed block above
+  // must not swallow the closed one below it (SCRATCHPAD-260929.md, 2026-10-01).
+  const opening = /^<input(\s[^>\n]*)?>/gm;
+  const openings = [...text.matchAll(opening)];
+  let unclosed = 0;
+  openings.forEach((open, i) => {
+    const end = i + 1 < openings.length ? openings[i + 1].index : text.length;
+    const region = text.slice(open.index, end);
+    const close = region.indexOf("</input>");
+    if (close < 0) {
+      unclosed += 1;
+      return;
+    }
+    const match = { 0: region.slice(0, close + "</input>".length), 1: open[1], 2: region.slice(open[0].length, close), index: open.index };
     const openTag = `<input${match[1] ?? ""}>`;
     const body = match[2];
     const firstLine = body.split("\n").map((line) => line.trim()).find(Boolean) ?? "";
@@ -62,9 +73,8 @@ export function parseInputBlocks(text, file) {
       text: match[0],
       line: text.slice(0, match.index).split("\n").length,
     });
-  }
-  const unclosed = (text.match(/^<input(\s[^>\n]*)?>/gm) ?? []).length - blocks.length;
-  return { blocks, unclosed: Math.max(0, unclosed) };
+  });
+  return { blocks, unclosed };
 }
 
 export function scanScratchpads(dir = scratchpadsDir(), now = Date.now()) {

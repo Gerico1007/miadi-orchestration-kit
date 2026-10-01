@@ -48,9 +48,11 @@ Observations: What commands ran? What decisions were made? What was completed? W
 **First, read it from the binding line (A5, since 2026-09-28).** Every agent session started, renamed or ended in a tmux pane writes one line to `/src/_sessiondata/data/terminal_bindings.jsonl`. The line holds the session id, its current name with its history, the terminal, the launch, and the team. Given the tmux session name, the latest line answers without typing anything into the pane:
 
 ```bash
-jq -c --arg s "<tmux session name>" 'select(.tmux.session==$s)' /src/_sessiondata/data/terminal_bindings.jsonl \
+jq -c --arg s "<tmux session name>" 'select(.tmux.session==$s and ((.argv // []) | any(. == "-p" or . == "--print") | not))' /src/_sessiondata/data/terminal_bindings.jsonl \
   | tail -1 | jq -c '{event, at, session_id, name: .name.name, launch_alias, team}'
 ```
+
+The `argv` filter skips headless `claude -p` / `--print` runs. They write binding lines under the pane's tmux name, so without it the latest line can name a child, not the occupant: on 2026-10-01 `mino-260929-fresh-05-team-loop` gave `875d0d3f` (a witness-editor pass) instead of the live `ea7fbc30`. `scripts/inventory.mjs verify-names` applies the same rule.
 
 Checked on 2026-09-28: `miadi-community-posting-kherix` gave session `bbea5431-…`, renamed to `miadi-community-posting-kherix-260928`. Lines written before the team code went live have `team: null`, and `launch_alias` stays empty until launchers record their name (A7). Use `/exit` or `/status` below only when the session has no binding line, which means it started before 2026-09-28 09:53 or outside these hooks.
 
