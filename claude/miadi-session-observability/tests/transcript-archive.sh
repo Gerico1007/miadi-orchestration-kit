@@ -22,7 +22,7 @@ expect() {  # <label> <expected> <actual>
     fi
 }
 lines() { _claude_line_count "$1"; }
-offset_of() { cat "$(dirname "$1")/.$(basename "$1").offset" 2>/dev/null; }
+offset_of() { cut -d" " -f1 "$(dirname "$1")/.$(basename "$1").offset" 2>/dev/null; }
 
 secret="sk-ant-api03-ABCDEFGHIJKLM""NOPQRSTUVWX"
 src="$WORK/t.jsonl"; dest="$WORK/copy/_transcript_final.jsonl"; mkdir -p "$WORK/copy"
@@ -75,6 +75,24 @@ expect "an old symlink copy becomes a file" "no" "$([ -L "$dest4" ] && echo yes 
 expect "the source behind the symlink is untouched" 4 "$(lines "$src2")"
 expect "the file copy has every line" 4 "$(lines "$dest4")"
 
+# A hook from 0.1.2, still loaded in a running session, rewrites the copy whole.
+src5="$WORK/t5.jsonl"; dest5="$WORK/copy/other-writer.jsonl"
+printf '{"b":1}\n{"b":2}\n' > "$src5"
+claude_archive_jsonl "$src5" "$dest5"
+printf '{"b":3}\n' >> "$src5"
+hook_secret_sanitize_stream < "$src5" > "$dest5"
+printf '{"b":4}\n' >> "$src5"
+claude_archive_jsonl "$src5" "$dest5"
+expect "a copy another writer replaced is copied again, no line twice" 4 "$(lines "$dest5")"
+
+# A state kept by the first 0.1.3 sweep holds the offset only.
+printf '%s\n' "$(_claude_byte_count "$src5")" > "$WORK/copy/.other-writer.jsonl.offset"
+touch -d '@1' "$dest5"
+claude_archive_jsonl "$src5" "$dest5"
+expect "an offset-only state is upgraded without copying again" 1 "$(stat -c %Y "$dest5")"
+expect "the upgraded state holds the copy size" "$(_claude_byte_count "$src5") $(_claude_byte_count "$dest5")" \
+    "$(cat "$WORK/copy/.other-writer.jsonl.offset")"
+
 # One session: transcript, subagents, tool-results.
 projects="$WORK/projects"; sid=11111111-aaaa; other=22222222-bbbb
 base="$projects/-a-src/$sid"
@@ -83,6 +101,8 @@ printf '{"s":1}\n' > "$base.jsonl"
 printf '{"sub":1,"token":"%s"}\n' "$secret" > "$base/subagents/agent-abc123.jsonl"
 printf '{"agentType":"Explore"}' > "$base/subagents/agent-abc123.meta.json"
 printf 'big output\n' > "$base/tool-results/r1.txt"
+printf '{"forked":1}\n' > "$WORK/forked-from.jsonl"
+ln -s "$WORK/forked-from.jsonl" "$base/subagents/agent-lnk.jsonl"
 printf '{"o":1}\n' > "$projects/-a-src/$other.jsonl"
 mkdir -p "$CLAUDE_SESSIONDATA_ROOT/$sid"
 
@@ -93,6 +113,8 @@ expect "sweep copies a subagent transcript" 1 "$(lines "$out/agents/abc123.trans
 expect "the subagent copy is sanitized" 0 "$(grep -c "$secret" "$out/agents/abc123.transcript.jsonl")"
 expect "sweep copies the subagent meta" '{"agentType":"Explore"}' "$(cat "$out/agents/abc123.meta.json" 2>/dev/null)"
 expect "sweep copies tool-results" 'big output' "$(cat "$out/tool-results/r1.txt" 2>/dev/null)"
+expect "a forked session's linked subagent is copied as a file" "file" \
+    "$([ -f "$out/agents/lnk.transcript.jsonl" ] && [ ! -L "$out/agents/lnk.transcript.jsonl" ] && echo file || echo no)"
 expect "sweep skips a session with no folder here" "no" "$([ -e "$CLAUDE_SESSIONDATA_ROOT/$other" ] && echo yes || echo no)"
 
 printf '{"s":2}\n' >> "$base.jsonl"

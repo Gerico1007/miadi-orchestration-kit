@@ -14,7 +14,7 @@ jgwill/miadi-orchestration-kit#56. The README says how to install it and how tea
 - `skills/session-continuity/`: T1's practice.
 - `tests/team-resolution.sh`: the team rules, 13 checks.
 - `tests/episode-resolution.sh`: the episode rules, 13 checks.
-- `tests/transcript-archive.sh`: the transcript archive rules, 21 checks.
+- `tests/transcript-archive.sh`: the transcript archive rules, 25 checks.
 
 ## This is the canonical copy
 
@@ -43,10 +43,12 @@ those rules here goes there too.
   `agents/<id>.meta.json`, and `tool-results/` and `session-memory/` at the same path. Each
   call sanitizes only the lines added since the last one (`.<copy>.offset` beside the copy),
   because sanitizing a 33 MB transcript whole takes 18 s. Stop and SubagentStop run it
-  detached. SessionStart sweeps every session of that user with a folder under the root, which
+  detached. A copy whose size changed since the last call was rewritten by an older hook still
+  loaded in a running session, and is copied again rather than appended to (0.1.4).
+  SessionStart sweeps every session of that user with a folder under the root, which
   catches sessions killed before SessionEnd and sessions the legacy hooks captured before the
   plugin (on gaia, 112 of 293 live sessions had no full copy on 2026-09-30).
-  `tests/transcript-archive.sh` holds the rules, 21 checks.
+  `tests/transcript-archive.sh` holds the rules, 25 checks.
 - **Nothing on stdout.** Claude Code injects the stdout of SessionStart and UserPromptSubmit
   hooks into the conversation. The binding writer prints nothing.
 - **SessionEnd returns at once.** Claude Code cancels SessionEnd hooks after 1.5 s and prints

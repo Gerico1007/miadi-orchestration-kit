@@ -82,28 +82,31 @@ claude_with_lock() {
 
 _claude_byte_count() {
     local n
-    n=$(wc -c < "$1" 2>/dev/null) || n=0
+    n=$(wc -c 2>/dev/null < "$1") || n=0
     echo "${n//[[:space:]]/}"
 }
 
 _claude_line_count() {
     local n
-    n=$(wc -l < "$1" 2>/dev/null) || n=0
+    n=$(wc -l 2>/dev/null < "$1") || n=0
     echo "${n//[[:space:]]/}"
 }
 
 # Keep <dest> a sanitized copy of <src>, a JSONL file Claude Code only appends
 # to. Each call sanitizes only the lines added since the last call: the hidden
-# .<dest>.offset beside it holds how many bytes of <src> are copied, so a turn
-# costs the size of the turn, not of the transcript (sanitizing a 33 MB
-# transcript whole takes 18 s). A partial last line waits for the next call.
-# When <src> shrank, or the offset no longer ends a line, the copy starts over.
-# A copy made before offsets were kept is adopted when it has as many lines as
-# <src>, and copied again when it does not (a SessionEnd killed mid-copy).
+# .<dest>.offset beside it holds how many bytes of <src> are copied and how
+# many bytes <dest> had then, so a turn costs the size of the turn, not of the
+# transcript (sanitizing a 33 MB transcript whole takes 18 s). A partial last
+# line waits for the next call. The copy starts over when <src> shrank, when
+# the offset no longer ends a line, or when <dest> changed size since: another
+# writer (a hook from 0.1.2 or earlier, still loaded in a running session)
+# replaced it, and appending would duplicate lines. A copy made before offsets
+# were kept is adopted when it has as many lines as <src>, and copied again
+# when it does not (a SessionEnd killed mid-copy).
 claude_archive_jsonl() {
     local src="$1" dest="$2"
     [ -f "$src" ] || return 0
-    local state size offset=0
+    local state size offset=0 dest_size=""
     state="$(dirname "$dest")/.$(basename "$dest").offset"
     size=$(_claude_byte_count "$src")
     [ "$size" -gt 0 ] || return 0
@@ -115,15 +118,25 @@ claude_archive_jsonl() {
     fi
 
     if [ -f "$state" ]; then
-        offset=$(cat "$state" 2>/dev/null)
+        read -r offset dest_size < "$state"
         case "$offset" in ''|*[!0-9]*) offset=0 ;; esac
+        if [ -z "$dest_size" ]; then
+            # Kept by the first 0.1.3 sweep, offset only: check by lines.
+            [ "$offset" -gt 0 ] && [ "$(_claude_line_count "$dest")" = "$(head -c "$offset" "$src" | wc -l | tr -d '[:space:]')" ] \
+                || offset=0
+        elif [ "$dest_size" != "$(_claude_byte_count "$dest")" ]; then
+            offset=0
+        fi
     elif [ -s "$dest" ] && [ -z "$(tail -c 1 "$src")" ] \
         && [ "$(_claude_line_count "$dest")" = "$(_claude_line_count "$src")" ]; then
-        printf '%s\n' "$size" > "$state"
+        printf '%s %s\n' "$size" "$(_claude_byte_count "$dest")" > "$state"
         return 0
     fi
 
-    [ "$offset" -eq "$size" ] && return 0
+    if [ "$offset" -eq "$size" ]; then
+        [ -n "$dest_size" ] || printf '%s %s\n' "$size" "$(_claude_byte_count "$dest")" > "$state"
+        return 0
+    fi
     if [ ! -s "$dest" ] || [ "$offset" -gt "$size" ] \
         || { [ "$offset" -gt 0 ] && [ -n "$(tail -c +"$offset" "$src" | head -c 1)" ]; }; then
         offset=0
@@ -149,7 +162,7 @@ claude_archive_jsonl() {
         return 0
     fi
     rm -f "$chunk"
-    printf '%s\n' "$((offset + added))" > "$state"
+    printf '%s %s\n' "$((offset + added))" "$(_claude_byte_count "$dest")" > "$state"
 }
 
 # Copy a file Claude Code writes whole (tool-results, session-memory, a
@@ -193,7 +206,9 @@ claude_archive_session() {
                 claude_archive_file "$f" "$output_dir/$rel"
                 ;;
         esac
-    done < <(find "$base" -type f -print0 2>/dev/null)
+    # -type l too: Claude Code links a forked session's subagents to the
+    # files of the session it forked from.
+    done < <(find "$base" \( -type f -o -type l \) -print0 2>/dev/null)
 }
 
 # Archive every session in <projects_dir> (~/.claude/projects) that the hooks
