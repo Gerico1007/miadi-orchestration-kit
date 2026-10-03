@@ -21,7 +21,7 @@ sudo apt update && sudo apt install miadi
 | `miadi` | its dependencies (through 0.1.x it held the settings itself) | 0.1.0 |
 | `miadi-config` | the `MIADI_*` settings and the `miadi-config` command | 0.2.0 |
 | `miadi-tmux` | `/usr/bin/tmux` 3.7c built from the upstream release, replacing the distribution's tmux (3.2a on 22.04): one tmux version on a host, since a client cannot attach to a server of another version | 3.7c-1 |
-| `miadi-terminal` | a client's clickable `miadi-chronicle:`, `miadi-ceremony:` and `miadi-circle:` references, and bare circle ids (0.1.4): desktop, Terminator, tmux | 0.1.0 |
+| `miadi-terminal` | a client's clickable `miadi-chronicle:`, `miadi-ceremony:`, `miadi-circle:` and `miadi-foundation:` (0.2.2) references, and bare circle ids (0.1.4): desktop, Terminator, tmux | 0.1.0 |
 | `miadi-tide` | the review loop (`tan`, `plannotator-tui`) and the tide runtime (`tide`, its daemon) | 0.1.0 |
 
 Each package is a directory here holding its `DEBIAN/control` and the files it
@@ -80,7 +80,7 @@ miadi-terminal status
 
 | integration | a click is | file |
 |---|---|---|
-| `desktop` | an OSC 8 link or a page link carrying `miadi-chronicle:`, `miadi-ceremony:` or `miadi-circle:` | `/usr/share/applications/miadi-chronicle-open.desktop` |
+| `desktop` | an OSC 8 link or a page link carrying `miadi-chronicle:`, `miadi-ceremony:`, `miadi-circle:` or `miadi-foundation:` | `/usr/share/applications/miadi-chronicle-open.desktop` |
 | `terminator` | Ctrl+click a bare reference | `/usr/share/miadi-terminal/terminator/`, linked into Terminator's plugin directory |
 | `tmux` | click, or tap on Termux, a bare reference in a pane | `/usr/share/miadi-terminal/tmux/miadi-chronicle.conf` |
 | `restore` (0.2.0, by name only) | tmux starts at boot, restores its sessions, and tide brings the agents back | `/usr/share/miadi-terminal/session-continuity/`, `/usr/lib/systemd/user/tmux-server.service`, `tmux-save.timer` |

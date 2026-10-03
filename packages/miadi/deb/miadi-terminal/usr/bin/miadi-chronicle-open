@@ -7,7 +7,8 @@ A reference is miadi-chronicle:<episode>[/<artifact>], or a ceremony or circle
 (jgwill/Miadi SPEC §9): miadi-circle:<id>, miadi-ceremony:<id>, or the bare
 wheel id as the wheel mints it, circle:1790787727155:2slscw or
 ceremony:<timestamp>:<random> or ceremony:ep<N>:<slug>:<n>, which the opener
-gives its scheme.
+gives its scheme. A foundation packet is miadi-foundation:<slug>[/<file>]
+(SPEC §10, jgwill/miadi-orchestration-kit#69); the door opens its page.
 
     miadi-chronicle-open miadi-chronicle:126          print the URL
     miadi-chronicle-open --open miadi-chronicle:126   open it in the browser
@@ -39,14 +40,14 @@ import time
 import unicodedata
 from urllib.parse import quote
 
-SCHEMES = ("miadi-chronicle:", "miadi-ceremony:", "miadi-circle:")
+SCHEMES = ("miadi-chronicle:", "miadi-ceremony:", "miadi-circle:", "miadi-foundation:")
 FRONT_SETTINGS = ("MIADI_CHRONICLE_OPEN_URL", "MIADI_URL_BASE")
 ETC_DEFAULT = "/etc/miadi"
 # The same pattern the Terminator plugin matches with. It stops at what ends a
 # URI in running text; trailing sentence punctuation is stripped after. A bare
 # wheel id counts only in the form the wheel mints, a timestamp or ep<N> after
 # its kind, so the word "circle:" in running text is not a reference.
-REFERENCE = re.compile(r'''\bmiadi-(?:chronicle:(?://)?[A-Za-z0-9._~/\-]+|(?:ceremony|circle):(?://)?[A-Za-z0-9._~\-]+(?::[A-Za-z0-9._~\-]+)*)(?:\?[^\s<>"'`]*)?(?:#[^\s<>"'`]*)?|\b(?:circle|ceremony):(?:\d{10,}|ep\d+):[A-Za-z0-9._~\-]+(?::[A-Za-z0-9._~\-]+)*''', re.I)
+REFERENCE = re.compile(r'''\bmiadi-(?:(?:chronicle|foundation):(?://)?[A-Za-z0-9._~/\-]+|(?:ceremony|circle):(?://)?[A-Za-z0-9._~\-]+(?::[A-Za-z0-9._~\-]+)*)(?:\?[^\s<>"'`]*)?(?:#[^\s<>"'`]*)?|\b(?:circle|ceremony):(?:\d{10,}|ep\d+):[A-Za-z0-9._~\-]+(?::[A-Za-z0-9._~\-]+)*''', re.I)
 BARE_WHEEL_ID = re.compile(r"(circle|ceremony):", re.I)
 TRAILING = ".,;:!?)]}'\""
 # A double click is two clicks; the second must not open the same page again.

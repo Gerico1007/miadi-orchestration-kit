@@ -32,7 +32,7 @@ class MiadiChronicleURLHandler(plugin.URLHandler):
     # The opener's REFERENCE, character for character. r'''...''' because the
     # pattern contains a double quote; (?i) because the scheme is
     # case-insensitive (RFC 3986, and the Miadi parser).
-    match = r'''(?i)\bmiadi-(?:chronicle:(?://)?[A-Za-z0-9._~/\-]+|(?:ceremony|circle):(?://)?[A-Za-z0-9._~\-]+(?::[A-Za-z0-9._~\-]+)*)(?:\?[^\s<>"'`]*)?(?:#[^\s<>"'`]*)?|\b(?:circle|ceremony):(?:\d{10,}|ep\d+):[A-Za-z0-9._~\-]+(?::[A-Za-z0-9._~\-]+)*'''
+    match = r'''(?i)\bmiadi-(?:(?:chronicle|foundation):(?://)?[A-Za-z0-9._~/\-]+|(?:ceremony|circle):(?://)?[A-Za-z0-9._~\-]+(?::[A-Za-z0-9._~\-]+)*)(?:\?[^\s<>"'`]*)?(?:#[^\s<>"'`]*)?|\b(?:circle|ceremony):(?:\d{10,}|ep\d+):[A-Za-z0-9._~\-]+(?::[A-Za-z0-9._~\-]+)*'''
     nameopen = 'Open chronicle reference'
     namecopy = 'Copy reference'
 

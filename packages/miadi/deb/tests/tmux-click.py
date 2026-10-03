@@ -201,6 +201,18 @@ try:
 finally:
     s.close()
 
+# A foundation packet and one of its files (jgwill/miadi-orchestration-kit#69).
+s = Scenario(80, lines_program(["grounded in miadi-foundation:resource-addressing-and-terminal-hypermedia.", "read miadi-foundation://lattice/synthesis.md#through-line"]))
+try:
+    s.click(20)
+    check("a foundation reference opens its packet", s.opened_lines(),
+          [f"{FRONT}miadi-foundation%3Aresource-addressing-and-terminal-hypermedia"])
+    s.click(10, row=1)
+    check("a foundation file opens with its place", s.opened_lines()[1:],
+          [f"{FRONT}miadi-foundation%3A%2F%2Flattice%2Fsynthesis.md%23through-line"])
+finally:
+    s.close()
+
 
 def streaming(width, name):
     """A pane still printing: the click opens what was under it when it landed."""
