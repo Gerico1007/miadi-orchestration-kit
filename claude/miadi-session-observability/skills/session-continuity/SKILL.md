@@ -13,7 +13,7 @@ description: >
   "tide agents", "tmux-resurrect", "session continuity".
 metadata:
   type: skill
-  version: 1.0.0
+  version: 1.1.0
   team: T1 session continuity
 ---
 
@@ -32,8 +32,9 @@ computer rebooted."
 | part | what it keeps | where |
 |---|---|---|
 | binding line | each Claude session's id, tmux `session:window.pane`, pane id, command line, name history, team, chronicle episode | this plugin's `hooks/claude_hooks/terminal_binding.sh`, written to `<root>/data/terminal_bindings.jsonl` |
-| tmux save and restore | layout, folders, visible screens, every 15 minutes | `jgwill/gaia` `linux_migration/14-tmux-resurrect.sh` and its two hooks |
-| tide | the agent in each pane, every 60 s, and the relaunch after a restore | `ironsilk` 0.9.35 and later, `tide agents list`, `tide agents restore` |
+| tmux save and restore | layout, folders, visible screens, saved every 15 minutes by `tmux-save.timer`; the server started at boot by `tmux-server.service` | `jgwill/gaia` `linux_migration/14-tmux-resurrect.sh` and its two hooks; on a new machine `miadi-terminal enable restore` (apt) |
+| tide | the agent in each pane, every 60 s, and the relaunch after a restore | `ironsilk` 0.9.36 and later (claude, hermes, pi), `tide agents list`, `tide agents restore`; apt `miadi-tide` |
+| one tmux | 3.7c everywhere: a client of another version cannot attach | apt `miadi-tmux` |
 | recovery list | what each pane probably held, when the three above had nothing | built by hand as in "After a crash" below |
 
 `<root>` is `CLAUDE_SESSIONDATA_ROOT`, else `MIADI_SESSION_DIR`, `MIADI_SESSIONDATA_ROOT`,
@@ -53,7 +54,8 @@ session name changes with `/rename`, and every change is a `session.rename` line
 
 ## What happens at a restore
 
-1. The first tmux command after the reboot starts the server, and tmux-continuum restores the
+1. `tmux-server.service` starts the tmux server at boot, once the desktop login has imported its
+   environment, after pointing a dangling `last` at the newest save. tmux-continuum restores the
    last save: panes in their folders, with their visible screens.
 2. The `post-restore-all` hook (`tmux-restore-agents.sh`) starts `tide agents restore`.
 3. tide reads its last snapshot with panes from before this tmux server started. It relaunches
@@ -63,6 +65,16 @@ session name changes with `/rename`, and every change is a `session.rename` line
 4. It runs once per tmux server start. A second hook call answers "already restored".
 
 Try it without touching anything: `tide agents restore --dry-run --force`.
+
+## Set it up on a machine
+
+- gaia-style host, from the scripts: `jgwill/gaia` `linux_migration/14-tmux-resurrect.sh`.
+- Any Ubuntu machine, from apt (`packages/miadi/deb` in this kit):
+  `sudo apt install miadi miadi-terminal`, then once per user `miadi-terminal enable restore`.
+  `miadi` pulls `miadi-tmux` (3.7c) and `miadi-tide`. Linger keeps tmux starting at boot:
+  `sudo loginctl enable-linger <user>`.
+- `packages/miadi/deb/test-install.sh` runs the whole cycle in a clean ubuntu:22.04, and
+  `tests/session-continuity-sync.sh` there keeps the package's copies in step with gaia's.
 
 ## After a crash
 
@@ -82,7 +94,19 @@ Try it without touching anything: `tide agents restore --dry-run --force`.
    shared folder cannot tell which pane held which session.
 4. Compare the snapshot with what tmux restored. Sessions created after the last save are
    missing, and sessions closed before the crash come back. Closing or recreating them is the
-   human's decision.
+   human's decision. Panes the restore itself added, idle shells that no snapshot names, are
+   yours to remove.
+
+When tmux did not come back by itself (2026-10-03, jgwill/gaia#90):
+
+1. `readlink ~/.local/share/tmux/resurrect/last`. A crash during a save can leave it naming a
+   file that is not on disk. Point it at the newest save whose sessions match tide's last snapshot.
+2. Start the server through the unit, never from an agent's shell (it would hand that shell's
+   environment, `CLAUDECODE` included, to every pane): `systemctl --user start tmux-server.service`.
+3. Wait for `~/.miadi/navigator/restore/agents-*.jsonl` to list every step, then
+   `tide agents list`. Every relaunched pane should show `running` with its own session id.
+4. Compare the pane addresses with the snapshot's. The agents that were not running are typed
+   without Enter. Give the human the session list to confirm.
 
 ## Checks that proved each part
 
@@ -99,7 +123,7 @@ Try it without touching anything: `tide agents restore --dry-run --force`.
 Never test against the live tmux server. Starting a private server loads the same plugins, and
 its `run-shell` jobs get `TMUX` for that server, so they stay on it.
 
-## Rules earned that day
+## Rules earned
 
 - Pane ids (`%N`) are renumbered every time the tmux server starts. Find a pane by
   `session:window.pane`.
@@ -121,6 +145,20 @@ its `run-shell` jobs get `TMUX` for that server, so they stay on it.
 - A message the human sends while an agent is working is stored in the transcript as an
   `attachment` of type `queued_command`, not as a `user` record. The hook capture
   `_claude_user_inputs.jsonl` has it.
+
+Earned 2026-10-03 (jgwill/gaia#90):
+
+- Nothing starts a tmux server after a boot unless something is set to: continuum restores only
+  when a server starts. `tmux-server.service` is that something.
+- continuum saves from the status line, so only while a client is attached. Saves came 30 to 75
+  minutes apart. `tmux-save.timer` saves on time and syncs the save to disk.
+- Two `run .../tpm/tpm` lines load continuum twice, and each load restores once more: four
+  restores split 32 empty panes into 19 sessions. Load the plugins once.
+- A tmux client cannot attach to a server of another version: a 3.7c client against a 3.2a server
+  answers "open terminal failed: not a terminal". One tmux per machine (`miadi-tmux`).
+- `apt install tmux` on a host with `miadi-tmux` removes `miadi-tmux`.
+- tide's snapshot, every minute, is closer to the crash than the last save: compare the two before
+  restoring.
 
 ## Teams
 
