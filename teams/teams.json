@@ -70,6 +70,30 @@
       "name_patterns": [
         "^mino-"
       ]
+    },
+    {
+      "id": "T4",
+      "name": "Chart path",
+      "level": "the application",
+      "human_lead": "William",
+      "agent_lead": "t4-chart-path-asterion-into-miadi-261003a",
+      "sessions": [
+        "t4-chart-path-asterion-into-miadi-261003a",
+        "coaia-asterion-fork-01-episodes",
+        "coaia-asterion-fork-01-episodes-260928",
+        "coaia-narrative-asterion",
+        "episode-060-coaia-agent-asterion-system"
+      ],
+      "folders": [
+        "/workspace/repos/miadisabelle/asterion",
+        "/a/src/coaia-narrative",
+        "/srv/miadi/episodes/miadi-chronicle/2026-06-16-episode-060-coaia-agent-asterion-system-design-f36b0cb2-4ecf-4ee5-8017-bc1ff67af158"
+      ],
+      "name_patterns": [
+        "^t4-",
+        "asterion",
+        "coaia-narrative"
+      ]
     }
   ]
 }

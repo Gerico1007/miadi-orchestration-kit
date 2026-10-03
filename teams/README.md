@@ -69,6 +69,19 @@ From William's @stckin note in `bash_aliases_common` (2026-09-29): this work "sh
 - **Plugin:** `claude/miadi-witness` (0.1.0), with the skills `miadi-witness-first-impression` and `miadi-mino-tmux-inventory` (jgwill/miadi-orchestration-kit#59).
 - **Proposed, William 2026-09-28: an inventory agent.** Until now the inventory was made by hand. William gives a session name, Mino looks at the session, works out what it is doing and where it stands, and records it, either after `/exit` gives the session id or while it keeps running. An inventory agent would do this for every session. It would read T1's binding line (every start, rename and end, with the terminal and the launch) and the session's transcript, then write and update the inventory entry with its meaning: mission, relations, state, and what needs William. It builds on T1's line (A5 in the Tmux Agent Restore proposal). Where it runs is not decided.
 
+## T4 · Chart path
+
+- **Level:** the application.
+- **Desired outcome:** every chart an agent writes reaches one place where the people it concerns can read and steer it, and whether that place is public is decided per source.
+- **Named:** 2026-10-03, after the second part of that day's screenwalk with Mino. William: "it feels like right now I'm with this new team that we'll work on chart path", and "there really needs to be a whole traceability".
+- **Leads:** William (human). The session `t4-chart-path-asterion-into-miadi-261003a` (agent).
+- **Makes:** coaia-narrative's Asterion writer (`src/asterion-bridge.ts`), Asterion's mapper and registry sync (`lib/asterion/coaia-projection.mjs`, `scripts/coaia-sync.mjs`), and Asterion itself (miadisabelle/asterion) until it moves into Miadi: its pages into `jgwill/Miadi` `app/`, its types, mapper and sync into a `@miadi/asterion` package, and later its chart storage, beats and timeline into `jgwill/medicine-wheel` `src/`.
+- **Uses:** the coaia-narrative chart format, `@miadi/github-actions` (a step added on a chart opens a GitHub sub-issue), Miadi's identity (who may change a chart), T2's events (a chart arriving is one), T3's charts (Mino's triage chart is its first private source).
+- **Sessions:** `t4-chart-path-asterion-into-miadi-261003a`, `coaia-asterion-fork-01-episodes` (Phase 1 shipped 2026-10-01; its Phase 2 plan, P2 to P11, waits on two of William's answers), `coaia-narrative-asterion`, `episode-060-coaia-agent-asterion-system`.
+- **Done 2026-10-03:** Asterion's Settings link opens a page that says who is signed in, which memories feed it, and which instance it is (miadisabelle/asterion@653fbbb).
+- **Next:** a private flag per Asterion project, so a source from a private repository is shown only to signed-in writers. Mino's chart lives in the private `miadisabelle/workspace`, so it waits for that flag and William's word.
+- **Skill:** not written yet.
+
 ## Not named yet
 
 Other sessions point to teams William has not named: trading (`trading-draw-on-ao-issue-154`, `mia-trading-wave-labeler-blueprint-service`), film production (`mw-film-prod-devops-credibility`), story (`miadi-ncp-story-studio`, `miadi-orchestration-kit-storytelling`), research (`ep316-concordia-pitch-revising`). Naming them is William's.
