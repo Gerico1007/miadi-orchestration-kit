@@ -79,9 +79,12 @@ From William's @stckin note in `bash_aliases_common` (2026-09-29): this work "sh
 - **Makes:** coaia-narrative's Asterion writer (`src/asterion-bridge.ts`), Asterion's mapper and registry sync (`lib/asterion/coaia-projection.mjs`, `scripts/coaia-sync.mjs`), and Asterion itself (miadisabelle/asterion) until it moves into Miadi: its pages into `jgwill/Miadi` `app/`, its types, mapper and sync into a `@miadi/asterion` package, and later its chart storage, beats and timeline into `jgwill/medicine-wheel` `src/`.
 - **Uses:** the coaia-narrative chart format, `@miadi/github-actions` (a step added on a chart opens a GitHub sub-issue), Miadi's identity (who may change a chart), T2's events (a chart arriving is one), T3's charts (Mino's triage chart is its first private source).
 - **Sessions:** `t4-chart-path-asterion-into-miadi-261003a`, `coaia-asterion-fork-01-episodes` (Phase 1 shipped 2026-10-01; its Phase 2 plan, P2 to P11, waits on two of William's answers), `coaia-narrative-asterion`, `episode-060-coaia-agent-asterion-system`.
-- **Done 2026-10-03:** Asterion's Settings link opens a page that says who is signed in, which memories feed it, and which instance it is (miadisabelle/asterion@653fbbb).
-- **Next:** a private flag per Asterion project, so a source from a private repository is shown only to signed-in writers. Mino's chart lives in the private `miadisabelle/workspace`, so it waits for that flag and William's word.
-- **Skill:** not written yet.
+- **Done 2026-10-03:**
+  - Asterion's Settings link opens a page that says who is signed in, which memories feed it, and which instance it is (miadisabelle/asterion@653fbbb).
+  - A private project is shown only to signed-in writers, and a read route that never asks who is reading fails the build (miadisabelle/asterion@2c3fa5d, @f52d90d). Checked on all six Asterion addresses, signed out and as a writer.
+  - Mino's chart is on Asterion as the private project `mino-triage`: 165 charts and 12 threads for signed-in writers, nothing for anyone else (William's word, D1).
+- **Next:** a project names its seat and its checkouts, so a steer made on Asterion reaches the agent session responsible for the chart (the design is in the skill). The vocabulary in the skill waits for William's corrections.
+- **Skill:** `skills/chart-path/SKILL.md` in this kit: the path, private sources, the words (repository, checkout, chart memory, project, seat, workspace), what `/stc-config` holds that Asterion must keep, and steering through a seat. Any agent that learns something about the chart path writes it there.
 
 ## Not named yet
 
