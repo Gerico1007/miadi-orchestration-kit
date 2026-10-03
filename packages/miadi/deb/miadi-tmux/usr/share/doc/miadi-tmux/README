@@ -1,0 +1,22 @@
+miadi-tmux — one tmux, 3.7c, on a Miadi host
+
+  sudo apt install miadi-tmux
+
+Installs /usr/bin/tmux 3.7c, built from the upstream release
+(https://github.com/tmux/tmux/releases/tag/3.7c), and replaces Ubuntu's tmux
+package (3.2a on 22.04). Packages that depend on tmux take this one.
+
+Why one version: a tmux client cannot attach to a server of another version.
+On gaia, on 2026-10-03, a 3.2a server and a 3.7c client gave "open terminal
+failed: not a terminal" for every session (jgwill/gaia#90). After installing,
+restart a server that still runs the old version; with miadi-terminal's
+restore enabled: systemctl --user restart tmux-server.service (it saves first,
+then restores the sessions, and tide relaunches the agents).
+
+The sessions that survive a reboot come from miadi-terminal:
+miadi-terminal enable restore.
+
+Source: https://github.com/jgwill/miadi-orchestration-kit, packages/miadi/deb
+Build:  prep/miadi-tmux.sh compiles the release named by Version (3.7c-1 -> 3.7c).
+        jgwill/gaia linux_migration/14-tmux-install-latest.sh builds the same
+        release into /usr/local on a host without the package.

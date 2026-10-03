@@ -25,6 +25,11 @@ docker run --rm -e DEBIAN_FRONTEND=noninteractive -v "$debs:/tmp/debs:ro" -v "$t
     add-apt-repository -y ppa:deadsnakes/ppa >/dev/null 2>&1
     apt-get update -qq >/dev/null
   fi
+  # miadi-tmux replaces the distribution tmux: install that first, as a host that has it.
+  if ls /tmp/debs/miadi-tmux_*.deb >/dev/null 2>&1; then
+    apt-get install -y -qq tmux >/dev/null 2>&1
+    echo "before: $(tmux -V) from the distribution"
+  fi
   apt-get install -y -qq /tmp/debs/*.deb >/tmp/install.log 2>&1 || { tail -30 /tmp/install.log; exit 1; }
   grep "^miadi-tide:" /tmp/install.log || true
   if [ -f /etc/miadi/miadi.env ]; then printf "MIADI_URL_BASE=https://example.test\n" >> /etc/miadi/miadi.env; fi
@@ -45,6 +50,49 @@ docker run --rm -e DEBIAN_FRONTEND=noninteractive -v "$debs:/tmp/debs:ro" -v "$t
     test "$(bash -lc "echo \$MIADI_DATA_DIR")" = /srv/miadi && echo "a login shell loads it"
     test "$(miadi-config get MIADI_WEBHOOK_URL)" = https://example.test/api/workflow/webhook && echo "miadi-config get resolves"
     miadi-config settings | grep -q "^MIADI_CHRONICLE_OPEN_URL " && echo "miadi-config knows MIADI_CHRONICLE_OPEN_URL"
+  fi
+
+  if dpkg -s miadi-tmux >/dev/null 2>&1; then
+    dpkg -s miadi-tmux | sed -n "s/^Version: /installed miadi-tmux /p"
+    hash -r
+    test "$(command -v tmux)" = /usr/bin/tmux
+    test "$(tmux -V)" = "tmux $(dpkg -s miadi-tmux | sed -n "s/^Version: \([^-]*\)-.*/\1/p")"
+    # Removed, its config files may remain (rc): only an installed one (ii) is a second tmux.
+    if dpkg-query -W -f="\${db:Status-Abbrev}" tmux 2>/dev/null | grep -q "^ii"; then echo "the distribution tmux is still installed" >&2; exit 1; fi
+    tmux -L probe -f /dev/null new-session -d -s probe && tmux -L probe kill-server
+    echo "$(tmux -V) at /usr/bin/tmux in place of the distribution tmux, and a server starts"
+  fi
+
+  # miadi-terminal restore, the whole cycle a fresh machine runs (jgwill/gaia#90): enable it over a
+  # config that loads the plugins itself, save two sessions, kill the server, start one, and the
+  # sessions come back once, in their folders, with the hook that hands the agents to tide run.
+  # A container has no systemd user manager, so the units are checked on a host, not here.
+  if [ -f /usr/share/miadi-terminal/session-continuity/session-continuity.conf ] && command -v tmux >/dev/null; then
+    apt-get install -y -qq git procps >/dev/null 2>&1
+    export HOME=/root
+    printf "set -g @plugin \x27tmux-plugins/tpm\x27\nrun \x27~/.tmux/plugins/tpm/tpm\x27\n" > ~/.tmux.conf
+    miadi-terminal enable restore >/tmp/restore-enable.log 2>&1 || { cat /tmp/restore-enable.log; exit 1; }
+    test "$(grep -c "^# moved into miadi-terminal restore: " ~/.tmux.conf)" = 2
+    grep -qx "source-file /usr/share/miadi-terminal/session-continuity/session-continuity.conf  # miadi-terminal restore" ~/.tmux.conf
+    test -d ~/.tmux/plugins/tmux-continuum
+    echo "restore: enable commented out the 2 plugin lines, added its source-file line, cloned the plugins"
+    tmux new-session -d -s alpha -c /tmp
+    tmux new-session -d -s beta -c /etc
+    tmux split-window -t beta -c /var
+    sleep 3
+    tmux run-shell "$HOME/.tmux/plugins/tmux-resurrect/scripts/save.sh quiet"
+    test -e ~/.local/share/tmux/resurrect/last
+    tmux kill-server
+    sleep 2
+    tmux new-session -d
+    for i in $(seq 30); do ls ~/.miadi/navigator/restore/hook-*.log >/dev/null 2>&1 && break; sleep 1; done
+    sleep 2
+    test "$(tmux ls -F "#{session_name}" | sort | tr "\n" " ")" = "alpha beta "
+    test "$(tmux list-panes -a -F "#{session_name}:#{pane_current_path}" | sort | tr "\n" " ")" = "alpha:/tmp beta:/etc beta:/var "
+    test "$(cat ~/.miadi/navigator/restore/hook-*.log | grep -c "tmux restore finished")" = 1
+    echo "restore: after a kill and a new server, alpha and beta came back in /tmp, /etc and /var, restored once"
+    grep -h "tide" ~/.miadi/navigator/restore/hook-*.log | head -1 | sed "s/^[^ ]* /restore: hook: /"
+    tmux kill-server
   fi
 
   if dpkg -s miadi-terminal >/dev/null 2>&1; then
