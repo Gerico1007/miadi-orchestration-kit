@@ -21,6 +21,19 @@ Integrations, each enabled per user (`miadi-terminal enable tmux`, …):
   tmux        click a bare reference in a tmux pane (tmux 3.2+, mouse on).
               /usr/share/miadi-terminal/tmux/miadi-chronicle.conf; enabling
               adds a source-file line to your tmux config.
+  restore     tmux sessions that survive a reboot or a crash. Enabled only by
+              name: miadi-terminal enable restore. It clones tpm,
+              tmux-resurrect and tmux-continuum into ~/.tmux/plugins, adds a
+              source-file line for
+              /usr/share/miadi-terminal/session-continuity/session-continuity.conf,
+              and enables two user units from /usr/lib/systemd/user:
+              tmux-server.service starts the tmux server at boot (with linger)
+              once the desktop login's environment is there, so continuum
+              restores the last save and tide (miadi-tide) relaunches each
+              agent with its session. tmux-save.timer saves every 15 minutes,
+              attached client or not. Keep one tmux version on the machine: a
+              client of another version cannot attach ("open terminal failed:
+              not a terminal").
 
 enable changes only that user's configs: Terminator's enabled_plugins, one
 line in the tmux config, the scheme default in ~/.config/mimeapps.list. Each
@@ -35,4 +48,7 @@ redirects to the page. The front is MIADI_CHRONICLE_OPEN_URL, else
 MIADI_URL_BASE, read through miadi-config.
 
 Source: https://github.com/jgwill/miadi-orchestration-kit, packages/miadi/deb
+Restore: the same layer jgwill/gaia linux_migration/14-tmux-resurrect.sh
+         installs on gaia (jgwill/gaia#90). tests/session-continuity-sync.sh
+         in packages/miadi/deb checks that the copies match.
 Spec:   https://github.com/jgwill/Miadi, rispecs/miadi-chronicle-dsl/SPEC-TERMINAL.md

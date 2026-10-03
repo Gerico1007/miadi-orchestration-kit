@@ -1,0 +1,25 @@
+[Unit]
+Description=tmux server: tmux-continuum restores the last save, then tide brings the agents back
+Documentation=file:///usr/share/doc/miadi-terminal/README
+After=tide-runtime.service
+
+[Service]
+Type=forking
+# A crash in the middle of a save can leave `last` naming a file that never reached the disk.
+# Point it at the newest save on disk.
+ExecStartPre=/bin/sh -c 'd="%h/.local/share/tmux/resurrect"; [ -e "$d/last" ] && exit 0; f=$(ls -t "$d"/tmux_resurrect_*.txt 2>/dev/null | head -1); [ -n "$f" ] && ln -sfn "$(basename "$f")" "$d/last"; exit 0'
+# At boot the user manager starts before the desktop login imports DISPLAY, SSH_AUTH_SOCK and
+# the rest. Wait for that import, so the panes and the agents tide relaunches get the same
+# environment as a terminal on the desktop. Start anyway after 2 minutes.
+ExecStartPre=/bin/sh -c 'for i in $(seq 120); do systemctl --user show-environment | grep -q "^DISPLAY=" && exit 0; sleep 1; done; exit 0'
+# The tmux on PATH, /usr/local/bin first: a client of another version cannot attach.
+# Session 0 starts the server; tmux-resurrect removes it after it restores from scratch.
+ExecStart=/usr/bin/env tmux new-session -d -c %h
+# A clean shutdown saves first. A crash does not, so tmux-save.timer's saves remain the floor.
+ExecStop=/usr/bin/env tmux run-shell "%h/.tmux/plugins/tmux-resurrect/scripts/save.sh quiet"
+ExecStop=/usr/bin/env tmux kill-server
+TimeoutStartSec=180
+TimeoutStopSec=60
+
+[Install]
+WantedBy=default.target

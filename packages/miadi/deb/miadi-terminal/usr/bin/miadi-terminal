@@ -4,7 +4,8 @@
 Installed by miadi-terminal (jgwill/miadi-orchestration-kit).
 
     miadi-terminal status                  what a click does here, per integration
-    miadi-terminal enable [INTEGRATION…]   turn them on for this user (default: every one present)
+    miadi-terminal enable [INTEGRATION…]   turn them on for this user (default: every one present,
+                                           except restore)
     miadi-terminal disable [INTEGRATION…]  turn them off for this user
     miadi-terminal front [URL]             show, or set, the Miadi a click opens on
 
@@ -14,6 +15,8 @@ Integrations:
                 terminal, links in a page
     terminator  Ctrl+click a bare reference in Terminator's output
     tmux        click (or tap, on Termux) a bare reference in a tmux pane
+    restore     tmux starts at boot and restores its sessions, and tide brings the
+                agents back into their panes (enable it by name)
 
 The package installs system-wide. Each user enables what they use, because
 Terminator and tmux read only that user's own config.
@@ -302,7 +305,119 @@ class Tmux:
         return f"click or tap a reference in a pane; {TMUX_CONF}"
 
 
-INTEGRATIONS = [Desktop(), Terminator(), Tmux()]
+# --- restore -----------------------------------------------------------------
+# tmux saves its sessions every 15 minutes and restores them when its server starts, the server
+# starts at boot, and tide brings the agents back into their panes. The same layer that
+# jgwill/gaia linux_migration/14-tmux-resurrect.sh installs on gaia (jgwill/gaia#90).
+
+CONTINUITY = SHARE / "session-continuity"
+CONTINUITY_CONF = CONTINUITY / "session-continuity.conf"
+CONTINUITY_LINE = f"source-file {CONTINUITY_CONF}  # miadi-terminal restore"
+# gaia's installer writes the same settings as a managed block of its own.
+GAIA_BLOCK = "# >>> gaia tmux operator workrooms >>>"
+PLUGIN_DIR = HOME / ".tmux" / "plugins"
+PLUGINS = {
+    "tpm": "https://github.com/tmux-plugins/tpm",
+    "tmux-resurrect": "https://github.com/tmux-plugins/tmux-resurrect",
+    "tmux-continuum": "https://github.com/tmux-plugins/tmux-continuum",
+}
+UNITS = ("tmux-server.service", "tmux-save.timer")
+# A second load of the plugins makes continuum restore once more when the server starts: on gaia,
+# 2026-10-03, four restores split 32 empty panes into 19 sessions.
+LOADS = re.compile(r"""^\s*(set(-option)?\s+-g\s+@(plugin\s+['"]tmux-plugins/(tpm|tmux-resurrect|tmux-continuum)['"]"""
+                   r"""|continuum-|resurrect-)|run(-shell)?\s+(-b\s+)?['"]?[^'"\s]*tpm/tpm)""")
+MOVED = "# moved into miadi-terminal restore: "
+
+
+def tmux_version(path):
+    result = run(path, "-V")
+    return result.stdout.strip() if result and result.returncode == 0 else ""
+
+
+class Restore:
+    name = "restore"
+    # Not part of a bare `miadi-terminal enable`: it makes tmux start at every boot.
+    default = False
+
+    def installed(self):
+        return CONTINUITY_CONF.exists()
+
+    def present(self):
+        return shutil.which("tmux") is not None and shutil.which("systemctl") is not None
+
+    def configured(self):
+        path = tmux_config()
+        text = path.read_text() if path.exists() else ""
+        return GAIA_BLOCK in text or any(line.strip() == CONTINUITY_LINE for line in text.splitlines())
+
+    def enabled(self):
+        units = run("systemctl", "--user", "is-enabled", *UNITS)
+        return self.configured() and units is not None and units.returncode == 0
+
+    def enable(self):
+        for name, url in PLUGINS.items():
+            dest = PLUGIN_DIR / name
+            if dest.exists():
+                continue
+            if not shutil.which("git"):
+                print(f"restore: git is not installed, so {name} cannot be cloned into {dest}")
+                return
+            subprocess.run(["git", "clone", "--depth=1", "--quiet", url, str(dest)], timeout=180, check=False)
+            print(f"restore: cloned {name} into {dest}")
+        path = tmux_config()
+        text = path.read_text() if path.exists() else ""
+        if GAIA_BLOCK in text:
+            print(f"restore: {path} carries gaia's managed block (14-tmux-resurrect.sh), left as it is")
+        elif any(line.strip() == CONTINUITY_LINE for line in text.splitlines()):
+            print(f"restore: already in {path}")
+        else:
+            lines = text.splitlines()
+            moved = sum(1 for line in lines if LOADS.match(line))
+            lines = [MOVED + line if LOADS.match(line) else line for line in lines]
+            backup_and_write(path, "\n".join(lines + [CONTINUITY_LINE]) + "\n")
+            print(f"restore: enabled in {path}")
+            if moved:
+                print(f"  {moved} plugin lines commented out, so the plugins load once and continuum restores once")
+        run("systemctl", "--user", "daemon-reload")
+        # Enable only: starting tmux-server.service while a tmux server runs adds a session 0.
+        server = run("systemctl", "--user", "enable", "tmux-server.service")
+        timer = run("systemctl", "--user", "enable", "--now", "tmux-save.timer")
+        for unit, result in (("tmux-server.service", server), ("tmux-save.timer", timer)):
+            ok = result is not None and result.returncode == 0
+            print(f"restore: {unit} {'enabled' if ok else 'not enabled: ' + (result.stderr.strip() if result else 'systemctl did not run')}")
+        self.notes()
+
+    def notes(self):
+        found = {}
+        for candidate in (shutil.which("tmux"), "/usr/bin/tmux", "/usr/local/bin/tmux"):
+            if candidate and Path(candidate).exists():
+                found[str(Path(candidate).resolve())] = tmux_version(candidate)
+        if len(set(found.values())) > 1:
+            listed = ", ".join(f"{path} ({version})" for path, version in found.items())
+            print(f"  two tmux versions here: {listed}. A client of one cannot attach to a server of the")
+            print("  other (\"open terminal failed: not a terminal\"): keep one tmux on this machine")
+        linger = run("loginctl", "show-user", os.environ.get("USER") or HOME.name, "-p", "Linger", "--value")
+        if linger and linger.returncode == 0 and linger.stdout.strip() != "yes":
+            print(f"  linger is off: tmux starts at login, not at boot (sudo loginctl enable-linger {HOME.name})")
+        if not shutil.which("tide") and not (HOME / ".local/share/tide-runtime/venv/bin/tide").exists():
+            print("  tide is not installed: tmux restores the panes, and no agent comes back (sudo apt install miadi-tide)")
+
+    def disable(self):
+        path = tmux_config()
+        lines = path.read_text().splitlines() if path.exists() else []
+        kept = [line for line in lines if line.strip() != CONTINUITY_LINE]
+        if len(kept) != len(lines):
+            backup_and_write(path, "\n".join(kept) + "\n")
+            print(f"restore: removed from {path}")
+        run("systemctl", "--user", "disable", "tmux-server.service")
+        run("systemctl", "--user", "disable", "--now", "tmux-save.timer")
+        print("restore: tmux-server.service and tmux-save.timer are disabled; a running tmux server keeps running")
+
+    def describe(self):
+        return f"tmux starts at boot, restores its last save, and tide brings the agents back; {CONTINUITY_CONF}"
+
+
+INTEGRATIONS = [Desktop(), Terminator(), Tmux(), Restore()]
 
 
 # --- the whole ---------------------------------------------------------------
@@ -359,7 +474,7 @@ def chosen(names):
                          f"(choose from {', '.join(by_name)})")
     if names:
         return [by_name[n] for n in names]
-    return [i for i in INTEGRATIONS if i.installed() and i.present()]
+    return [i for i in INTEGRATIONS if i.installed() and i.present() and getattr(i, "default", True)]
 
 
 def enable(names):

@@ -82,6 +82,7 @@ miadi-terminal status
 | `desktop` | an OSC 8 link or a page link carrying `miadi-chronicle:`, `miadi-ceremony:` or `miadi-circle:` | `/usr/share/applications/miadi-chronicle-open.desktop` |
 | `terminator` | Ctrl+click a bare reference | `/usr/share/miadi-terminal/terminator/`, linked into Terminator's plugin directory |
 | `tmux` | click, or tap on Termux, a bare reference in a pane | `/usr/share/miadi-terminal/tmux/miadi-chronicle.conf` |
+| `restore` (0.2.0, by name only) | tmux starts at boot, restores its sessions, and tide brings the agents back | `/usr/share/miadi-terminal/session-continuity/`, `/usr/lib/systemd/user/tmux-server.service`, `tmux-save.timer` |
 
 The package installs system-wide; its maintainer scripts write nothing into a
 home directory. `enable`, run by the user, changes that user's Terminator
@@ -148,6 +149,7 @@ bash build.sh miadi-tide                    # one package
 bash test-install.sh dist/*_<version>_*.deb     # clean ubuntu:22.04 container
 IMAGE=ubuntu:24.04 bash test-install.sh dist/miadi-tide_<version>_amd64.deb
 python3 tests/tmux-click.py miadi-terminal/usr/share/miadi-terminal/tmux/miadi-chronicle.conf miadi-terminal/usr/bin/miadi-chronicle-open
+bash tests/session-continuity-sync.sh   # restore's copies against jgwill/gaia's installer
 sudo apt install ./dist/*_<version>_all.deb
 ```
 

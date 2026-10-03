@@ -11,5 +11,6 @@ if [ "$1" = configure ]; then
 		echo "miadi-terminal: set the Miadi a click opens on: miadi-terminal front https://<your Miadi>"
 	fi
 	echo "miadi-terminal: each user runs 'miadi-terminal enable' once (desktop, terminator, tmux)"
+	echo "miadi-terminal: and 'miadi-terminal enable restore' for tmux sessions that come back after a reboot"
 fi
 exit 0
