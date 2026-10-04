@@ -158,7 +158,8 @@ medicine_wheel_session:
 
 - Active ceremony detection may be unreliable until `jgwill/medicine-wheel#66`
   is resolved.
-- Wilson alignment is text-heavy until `jgwill/medicine-wheel#65` is resolved.
+- Wilson alignment (the suite's own score, named for Wilson; not his) is
+  text-heavy until `jgwill/medicine-wheel#65` is resolved.
 - OCAP encrypted-cloud guidance is incomplete until
   `jgwill/medicine-wheel#64` is resolved.
 - Two-Eyed Seeing concept coverage is incomplete until

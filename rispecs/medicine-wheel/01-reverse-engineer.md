@@ -73,8 +73,9 @@ Four active Medicine Wheel issues shape the implementation boundary:
 
 - `jgwill/medicine-wheel#64`: OCAP checker needs a conditional encrypted-cloud
   state, not only on-premise versus violation.
-- `jgwill/medicine-wheel#65`: Wilson checker should validate actual relational
-  state, not only text keywords.
+- `jgwill/medicine-wheel#65`: the Wilson checker (`wilson_paradigm_checker`, the
+  suite's own check, named for Wilson; not a measure of his) should validate
+  actual relational state, not only text keywords.
 - `jgwill/medicine-wheel#66`: `mw_relational_check_back` and
   `mw_fire_keeper_status` do not find a ceremony opened through
   `mw_ceremony_open` because persisted ceremonies are separate from the
