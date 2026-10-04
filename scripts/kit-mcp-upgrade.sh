@@ -6,7 +6,7 @@
 #   scripts/kit-mcp-upgrade.sh --dry-run
 #   scripts/kit-mcp-upgrade.sh --ref jgwill/miadi-orchestration-kit#64 [--ref jgwill/Miadi#N] [--no-push]
 #
-# The skill that runs it: miadi-kit-mcp-delivery (jgwill/Miadi, skills/).
+# The skill that runs it: miadi-factory-delivery (jgwill/Miadi, skills/), through scripts/ops/miadi-delivery.sh.
 set -uo pipefail
 
 KIT=$(cd "$(dirname "$0")/.." && pwd)
