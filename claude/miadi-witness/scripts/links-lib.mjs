@@ -16,6 +16,8 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { MACHINE_PROMPT } from "../service/threads.mjs";
+
 export const LINK_KINDS = ["question", "trace", "evidence", "criteria", "judgment"];
 
 const COMMIT_REF = /^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)@([0-9a-f]{7,40})$/;
@@ -70,10 +72,17 @@ export function firstInput(sessiondata, sessionId, { maxChars = 600 } = {}) {
       continue;
     }
     const text = typeof record.prompt === "string" ? record.prompt.trim() : "";
-    if (!text) continue;
+    // A message between sessions or a notice is not the person's question.
+    if (!text || MACHINE_PROMPT.test(text)) continue;
     return { text: text.length > maxChars ? `${text.slice(0, maxChars)} …` : text, chars: text.length, ref: `file:${path}#${i + 1}` };
   }
   return null;
+}
+
+export function originNames(origin, repo) {
+  const o = origin.replace(/\.git$/, "").replace(/\/+$/, "").toLowerCase();
+  const r = repo.toLowerCase();
+  return o === r || o.endsWith(`/${r}`) || o.endsWith(`:${r}`);
 }
 
 function treeFor(repo, env = process.env) {
@@ -82,9 +91,9 @@ function treeFor(repo, env = process.env) {
     // A subfolder of a repository counts: git finds the repository above it.
     if (!existsSync(path)) continue;
     try {
-      const origin = execFileSync("git", ["-C", path, "remote", "get-url", "origin"], { encoding: "utf8" }).trim();
-      // A folder is not the repository: the origin must name it.
-      if (origin.replace(/\.git$/, "").toLowerCase().endsWith(repo.toLowerCase())) return path;
+      const origin = execFileSync("git", ["-C", path, "remote", "get-url", "origin"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+      // A folder is not the repository: the origin must name it, after a / or a :.
+      if (originNames(origin, repo)) return path;
     } catch {
       // a tree with no origin cannot vouch for a repository
     }

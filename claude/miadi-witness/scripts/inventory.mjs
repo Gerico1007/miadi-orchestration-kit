@@ -399,8 +399,16 @@ function linksCommand(command, args) {
     const by = args.by ?? BY;
     let what;
     if (args.kind === "derived_from") {
+      if (!UUID.test(args.ref)) {
+        console.error(`inventory: derived_from must be a session id, not ${args.ref}`);
+        return 2;
+      }
+      if (record.derived_from === args.ref) {
+        console.log(`unchanged ${existing.file} · derived_from already ${args.ref}`);
+        return 0;
+      }
+      what = `derived_from set to ${args.ref}${record.derived_from ? ` (was ${record.derived_from})` : ""}`;
       record.derived_from = args.ref;
-      what = `derived_from set to ${args.ref}`;
     } else {
       try {
         if (!addLink(record, args.kind, args.ref, { note: args.note, by, now })) {
@@ -434,9 +442,10 @@ function linksCommand(command, args) {
     }
     out.push({ session_id: id, file: existing.file, derived_from: record.derived_from ?? null, gaps: linkGaps(record), links });
   }
+  const failed = out.some((r) => r.missing || (args.check && LINK_KINDS.some((k) => r.links[k].some((e) => e.checked?.ok === false))));
   if (args.json) {
     console.log(JSON.stringify(out, null, 2));
-    return out.some((r) => r.missing) ? 1 : 0;
+    return failed ? 1 : 0;
   }
   for (const r of out) {
     if (r.missing) {
@@ -456,7 +465,7 @@ function linksCommand(command, args) {
       }
     }
   }
-  return out.some((r) => r.missing || (args.check && LINK_KINDS.some((k) => r.links[k].some((e) => e.checked?.ok === false)))) ? 1 : 0;
+  return failed ? 1 : 0;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === SCRIPT) process.exitCode = main();

@@ -85,7 +85,7 @@ export function readSessionFiles(dir, { alive = pidAlive } = {}) {
 
 // The last input William typed. Peer messages, idle notices and task notifications reach
 // the same hook, so they are skipped. Only the tail of the file is read.
-const MACHINE_PROMPT = /^\s*(<cross-session-message\b|\[Cross-session idle notice\]|<task-notification>|<local-command-|<command-name>)/;
+export const MACHINE_PROMPT = /^\s*(<cross-session-message\b|\[Cross-session idle notice\]|<task-notification>|<local-command-|<command-name>)/;
 
 function readTail(path, bytes) {
   const size = statSync(path).size;

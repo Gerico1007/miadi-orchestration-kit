@@ -193,3 +193,20 @@ function runEnv(fx, args, extra) {
   for (const [k, v] of Object.entries(extra)) { saved[k] = process.env[k]; process.env[k] = v; }
   try { return run(fx, args); } finally { for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } }
 }
+
+test("the question skips messages between sessions, and an origin must name the repository after / or :", async () => {
+  const { firstInput, originNames } = await import("./links-lib.mjs");
+  const fx = fixture();
+  const dir = join(fx.sessiondata, TRAP);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "_claude_user_inputs.jsonl"), [
+    JSON.stringify({ prompt: "<cross-session-message from=\"x\">hello</cross-session-message>" }),
+    JSON.stringify({ prompt: "what William actually asked" }),
+  ].join("\n") + "\n");
+  const first = firstInput(fx.sessiondata, TRAP);
+  assert.equal(first.text, "what William actually asked");
+  assert.match(first.ref, /#2$/);
+  assert.equal(originNames("git@github.com:jgwill/Miadi.git", "jgwill/Miadi"), true);
+  assert.equal(originNames("https://github.com/jgwill/Miadi", "will/Miadi"), false);
+  assert.equal(originNames("ssh://mia@gaia:/srv/git/jgwill/episodes.git", "jgwill/episodes"), true);
+});

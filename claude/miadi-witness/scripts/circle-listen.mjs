@@ -167,7 +167,8 @@ function answersFor(event) {
   if (event.kind !== "TURN") return [];
   try {
     const inv = readInventory(inventoryDir());
-    return pendingRetellings([...inv.byId.values()], event.ceremony);
+    // Only a turn spoken after the account was given back can answer it.
+    return pendingRetellings([...inv.byId.values()], event.ceremony).filter((r) => !event.at || !r.at || event.at > r.at);
   } catch {
     return [];
   }

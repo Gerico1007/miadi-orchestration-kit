@@ -41,3 +41,12 @@ test("an answer grounds or corrects the retelling, and becomes the judgment link
   assert.throws(() => applyAnswer(recordWith(), { turn: "h3", verdict: "confirm" }), /no retelling waiting/);
   assert.throws(() => applyAnswer(recordWith({ turn_id: "t1", ceremony: CER, state: "given_back" }), { turn: "h4", verdict: "maybe" }), /confirm or correct/);
 });
+
+test("an answered retelling cannot be answered again, and a ceremony that does not match is refused", () => {
+  const record = recordWith({ turn_id: "t1", kind: "session_account", ceremony: CER, state: "given_back", at: "x" });
+  applyAnswer(record, { turn: "h1", verdict: "confirm", retelling: "t1", by: "test" });
+  assert.throws(() => applyAnswer(record, { turn: "h2", verdict: "correct", retelling: "t1", by: "test" }), /is grounded, not waiting/);
+  assert.equal(record.links.judgment.length, 1);
+  const other = recordWith({ turn_id: "t2", kind: "session_account", ceremony: CER, state: "given_back", at: "x" });
+  assert.throws(() => applyAnswer(other, { turn: "h3", verdict: "confirm", retelling: "t2", ceremony: "elsewhere", by: "test" }), /in ceremony/);
+});

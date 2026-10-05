@@ -12,6 +12,8 @@
 //   give-back.mjs answer  --session <id> --turn <turn id> --verdict confirm|correct [--retelling <turn id>]
 //       record the person's answer: confirm grounds the retelling, correct marks it corrected.
 //       Either way the answer becomes the judgment link.
+//   give-back.mjs record  --session <id> --ceremony <id> --turn <turn id> [--from-turn <id>]
+//       record a turn already spoken in the circle (the recovery when account posted but could not write).
 //   give-back.mjs pending [--ceremony <id>] [--json]
 //       retellings still waiting for an answer.
 //
@@ -60,8 +62,11 @@ export function pendingRetellings(records, ceremony) {
 // What the record looks like once the person has answered.
 export function applyAnswer(record, { turn, ceremony, verdict, retelling, now = new Date().toISOString(), by }) {
   const list = record.retellings ?? [];
-  const target = retelling ? list.find((r) => r.turn_id === retelling) : [...list].reverse().find((r) => r.state === "given_back" && (!ceremony || r.ceremony === ceremony));
+  const waiting = (r) => r.state === "given_back" && (!ceremony || r.ceremony === ceremony);
+  const target = retelling ? list.find((r) => r.turn_id === retelling) : [...list].reverse().find(waiting);
   if (!target) throw new Error("no retelling waiting for an answer in this record");
+  // An answered retelling is reopened by a new version, never by re-answering it.
+  if (!waiting(target)) throw new Error(`retelling ${target.turn_id} is ${target.state}${ceremony && target.ceremony !== ceremony ? ` in ceremony ${target.ceremony}` : ""}, not waiting for an answer here`);
   if (!["confirm", "correct"].includes(verdict)) throw new Error("verdict is confirm or correct");
   target.state = verdict === "confirm" ? "grounded" : "corrected";
   target.answered_by = turn;
@@ -113,6 +118,21 @@ async function main() {
     else if (!list.length) console.log("give-back: nothing waiting for an answer");
     else for (const r of list) console.log(`${r.turn_id} · session ${r.session_id} · ${r.kind} · ceremony ${r.ceremony} · given back ${r.at}`);
     return 0;
+  }
+
+  if (command === "record") {
+    if (!args.session || !args.ceremony || !args.turn) {
+      console.error("give-back: record needs --session, --ceremony and --turn");
+      return 2;
+    }
+    try {
+      const version = recordRetelling(dir, args.session, { turnId: args.turn, ceremony: args.ceremony, seat: args.seat, fromTurn: args.fromTurn, by, now: new Date().toISOString() });
+      console.log(`recorded  · turn ${args.turn} · session ${args.session} · version ${version}`);
+      return 0;
+    } catch (err) {
+      console.error(`give-back: ${err.message}`);
+      return 2;
+    }
   }
 
   if (!["account", "answer"].includes(command) || !args.session) {
@@ -171,15 +191,33 @@ async function main() {
     console.error(`give-back: the circle refused the turn (${res.status} ${body.error ?? ""})`);
     return 2;
   }
+  // The turn is in the circle now. Record it on the record as it is on disk at this moment,
+  // so a write made by another tool since the start is kept.
+  try {
+    const version = recordRetelling(dir, args.session, { turnId: body.turn.id, ceremony: args.ceremony, seat: args.seat, fromTurn: args.fromTurn, by, now });
+    console.log(`given back · turn ${body.turn.id} · session ${args.session} · version ${version}`);
+    return 0;
+  } catch (err) {
+    console.error(`give-back: turn ${body.turn.id} is in the circle but the record was not written (${err.message}). Record it with:`);
+    console.error(`  node "${SCRIPT}" record --session ${args.session} --ceremony ${args.ceremony} --turn ${body.turn.id}${args.fromTurn ? ` --from-turn ${args.fromTurn}` : ""}`);
+    return 2;
+  }
+}
+
+// Record a turn already spoken in the circle as a retelling waiting for an answer.
+export function recordRetelling(dir, sessionId, { turnId, ceremony, seat = "mino", fromTurn, by, now = new Date().toISOString() }) {
+  const existing = readInventory(dir).byId.get(sessionId);
+  if (!existing) throw new Error(`no record for ${sessionId}`);
+  const record = structuredClone(existing.record);
+  if ((record.retellings ?? []).some((r) => r.turn_id === turnId)) throw new Error(`turn ${turnId} is already recorded`);
   const version = (record.retellings ?? []).filter((r) => r.kind === "session_account").length + 1;
   record.retellings = [...(record.retellings ?? []), {
-    turn_id: body.turn.id, kind: "session_account", version, ceremony: args.ceremony, state: "given_back", at: now,
-    written_by: args.fromTurn ? `${args.seat} from turn ${args.fromTurn}` : args.seat,
+    turn_id: turnId, kind: "session_account", version, ceremony, state: "given_back", at: now,
+    written_by: fromTurn ? `${seat} from turn ${fromTurn}` : seat,
   }];
-  record.observations = [...(record.observations ?? []), { at: now, by, what: `Account version ${version} given back in ceremony ${args.ceremony} as turn ${body.turn.id}.` }];
+  record.observations = [...(record.observations ?? []), { at: now, by, what: `Account version ${version} given back in ceremony ${ceremony} as turn ${turnId}.` }];
   writeRecord(dir, existing.file, record);
-  console.log(`given back · turn ${body.turn.id} · session ${args.session} · version ${version}`);
-  return 0;
+  return version;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === SCRIPT) main().then((code) => { process.exitCode = code; }, (err) => { console.error(`give-back: ${err.message}`); process.exitCode = 2; });
