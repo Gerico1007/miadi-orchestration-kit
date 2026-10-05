@@ -5,6 +5,10 @@
 //   circle-listen.mjs await  --seat mino --ceremony <id>... [--reviews] [--interval <s>] [--timeout <s>]
 //   circle-listen.mjs peek   --seat mino --ceremony <id>... [--reviews]   what is waiting; marks nothing seen
 //   circle-listen.mjs status --seat mino --ceremony <id>... [--reviews]
+//   circle-listen.mjs mark   --seat mino --ceremony <id>... [--reviews]   mark everything there now as seen
+//
+// Run `mark` right after the seat relays William's words with his token: those turns carry his
+// name, so nothing else tells the listener the seat wrote them.
 //
 // `await` blocks until something new arrives, prints a CIRCLE WAKE with the exact words, marks
 // them seen, and exits 0. Exit 4: timeout, nothing new. Exit 5: another await already listens
@@ -25,7 +29,7 @@ const REVIEW_BASE = process.env.MIADI_REVIEW_BASE_URL || "https://miadi-review-s
 
 function usage(msg) {
   if (msg) console.error(`circle-listen: ${msg}`);
-  console.error("usage: circle-listen.mjs await|peek|status --seat <seat> --ceremony <id>... [--reviews] [--interval <s>] [--timeout <s>]");
+  console.error("usage: circle-listen.mjs await|peek|status|mark --seat <seat> --ceremony <id>... [--reviews] [--interval <s>] [--timeout <s>]");
   process.exit(2);
 }
 
@@ -40,7 +44,7 @@ function parseArgs(argv) {
     else if (k === "--timeout") a.timeout = Number(argv[++i]);
     else usage(`unknown argument ${k}`);
   }
-  if (!["await", "peek", "status"].includes(a.cmd)) usage();
+  if (!["await", "peek", "status", "mark"].includes(a.cmd)) usage();
   if (!a.ceremonies.length && !a.reviews) usage("name at least one --ceremony, or --reviews");
   return a;
 }
@@ -173,6 +177,13 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const { file, pid } = stateFile(args.seat);
   let state = readState(file);
+
+  if (args.cmd === "mark") {
+    const { events, next } = await read(args, state);
+    writeState(file, next);
+    console.log(`circle-listen: marked seen for seat ${args.seat}: ${events.length} waiting event${events.length === 1 ? "" : "s"}${events.length ? ` (${events.map((e) => `${e.kind}${e.who ? ` ${e.who}` : ""}`).join(", ")})` : ""}`);
+    return;
+  }
 
   if (args.cmd !== "await") {
     const { events, next } = await read(args, state);
