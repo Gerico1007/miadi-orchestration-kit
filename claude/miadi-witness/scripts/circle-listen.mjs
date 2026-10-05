@@ -230,6 +230,9 @@ async function main() {
   console.log(`circle-listen: listening for seat ${args.seat}`);
   const deadline = Date.now() + args.timeout * 1000;
   for (;;) {
+    // Re-read the state each poll: `mark`, run by the seat after it relays words, writes the
+    // same file, and a listener holding its state in memory would wake on the relay anyway.
+    state = readState(file);
     let result;
     try { result = await read(args, state); } catch (err) { console.error(`circle-listen: ${err.message}`); process.exit(2); }
     state = result.next;
