@@ -24,7 +24,11 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { pendingRetellings } from "./give-back.mjs";
+import { inventoryDir, readInventory } from "./inventory.mjs";
+
 const SCRIPT = fileURLToPath(import.meta.url);
+const GIVE_BACK = join(fileURLToPath(new URL(".", import.meta.url)), "give-back.mjs");
 const REVIEW_BASE = process.env.MIADI_REVIEW_BASE_URL || "https://miadi-review-service.vercel.app";
 
 function usage(msg) {
@@ -105,7 +109,7 @@ async function read(args, state) {
     if (!seen) continue; // baseline
     for (const t of turns) {
       if (seen.turns.includes(t.id) || t.speaker === me) continue;
-      events.push({ kind: "TURN", ceremony: id, intention, who: t.speaker_name || t.speaker, at: t.timestamp, words: t.prose || t.description || "" });
+      events.push({ kind: "TURN", id: t.id, ceremony: id, intention, who: t.speaker_name || t.speaker, at: t.timestamp, words: t.prose || t.description || "" });
     }
     for (const d of diary) {
       const meta = parseMaybe(d.metadata);
@@ -158,12 +162,27 @@ function rearmCommand(args) {
   return parts.join(" ");
 }
 
+// A turn in a ceremony where a retelling waits for an answer may be that answer (P1, P7).
+function answersFor(event) {
+  if (event.kind !== "TURN") return [];
+  try {
+    const inv = readInventory(inventoryDir());
+    return pendingRetellings([...inv.byId.values()], event.ceremony);
+  } catch {
+    return [];
+  }
+}
+
 function printWake(args, events) {
   console.log(`CIRCLE WAKE · seat ${args.seat} · ${events.length} event${events.length === 1 ? "" : "s"} · ${new Date().toISOString()}\n`);
   events.forEach((e, i) => {
     const where = e.ceremony ? ` · ceremony ${e.ceremony} (${e.intention.slice(0, 90)})` : "";
     console.log(`${i + 1}. ${e.kind}${where}${e.who ? ` · ${e.who}` : ""}${e.at ? ` · ${e.at}` : ""}`);
     console.log(`Exact words:\n${e.words}\n`);
+    for (const r of answersFor(e)) {
+      console.log(`May answer: retelling ${r.turn_id} (session ${r.session_id}, ${r.kind}, given back ${r.at}). Record it with:`);
+      console.log(`  node "${GIVE_BACK}" answer --session ${r.session_id} --turn ${e.id} --retelling ${r.turn_id} --verdict confirm|correct\n`);
+    }
   });
   console.log("Turn budget (circle-listen):");
   console.log("1. Read the words above. They are the feedback the seat asked for.");

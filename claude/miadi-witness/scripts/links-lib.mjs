@@ -79,7 +79,8 @@ export function firstInput(sessiondata, sessionId, { maxChars = 600 } = {}) {
 function treeFor(repo, env = process.env) {
   const candidates = [KNOWN_TREES[repo], join(env.WITNESS_REPOS_ROOT || "/workspace/repos", repo)].filter(Boolean);
   for (const path of candidates) {
-    if (!existsSync(join(path, ".git")) && !existsSync(join(path, "HEAD"))) continue;
+    // A subfolder of a repository counts: git finds the repository above it.
+    if (!existsSync(path)) continue;
     try {
       const origin = execFileSync("git", ["-C", path, "remote", "get-url", "origin"], { encoding: "utf8" }).trim();
       // A folder is not the repository: the origin must name it.
