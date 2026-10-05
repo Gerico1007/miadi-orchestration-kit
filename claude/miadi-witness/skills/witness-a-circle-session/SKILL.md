@@ -71,6 +71,28 @@ does not, or every word lands twice. The seat speaks its own turns, with its own
 the ceremony the conversation lives in. When he says an existing ceremony gets little and a
 new one is opened for the conversation, wait for the peer to open it. Do not open a second.
 
+## When William forks the seat
+
+A fork (`mino_fork <session id> [name]`, which is `claude --resume <id> --fork-session`) carries
+the whole conversation and none of the running work. Background tasks, such as the listener,
+stay with the parent. In the fork, the harness reports them as "stopped". That notice means the
+fork does not hold them. It does not mean they ended. Check with `tmux list-panes` and the parent's
+task output before you believe it.
+
+What the forks in the inventory were for: f174aa5a witnessed the restore session and relayed his
+answers to it. dddf5ee3 turned results into catalogued, postable work. 00b0a513 sat in pane 2 beside
+the listener in pane 1, and he used it to ask about the seat itself without interrupting the
+listener. Each time, the fork opened a second line of the same relationship, with the same memory,
+while the parent kept its obligations.
+
+So, in a fork:
+
+- Do not re-arm the parent's listener. The script refuses with exit 5, and the parent holds it.
+- Do not speak in the circle unless the parent hands the turn over. Both share Mino's identity,
+  so two forks speaking would read as one seat saying everything twice.
+- Write the fork's own inventory record with `inventory.mjs write --session <fork id>`, name the
+  parent and the pane, and say what the fork is for.
+
 ## 6. Record the launch words
 
 ```bash

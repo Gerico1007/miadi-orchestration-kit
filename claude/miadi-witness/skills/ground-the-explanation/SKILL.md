@@ -42,11 +42,28 @@ description.
    - The Wilson source, `/src/IAIP/sources/wilson-2008-research-is-ceremony/INDEX.md`. Search it
      by its search words and cite a page.
    - Miadi reviews (the `miadi-review` skill, search) and chronicle episodes on the same subject.
-   - Outside research. When it comes from memory and was not read in this turn, say so.
+   - Outside research. Verify it in the same turn with a web search when you can, and give the
+     venue, volume and pages. When it comes from memory and was not read, say so.
    Name a field our foundations do not hold yet when the subject needs it. That is a finding.
 4. **End with one consequence:** what this changes, or what we should do with it.
 5. **List the paths consulted**, as a short block at the end. He asks for that list and it is the
    proof that the grounding was read in this turn.
+
+## The shape he approved
+
+`exemplar-2026-10-05.md` beside this file holds the answer he called "the type of output that I
+would expect", with his words and the steps that produced it. Read it before writing. Its shape:
+
+1. One opening paragraph: what the thing is, in relation to the work, and that an earlier answer
+   missed it when one did.
+2. `## Findings` with one `### F<n>` per finding. Each one is a claim in its title, then the
+   grounding with a page or a section, then what it means for the work.
+3. `## What changed`: the records and commits this turn made, one line each.
+4. `## Sources consulted`: paths and commands.
+5. The 🌸 sentence.
+
+When he asks for recommendations from the grounding, they come as `### P<n>` under
+`## Proposals`. Each one names the finding it comes from, what would exist, and why.
 
 ## The density cap still holds
 
