@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // circle-listen — wake the witness seat when a talking circle it sits in moves: a new turn, a new
-// diary entry, or a new Miadi review. The seat's own turns and entries never wake it.
+// diary entry, a new Miadi review, or a new version of one. The seat's own turns and entries never wake it.
 //
 //   circle-listen.mjs await  --seat mino --ceremony <id>... [--reviews] [--interval <s>] [--timeout <s>]
 //   circle-listen.mjs peek   --seat mino --ceremony <id>... [--reviews]   what is waiting; marks nothing seen
@@ -114,16 +114,37 @@ async function read(args, state) {
     const token = envValue("MIADI_REVIEW_TOKEN");
     if (!token) throw new Error("MIADI_REVIEW_TOKEN is needed to read the review list");
     const list = (await getJson(`${REVIEW_BASE}/api/reviews?limit=25&offset=0`, token)).reviews || [];
-    const ids = list.map((r) => r.id);
-    if (state.reviews) {
+    // id -> latest_version. An array is the 0.1 state (ids only): versions start being tracked now.
+    const before = Array.isArray(state.reviews) ? Object.fromEntries(state.reviews.map((id) => [id, null])) : state.reviews;
+    const after = { ...(before || {}) };
+    for (const r of list) after[r.id] = r.latest_version ?? 0;
+    if (before) {
       for (const r of list) {
-        if (state.reviews.includes(r.id)) continue;
-        events.push({ kind: "REVIEW", ceremony: "", intention: "", who: "", at: "", words: `${r.title} · ${REVIEW_BASE}/review/${r.id}` });
+        const url = `${REVIEW_BASE}/review/${r.id}`;
+        if (!(r.id in before)) {
+          events.push({ kind: "REVIEW", ceremony: "", intention: "", who: "", at: r.created_at || "", words: `${r.title || "Untitled review"} · ${url}` });
+        } else if (before[r.id] != null && (r.latest_version ?? 0) > before[r.id]) {
+          // A person can write a version by hand. Their words are what the seat needs, so the
+          // wake carries the lines the new version added.
+          const added = await addedLines(r.id, before[r.id], token).catch((err) => `(could not read the versions: ${err.message})`);
+          events.push({ kind: "REVIEW VERSION", ceremony: "", intention: "", who: "", at: r.updated_at || "", words: `${r.title} · version ${before[r.id]} → ${r.latest_version} · ${url}\nLines added since version ${before[r.id]}:\n${added}` });
+        }
       }
-      next.reviews = [...new Set([...ids, ...state.reviews])].slice(0, 200);
-    } else next.reviews = ids;
+    }
+    next.reviews = Object.fromEntries(Object.entries(after).slice(-300));
   }
   return { events, next };
+}
+
+async function addedLines(id, fromVersion, token) {
+  const review = await getJson(`${REVIEW_BASE}/api/reviews/${encodeURIComponent(id)}`, token);
+  const versions = review.versions || [];
+  const latest = versions.reduce((a, v) => (!a || v.version > a.version ? v : a), null);
+  const old = versions.find((v) => v.version === fromVersion);
+  if (!latest) return "(no version text)";
+  const seen = new Set((old?.markdown || "").split("\n").map((l) => l.trim()));
+  const lines = latest.markdown.split("\n").filter((l) => l.trim() && !seen.has(l.trim()));
+  return lines.length > 150 ? `${lines.slice(0, 150).join("\n")}\n… ${lines.length - 150} more lines` : lines.join("\n") || "(no new lines)";
 }
 
 function rearmCommand(args) {
