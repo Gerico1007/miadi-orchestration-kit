@@ -71,6 +71,13 @@ does not, or every word lands twice. The seat speaks its own turns, with its own
 the ceremony the conversation lives in. When he says an existing ceremony gets little and a
 new one is opened for the conversation, wait for the peer to open it. Do not open a second.
 
+His turns are often dictated. A voice transcription can add words he never said. On
+2026-10-05 the seat built a reading of a decision on "an amazing name", a phrase in his
+transcribed turn, and he answered "I never said" it. So before a turn of the seat rests on one
+phrase of his, say that it came through transcription and that he has not confirmed it. When he
+disowns a phrase, speak a turn that withdraws what was built on it, and leave the earlier turns
+as they were spoken.
+
 ## Listen to the circle, too
 
 When William places work in a ceremony and asks the seat to act on what is said there, the
