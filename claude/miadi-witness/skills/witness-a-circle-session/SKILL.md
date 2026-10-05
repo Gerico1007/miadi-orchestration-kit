@@ -71,6 +71,20 @@ does not, or every word lands twice. The seat speaks its own turns, with its own
 the ceremony the conversation lives in. When he says an existing ceremony gets little and a
 new one is opened for the conversation, wait for the peer to open it. Do not open a second.
 
+## Listen to the circle, too
+
+When William places work in a ceremony and asks the seat to act on what is said there, the
+circle becomes a source of wakes:
+
+```bash
+node "$KIT/claude/miadi-witness/scripts/circle-listen.mjs" await --seat mino --ceremony <id>... [--reviews]
+```
+
+It wakes on a turn or diary entry spoken by anyone but the seat, on a ceremony closing, and,
+with `--reviews`, on a new Miadi review. Its first read is a baseline. It prints the exact words
+and the re-arm command. Exit 4 is a timeout, and exit 5 means another listener already runs
+for the seat.
+
 ## When William forks the seat
 
 A fork (`mino_fork <session id> [name]`, which is `claude --resume <id> --fork-session`) carries
