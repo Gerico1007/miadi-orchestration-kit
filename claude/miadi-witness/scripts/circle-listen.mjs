@@ -12,7 +12,7 @@
 //
 // `await` blocks until something new arrives, prints a CIRCLE WAKE with the exact words, marks
 // them seen, and exits 0. Exit 4: timeout, nothing new. Exit 5: another await already listens
-// for this seat. Exit 2: usage or a door that refused. Run it with run_in_background: true.
+// for this seat. Exit 2: usage, or a door that refused ten polls in a row. Run it with run_in_background: true.
 //
 // The first read of a ceremony or of the review list is a baseline: what is already there is
 // seen. Tokens are read from the environment, else from ~/.env, and never printed:
@@ -230,12 +230,24 @@ async function main() {
 
   console.log(`circle-listen: listening for seat ${args.seat}`);
   const deadline = Date.now() + args.timeout * 1000;
+  let failures = 0;
   for (;;) {
     // Re-read the state each poll: `mark`, run by the seat after it relays words, writes the
     // same file, and a listener holding its state in memory would wake on the relay anyway.
     state = readState(file);
     let result;
-    try { result = await read(args, state); } catch (err) { console.error(`circle-listen: ${err.message}`); process.exit(2); }
+    try {
+      result = await read(args, state);
+      failures = 0;
+    } catch (err) {
+      // A door that fails once (a 502 while the wheel's tunnel is down) is not the end of the
+      // watch. Ten failures in a row, about five minutes at the default interval, is.
+      failures += 1;
+      console.error(`circle-listen: ${err.message} (${failures} in a row)`);
+      if (failures >= 10) process.exit(2);
+      await new Promise((r) => setTimeout(r, args.interval * 1000));
+      continue;
+    }
     state = result.next;
     if (result.events.length) {
       writeState(file, state);
