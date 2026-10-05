@@ -7,6 +7,14 @@
 //   inventory.mjs plan  [--session <id>]...           what it would write (the default; writes nothing)
 //   inventory.mjs write --session <id>... | --all      write those records
 //   inventory.mjs verify-names <tmux name>...          which session each name held, and on what evidence
+//   inventory.mjs link --session <id> --kind <kind> --ref <ref> [--note <n>] [--by <who>]
+//                                                      add a reference to one of the five links
+//   inventory.mjs links --session <id>... [--check]    the five links, empty ones included;
+//                                                      --check verifies commits and writes the result
+//
+// The five links (links-lib.mjs): question, trace, evidence, criteria, judgment. The script
+// fills question from the hook capture; the rest are added with `link`. `--kind derived_from`
+// sets the parent session of a fork or a resume.
 //
 // A name is verified by a binding line whose tmux session is that name, or by a pane reading
 // in the seat's own transcripts: a command aimed at exactly that tmux session whose output
@@ -20,6 +28,7 @@ import { fileURLToPath } from "node:url";
 
 import { defaultPaths, lastWilliamInput, readBindings } from "../service/threads.mjs";
 import { transcriptDirForCwd } from "../service/lineage.mjs";
+import { LINK_KINDS, addLink, checkRef, emptyLinks, firstInput, linkGaps } from "./links-lib.mjs";
 
 const SCRIPT = fileURLToPath(import.meta.url);
 const BY = "inventory-keeper (miadi-witness scripts/inventory.mjs)";
@@ -116,6 +125,7 @@ export function factsFor(sessionId, entry, sessiondata) {
       last_input: lastWilliamInput(sessiondata, sessionId, { maxChars: 300 })?.text ?? null,
     }
     : { dir, missing: true };
+  const first = existsSync(dir) ? firstInput(sessiondata, sessionId) : null;
   return {
     session_id: sessionId,
     tmux_session_name: line.tmux?.session ?? null,
@@ -135,7 +145,16 @@ export function factsFor(sessionId, entry, sessiondata) {
       team: line.team ?? null,
     },
     hook_capture: capture,
+    first_input: first,
   };
+}
+
+// The question link is a fact of the hook capture, so the script fills it when it is empty.
+function fillQuestion(record, facts, now, changes) {
+  if (!facts.first_input) return;
+  if (record.links?.question?.length) return;
+  addLink(record, "question", facts.first_input.ref, { note: facts.first_input.text, by: BY, now });
+  changes.push("question link filled");
 }
 
 // ---------- the plan ----------
@@ -156,9 +175,11 @@ export function planFor(facts, existing, now = new Date().toISOString()) {
       team: facts.team,
       binding: facts.binding,
       hook_capture: facts.hook_capture,
+      links: emptyLinks(),
       observations: [{ at: now, by: BY, what: "Record created from the binding line and the hook capture. No agent has read the session yet." }],
       metadata: { created_by: BY, closed_by: null, notes: "" },
     };
+    fillQuestion(record, facts, now, []);
     return { action: "create", file: `${facts.session_id}.json`, changes: ["new record"], record };
   }
   const record = structuredClone(existing.record);
@@ -175,6 +196,7 @@ export function planFor(facts, existing, now = new Date().toISOString()) {
       changes.push(`${key} ${existing.record[key] ? "refreshed" : "added"}`);
     }
   }
+  fillQuestion(record, facts, now, changes);
   if (!changes.length) return { action: "unchanged", file: existing.file, changes, record };
   record.observations = [...(record.observations ?? []), { at: now, by: BY, what: `Facts updated from the binding line and the hook capture: ${changes.join(", ")}.` }];
   return { action: "update", file: existing.file, changes, record };
@@ -258,13 +280,18 @@ function writeRecord(dir, plan) {
 }
 
 function parseArgs(argv) {
-  const args = { _: [], sessions: [], all: false, json: false, seat: "mino" };
+  const args = { _: [], sessions: [], all: false, json: false, seat: "mino", check: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--session") args.sessions.push(argv[++i]);
     else if (arg === "--all") args.all = true;
     else if (arg === "--json") args.json = true;
     else if (arg === "--seat") args.seat = argv[++i];
+    else if (arg === "--kind") args.kind = argv[++i];
+    else if (arg === "--ref") args.ref = argv[++i];
+    else if (arg === "--note") args.note = argv[++i];
+    else if (arg === "--by") args.by = argv[++i];
+    else if (arg === "--check") args.check = true;
     else if (arg === "-h" || arg === "--help") args.help = true;
     else args._.push(arg);
   }
@@ -282,15 +309,18 @@ function seatTranscripts(paths, seatId) {
 }
 
 const USAGE = `usage: inventory.mjs plan [--session <id>]... | write (--session <id>... | --all) | verify-names <name>... [--seat mino] [--json]
+       inventory.mjs link --session <id> --kind <${LINK_KINDS.join("|")}|derived_from> --ref <ref> [--note <n>] [--by <who>]
+       inventory.mjs links --session <id>... [--check] [--json]
 inventory: ${inventoryDir()} (WITNESS_INVENTORY_DIR overrides)`;
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const command = args._[0] ?? "plan";
-  if (args.help || !["plan", "write", "verify-names"].includes(command)) {
+  if (args.help || !["plan", "write", "verify-names", "link", "links"].includes(command)) {
     console.log(USAGE);
     return args.help ? 0 : 2;
   }
+  if (command === "link" || command === "links") return linksCommand(command, args);
   const paths = defaultPaths();
   const { lines } = readBindings(paths.bindings);
   const sessions = sessionsFromBindings(lines);
@@ -342,6 +372,91 @@ function main() {
     for (const finding of inventory.hygiene) console.log(`  ${finding.file}: ${finding.finding}`);
   }
   return 0;
+}
+
+// ---------- links ----------
+
+function linksCommand(command, args) {
+  const dir = inventoryDir();
+  const inventory = readInventory(dir);
+  if (!args.sessions.length) {
+    console.error(`inventory: ${command} needs --session <id>`);
+    return 2;
+  }
+  const now = new Date().toISOString();
+  if (command === "link") {
+    const [id] = args.sessions;
+    const existing = inventory.byId.get(id);
+    if (!existing) {
+      console.error(`inventory: no record for ${id}; run write --session ${id} first`);
+      return 2;
+    }
+    if (!args.kind || !args.ref) {
+      console.error("inventory: link needs --kind and --ref");
+      return 2;
+    }
+    const record = structuredClone(existing.record);
+    const by = args.by ?? BY;
+    let what;
+    if (args.kind === "derived_from") {
+      record.derived_from = args.ref;
+      what = `derived_from set to ${args.ref}`;
+    } else {
+      try {
+        if (!addLink(record, args.kind, args.ref, { note: args.note, by, now })) {
+          console.log(`unchanged ${existing.file} · ${args.kind} already holds ${args.ref}`);
+          return 0;
+        }
+      } catch (error) {
+        console.error(`inventory: ${error.message}`);
+        return 2;
+      }
+      what = `${args.kind} link: ${args.ref}`;
+    }
+    record.observations = [...(record.observations ?? []), { at: now, by, what: `Link added: ${what}.` }];
+    writeRecord(dir, { file: existing.file, record });
+    console.log(`linked    ${existing.file} · ${what}`);
+    return 0;
+  }
+  const out = [];
+  for (const id of args.sessions) {
+    const existing = inventory.byId.get(id);
+    if (!existing) {
+      out.push({ session_id: id, missing: true });
+      continue;
+    }
+    const record = structuredClone(existing.record);
+    const links = { ...emptyLinks(), ...(record.links ?? {}) };
+    if (args.check) {
+      for (const kind of LINK_KINDS) for (const entry of links[kind]) entry.checked = { at: now, ...checkRef(entry.ref) };
+      record.links = links;
+      writeRecord(dir, { file: existing.file, record });
+    }
+    out.push({ session_id: id, file: existing.file, derived_from: record.derived_from ?? null, gaps: linkGaps(record), links });
+  }
+  if (args.json) {
+    console.log(JSON.stringify(out, null, 2));
+    return out.some((r) => r.missing) ? 1 : 0;
+  }
+  for (const r of out) {
+    if (r.missing) {
+      console.log(`${r.session_id}: no record`);
+      continue;
+    }
+    console.log(`${r.session_id}${r.derived_from ? ` · derived from ${r.derived_from}` : ""}`);
+    for (const kind of LINK_KINDS) {
+      const entries = r.links[kind];
+      if (!entries.length) {
+        console.log(`  ${kind.padEnd(9)} — empty`);
+        continue;
+      }
+      for (const entry of entries) {
+        const mark = entry.checked ? (entry.checked.ok === true ? "checked" : entry.checked.ok === false ? "FAILED" : "unchecked") : "";
+        console.log(`  ${kind.padEnd(9)} ${mark ? `${mark} ` : ""}${entry.ref}${entry.checked && entry.checked.ok !== true ? ` (${entry.checked.how})` : ""}`);
+      }
+    }
+  }
+  return out.some((r) => r.missing || (args.check && LINK_KINDS.some((k) => r.links[k].some((e) => e.checked?.ok === false)))) ? 1 : 0;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === SCRIPT) process.exitCode = main();

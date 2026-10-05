@@ -137,3 +137,59 @@ test("verify-names: a binding line, an exact pane reading, or unverified", () =>
   assert.equal(unknown.verified, false);
   assert.equal(unknown.session_id, undefined);
 });
+
+// ---------- the five links (P2, 2026-10-05) ----------
+
+test("a new record carries the five links, and the question is filled from the first input", () => {
+  const fx = fixture();
+  run(fx, ["write", "--session", NEW]);
+  const record = read(fx, `${NEW}.json`);
+  assert.deepEqual(Object.keys(record.links), ["question", "trace", "evidence", "criteria", "judgment"]);
+  assert.equal(record.links.question.length, 1);
+  assert.equal(record.links.question[0].note, "please build the loop");
+  assert.match(record.links.question[0].ref, /^file:.*_claude_user_inputs\.jsonl#1$/);
+  assert.deepEqual(record.links.criteria, [], "an empty link stays, empty");
+});
+
+test("link adds a reference once; an unknown kind is refused", () => {
+  const fx = fixture();
+  run(fx, ["write", "--session", NEW]);
+  assert.match(run(fx, ["link", "--session", NEW, "--kind", "trace", "--ref", "acme/tools@abcdef1"]).stdout, /linked .* trace link: acme\/tools@abcdef1/);
+  assert.match(run(fx, ["link", "--session", NEW, "--kind", "trace", "--ref", "acme/tools@abcdef1"]).stdout, /already holds/);
+  assert.equal(run(fx, ["link", "--session", NEW, "--kind", "vibes", "--ref", "x"]).code, 2);
+  run(fx, ["link", "--session", NEW, "--kind", "derived_from", "--ref", KEPT]);
+  const record = read(fx, `${NEW}.json`);
+  assert.equal(record.links.trace.length, 1);
+  assert.equal(record.derived_from, KEPT);
+});
+
+test("links --check verifies a commit only in a tree whose origin names the repository", () => {
+  const fx = fixture();
+  const repos = join(fx.base, "repos");
+  const tree = join(repos, "acme", "tools");
+  mkdirSync(tree, { recursive: true });
+  const git = (...a) => execFileSync("git", ["-C", tree, ...a], { encoding: "utf8" }).trim();
+  git("init", "-q");
+  git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "one");
+  const sha = git("rev-parse", "HEAD");
+  git("remote", "add", "origin", "git@example.com:acme/tools.git");
+  run(fx, ["write", "--session", NEW]);
+  run(fx, ["link", "--session", NEW, "--kind", "trace", "--ref", `acme/tools@${sha.slice(0, 7)}`]);
+  const env = { WITNESS_REPOS_ROOT: repos };
+  const ok = runEnv(fx, ["links", "--session", NEW, "--check"], env);
+  assert.equal(ok.code, 0, ok.stdout);
+  assert.match(ok.stdout, /trace\s+checked acme\/tools@/);
+  run(fx, ["link", "--session", NEW, "--kind", "trace", "--ref", "acme/tools@0000000"]);
+  const bad = runEnv(fx, ["links", "--session", NEW, "--check"], env);
+  assert.equal(bad.code, 1);
+  assert.match(bad.stdout, /FAILED acme\/tools@0000000/);
+  git("remote", "set-url", "origin", "git@example.com:someone/else.git");
+  const elsewhere = runEnv(fx, ["links", "--session", NEW, "--check"], env);
+  assert.match(elsewhere.stdout, /unchecked acme\/tools@.*no local tree of acme\/tools whose origin names it/);
+});
+
+function runEnv(fx, args, extra) {
+  const saved = {};
+  for (const [k, v] of Object.entries(extra)) { saved[k] = process.env[k]; process.env[k] = v; }
+  try { return run(fx, args); } finally { for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } }
+}
