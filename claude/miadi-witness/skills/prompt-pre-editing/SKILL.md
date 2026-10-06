@@ -12,7 +12,7 @@ description: >
   in another pane. Not for writing your own brief to a lane (dispatch-discipline).
 metadata:
   type: skill
-  version: 0.3.1
+  version: 0.4.0
   scope: a person's draft prompt to another agent, the rewrite, following the run, evolving from it
 ---
 
@@ -44,7 +44,8 @@ Name each defect by its class and by what it will do to the result. They are lis
    - Read the pane back and quote the result.
    - A message you type into another session's composer arrives as if the person typed it. Open it with who sends it and on whose behalf ("From the witness seat, on Guillaume's behalf"). On 2026-10-06 a follow-up sent without that line made the receiving session record a name as "chosen by Guillaume", when the pre-editor had chosen it for him.
 7. **A slot filled with a conclusion.** When the person leaves a slot in their own draft for "a few words" with "the right terms", the words are terms the receiving session will apply: each one named and defined, so that session can still reach its own design. A sentence that states the design ("projecting circles and ceremonies into Asterion threads... the record stays on the wheel") decides that session's work before it starts. On 2026-10-06 the person's verdict on exactly that sentence was "surely that is not what I expected to be AT ALL". Ask for the terms in the rewrite. Before delivering any words into another draft, read them against what the slot is for in the person's sentence, not only against its length and syntax. The one who delivers the words owns their content.
-8. **No output contract.** Give numbered returns in order, word limits, the exact slot the words must fit, and holds on outward acts such as publishing a package or a review. Every word limit says "count with a script and show the counts", and "under N" means fewer than N. A rewrite owes the five things a brief owes (`dispatch-discipline` §5): the task in the imperative, stores by path, the scope boundary, verified facts and completion marks.
+8. **A rule stated wider than its case.** A rule written into a prompt reaches everything its words cover. "A private repository's project is never registered public" came from one private GitHub repository, and it made a lane hide a project the person had made public. Name the case a rule comes from.
+9. **No output contract.** Give numbered returns in order, word limits, the exact slot the words must fit, and holds on outward acts such as publishing a package or a review. Every word limit says "count with a script and show the counts", and "under N" means fewer than N. A rewrite owes the five things a brief owes (`dispatch-discipline` §5): the task in the imperative, stores by path, the scope boundary, verified facts and completion marks.
 
 ## 3. Hand back
 
@@ -57,7 +58,7 @@ Do not narrate what the person will do, as in "add one line" or "watch whether".
 ## 4. After it is sent: follow, judge, evolve
 
 1. **Commit the expected results before the run ends.** Put them in an example file in `examples/`. The commit time shows they were not adjusted to fit the result (`dispatch-discipline` §7).
-2. **Follow the run without polling by hand.** Run a background loop on the pane's busy line (`esc to interrupt`) that exits after three idle checks 30 seconds apart. Then read the result from the transcript (`~/.claude/projects/<cwd-slug>/<session-id>.jsonl`) and from its artefacts, such as commits and files. Do not judge from the screen alone, because a pane's state is not the work's state.
+2. **Follow the run without polling by hand.** Run a background loop that treats the pane as busy while it shows `esc to interrupt` or a spinner's elapsed time (`… (15m 0s`, which survives a narrow pane), and that exits after three idle checks 30 seconds apart. Then read the result from the transcript (`~/.claude/projects/<cwd-slug>/<session-id>.jsonl`) and from its artefacts, such as commits and files. Do not judge from the screen alone, because a pane's state is not the work's state.
 3. **Score the round with `score-config.yaml`.** Use seven dimensions, each 0 to 2 and weighted. S1 (the person's input and instructions) and S2 (delivery to the destination) weigh most. Put a table of expected against actual for each `E` item, and the scored table, in the example file. Each score below 2 names its cause: the draft, the rewrite, the invoked skill or the run. Read the destination itself, such as the other pane, the commit or the public review. The run's own report is not enough. When the person gives a verdict, it overrides your scoring on S1 and S2.
 4. **Change the skill at fault in the same turn.** Change this one when the rewrite caused the miss. Change the invoked skill (for example the `apply` action of `miadi-review`) when it misled the agent. Add a ledger line, commit and push.
 5. **Pre-edit the next prompt for that session** with this same procedure.
@@ -68,6 +69,7 @@ The person expects the first run to miss and does not want to discuss the miss. 
 ## Ledger
 
 - 2026-10-06, 0.1.0. First version, from the round on `miadi-review apply` for naming the factory's bridge pattern. The first feedback was advice, and the person called it passive. The second was a rewrite, and the person sent it.
+- 2026-10-06, 0.4.0. Four lanes briefed with sender, scope, the other lanes and completion marks all finished with verified commits. One rule stated too broadly hid a public project (defect 8).
 - 2026-10-06, 0.3.1. A message typed into another session now names its sender. One that did not made a packet record the pre-editor's choice as the person's. The packet was corrected and released as `@miadi/foundations@0.1.9`.
 - 2026-10-06, 0.3.0. The words typed into the Asterion draft stated a conclusion where the person wanted terms. The person: "surely that is not what I expected to be AT ALL". Defect 7 added: a slot is filled with terms, and the deliverer reads the words against the slot's purpose before typing them.
 - 2026-10-06, 0.2.0. The first scored round got 54%. The person said: "nothing sent to 'asterion-miadi-circle-threads'". The rewrite had moved the injection to the person. Now an act keeps its owner and destination, words for another draft are typed without Enter and read back, limits are counted by a script, and every round is scored with `score-config.yaml`. The run's content scored well: the name came from code that already used the word, and a third instance turned up. So a rewrite now asks the agent to look for more instances and for the word the code already uses.

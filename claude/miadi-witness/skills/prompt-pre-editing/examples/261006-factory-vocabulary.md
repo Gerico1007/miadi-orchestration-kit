@@ -107,3 +107,10 @@ Expected results, committed before both runs end:
 - **E7 met.** 09de3362 v12, 80f50d5b v10 and 6c3f477f v15, each read back from the public site and checked with `status`.
 - **E8 met.** `@miadi/foundations@0.1.8`, version bump `cccbadd3`, shown on the registry.
 - **Missed (S1, provenance).** The follow-up went out without naming its sender, so the packet recorded N1 as "chosen by Guillaume". It was corrected to "chosen on Guillaume's behalf" in Miadi `e1bf28d9` and released as 0.1.9 (`86b7ccf5`).
+
+### Round 2 results (the four Asterion lanes)
+
+- **E9 met, with one miss.** The proposal used the packet's vocabulary (circle projection: a ceremony is a thread, a circle is a project) and answered the blocking fact with one schema change. Five aspects ran over 55 words because the person's own draft was not counted. After the follow-up brief, it was built: miadisabelle/asterion#11, commits `524b0bd`, `db394de`, `9b16a80` and `7e0b227`, live on gaia. The first real sync waits for the consent of the two seated people.
+- **Briefs with sender, scope, the other lanes and completion marks** reached four lanes, and each finished with commits on origin, verified by the pre-editor: T4 `015a767`; the ingest door `ec7774b`; Phase 2 `a17c895`, `47e5871`, `d3ee9040`, `f2db1b68`, `f87d9c8f`, plus coaia-narrative 0.21.0 and 0.22.0. No two lanes collided on a migration or a push.
+- **Missed (S5, side effect).** The brief's rule "a private repository's project is never registered public" made the ingest lane turn ep060 private, although it had been public by the person's choice. A rule in a brief must name the case it comes from (here a private GitHub repository, dummass), not be stated so broadly that it reaches a project the person made public.
+- **Watcher.** The idle check missed a spinner in a narrow pane and reported a lane idle mid-work. It now matches the spinner's elapsed time (`… (15m 0s`), which shows at any width.
