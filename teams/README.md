@@ -86,6 +86,26 @@ From William's @stckin note in `bash_aliases_common` (2026-09-29): this work "sh
 - **Next:** a project names its seat and its checkouts, so a steer made on Asterion reaches the agent session responsible for the chart (the design is in the skill). The vocabulary in the skill waits for William's corrections.
 - **Skill:** `skills/chart-path/SKILL.md` in this kit: the path, private sources, the words (repository, checkout, chart memory, project, seat, workspace), what `/stc-config` holds that Asterion must keep, and steering through a seat. Any agent that learns something about the chart path writes it there.
 
+## T5 · Production context exploration (stub, 2026-10-06)
+
+- **Status:** a stub, asked for by William on review 6c3f477f v10: "stub and first version could be created automatically then talk about what next". "Production context exploration" is his term. The team's name of record is his to give; the staging circle proposes "the germination circle" (`_staging_for_new_episodes/naming-what-comes-before-an-episode-261005/naming.md`, O7).
+- **Level:** before an episode.
+- **Desired outcome, in William's words (2026-10-05, to the staging session):** "these potential sparks of an episode … are rich enough when we create them, which imply we have put something in the staging area right away before, and we fed them a little bit, and we explore a little bit, to become an interactive TV series".
+- **Leads:** William (human). The staging session `miadi-staging-episodes-circle:1791110394383:jj1ql8` (agent).
+- **Makes:** concepts in the staging folder before any episode exists, the Chronicle staging circle (`circle:1791110394383:jj1ql8`) and its ceremonies, `naming.md` and `production-context-exploration.md` in `jgwill/episodes`.
+- **Uses:** the chronicle-episode kit, to mint an episode once a concept is chosen.
+- **Next:** William names the team and the place.
+
+## T6 · Production (stub, 2026-10-06; name held as D11)
+
+- **Status:** a stub, asked for by William on review 6c3f477f v10. Its name is held as William's decision D11 (Mino recommends "Documentary team").
+- **Level:** after an episode.
+- **Desired outcome, in William's words:** 2026-10-03, "it's like your production team that did a lot of work inside of, with, within the enterprise … because this is a factory. And this feels like it's a new team responsibility here". On review fcb78dc0: "Producer/supplier of video for the miadi-chronicle" and "Agent's team at a certain point produce a video of what they created (the transition from where we were when we started the work to now as well as what the next team will be capable todo with the work that our team completed".
+- **Leads:** William (human). No agent lead yet.
+- **Makes (proposed, nothing built):** documentaries of the factory's own work: the screenwalk protocol, notebooks and generated media (Deep Diver is its first instrument), and a video pipeline such as the one in review fcb78dc0 (Remotion).
+- **Uses:** chronicle episodes, Miadi reviews, screenwalk captures.
+- **Next:** William names it (D11), and the team gets an agent lead.
+
 ## Not named yet
 
-Other sessions point to teams William has not named: trading (`trading-draw-on-ao-issue-154`, `mia-trading-wave-labeler-blueprint-service`), film production (`mw-film-prod-devops-credibility`), story (`miadi-ncp-story-studio`, `miadi-orchestration-kit-storytelling`), research (`ep316-concordia-pitch-revising`). Naming them is William's.
+Other sessions point to teams William has not named: trading (`trading-draw-on-ao-issue-154`, `mia-trading-wave-labeler-blueprint-service`), story (`miadi-ncp-story-studio`, `miadi-orchestration-kit-storytelling`), research (`ep316-concordia-pitch-revising`). Film production (`mw-film-prod-devops-credibility`) moved to the T6 stub on 2026-10-06. Naming them is William's.

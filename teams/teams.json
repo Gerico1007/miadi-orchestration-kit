@@ -94,6 +94,34 @@
         "asterion",
         "coaia-narrative"
       ]
+    },
+    {
+      "id": "T5",
+      "name": "Production context exploration",
+      "stub": "2026-10-06; Guillaume's term; the name of record is his (the staging circle proposes 'the germination circle')",
+      "level": "before an episode",
+      "human_lead": "William",
+      "agent_lead": "miadi-staging-episodes-circle:1791110394383:jj1ql8",
+      "sessions": [
+        "miadi-staging-episodes-circle:1791110394383:jj1ql8"
+      ],
+      "folders": [
+        "/srv/miadi/episodes/miadi-chronicle/_staging_for_new_episodes"
+      ],
+      "name_patterns": []
+    },
+    {
+      "id": "T6",
+      "name": "Production",
+      "stub": "2026-10-06; the name is held as William's decision D11",
+      "level": "after an episode",
+      "human_lead": "William",
+      "agent_lead": null,
+      "sessions": [
+        "mw-film-prod-devops-credibility"
+      ],
+      "folders": [],
+      "name_patterns": []
     }
   ]
 }
