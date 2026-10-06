@@ -67,7 +67,7 @@ The person's verdict: "parts of it failed (Fact 1: the 'miadi-factory-vocabulary
 | E1 | reads the Asterion pane and the bridge, does not type into Asterion | both read, nothing typed | met, but "does not type" was itself the failure (S1, S2) |
 | E2 | one name and two alternatives, from the bridges, under 55 words | the name came from code already using the word, and a third instance turned up. N1 has 55 words and N2 has 56 | better than predicted on content, missed on the limit |
 | E3 | one packet commit, pushed, source ledger, no release | `618881b4`, 12 sources, no release | met |
-| E4 | under 30 words that close the quote, handed to the person | 24 words, they fit the slot, but they stayed in the run's reply | content met, delivery missed |
+| E4 | under 30 words that close the quote, handed to the person | 24 words that fit the slot syntactically but stated a design conclusion, and stayed in the run's reply until the pre-editor typed them unchecked | missed: the person said "surely that is not what I expected to be AT ALL" (defect 7 in 0.3.0) |
 | E5 | few revisions tied to the job, a dropped review named | A1 to A3, one of them a correction (A3, checked against Asterion's `writer.ts`: correct). Reels dropped with a reason | met |
 
 ### Score (score-config.yaml)

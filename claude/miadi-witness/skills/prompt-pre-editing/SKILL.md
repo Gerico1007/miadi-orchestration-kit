@@ -12,7 +12,7 @@ description: >
   in another pane. Not for writing your own brief to a lane (dispatch-discipline).
 metadata:
   type: skill
-  version: 0.2.0
+  version: 0.3.0
   scope: a person's draft prompt to another agent, the rewrite, following the run, evolving from it
 ---
 
@@ -42,7 +42,8 @@ Name each defect by its class and by what it will do to the result. They are lis
    - Check that the cursor sits at the end of that draft (`tmux display -p -t <session> '#{cursor_x},#{cursor_y}'` against `capture-pane`).
    - Type the words with `tmux send-keys -l`, and never press Enter. The person submits, as `dispatch-discipline` §4 requires.
    - Read the pane back and quote the result.
-7. **No output contract.** Give numbered returns in order, word limits, the exact slot the words must fit, and holds on outward acts such as publishing a package or a review. Every word limit says "count with a script and show the counts", and "under N" means fewer than N. A rewrite owes the five things a brief owes (`dispatch-discipline` §5): the task in the imperative, stores by path, the scope boundary, verified facts and completion marks.
+7. **A slot filled with a conclusion.** When the person leaves a slot in their own draft for "a few words" with "the right terms", the words are terms the receiving session will apply: each one named and defined, so that session can still reach its own design. A sentence that states the design ("projecting circles and ceremonies into Asterion threads... the record stays on the wheel") decides that session's work before it starts. On 2026-10-06 the person's verdict on exactly that sentence was "surely that is not what I expected to be AT ALL". Ask for the terms in the rewrite. Before delivering any words into another draft, read them against what the slot is for in the person's sentence, not only against its length and syntax. The one who delivers the words owns their content.
+8. **No output contract.** Give numbered returns in order, word limits, the exact slot the words must fit, and holds on outward acts such as publishing a package or a review. Every word limit says "count with a script and show the counts", and "under N" means fewer than N. A rewrite owes the five things a brief owes (`dispatch-discipline` §5): the task in the imperative, stores by path, the scope boundary, verified facts and completion marks.
 
 ## 3. Hand back
 
@@ -66,6 +67,7 @@ The person expects the first run to miss and does not want to discuss the miss. 
 ## Ledger
 
 - 2026-10-06, 0.1.0. First version, from the round on `miadi-review apply` for naming the factory's bridge pattern. The first feedback was advice, and the person called it passive. The second was a rewrite, and the person sent it.
+- 2026-10-06, 0.3.0. The words typed into the Asterion draft stated a conclusion where the person wanted terms. The person: "surely that is not what I expected to be AT ALL". Defect 7 added: a slot is filled with terms, and the deliverer reads the words against the slot's purpose before typing them.
 - 2026-10-06, 0.2.0. The first scored round got 54%. The person said: "nothing sent to 'asterion-miadi-circle-threads'". The rewrite had moved the injection to the person. Now an act keeps its owner and destination, words for another draft are typed without Enter and read back, limits are counted by a script, and every round is scored with `score-config.yaml`. The run's content scored well: the name came from code that already used the word, and a third instance turned up. So a rewrite now asks the agent to look for more instances and for the word the code already uses.
 
 ## Related
