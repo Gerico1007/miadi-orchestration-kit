@@ -6,6 +6,7 @@
       "env": {
         "MIADI_EPISODE_DOOR": "http",
         "MIADI_INQUIRY_API_BASE": "${MIADI_API_URL:-https://miadi.tail3b11eb.ts.net}",
+        "MIADI_INQUIRY_THREADS_BASE": "${MIADI_INQUIRY_THREADS_BASE:-https://iaip.tail3b11eb.ts.net}",
         "MIADI_API_TOKEN_WRITER": "${MIADI_API_TOKEN_WRITER:-}",
         "MIADI_PERSON_TOKEN": "${MIADI_PERSON_TOKEN:-}",
         "MIADI_CHRONICLE_ROOT": "${MIADI_CHRONICLE_ROOT:-}",
