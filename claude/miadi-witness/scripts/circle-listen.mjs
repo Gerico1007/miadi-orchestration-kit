@@ -128,11 +128,15 @@ async function read(args, state) {
     // id -> latest_version. An array is the 0.1 state (ids only): versions start being tracked now.
     const before = Array.isArray(state.reviews) ? Object.fromEntries(state.reviews.map((id) => [id, null])) : state.reviews;
     const after = { ...(before || {}) };
+    // Reviews created before this moment are history, whatever list window they enter later.
+    const since = state.reviewsSince || new Date().toISOString();
     for (const r of list) after[r.id] = r.latest_version ?? 0;
     if (before) {
       for (const r of list) {
         const url = `${REVIEW_BASE}/review/${r.id}`;
         if (!(r.id in before)) {
+          // An old review that moved into the recent list (an edit, a new version) is not new.
+          if (r.created_at && r.created_at <= since) continue;
           events.push({ kind: "REVIEW", ceremony: "", intention: "", who: "", at: r.created_at || "", words: `${r.title || "Untitled review"} · ${url}` });
         } else if (args.reviewIds.includes(r.id) && before[r.id] != null && (r.latest_version ?? 0) > before[r.id]) {
           // A person can write a version by hand. Their words are what the seat needs, so the
@@ -143,6 +147,7 @@ async function read(args, state) {
       }
     }
     next.reviews = Object.fromEntries(Object.entries(after).slice(-300));
+    next.reviewsSince = since;
   }
   return { events, next };
 }
