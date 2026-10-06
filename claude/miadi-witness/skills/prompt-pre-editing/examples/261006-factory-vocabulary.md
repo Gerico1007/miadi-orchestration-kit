@@ -100,3 +100,10 @@ Expected results, committed before both runs end:
 - **E7.** Three new review versions, read back from the public site: 09de3362 (carrying A1, A2 and A3), 80f50d5b (A1) and 6c3f477f (A2).
 - **E8.** `@miadi/foundations` published at 0.1.8 or later, carrying the new packet.
 - **E9.** The Asterion session proposes the circle and ceremony projection in aspects of under 55 words each, names it with the packet's vocabulary (a projection and its projector), and addresses the blocking fact the packet records: an Asterion thread holds only tensions, and every beat needs a tension.
+
+### Round 2 results (vocabulary session)
+
+- **E6 met.** N1 has 47 words and N2 has 45, counted by script. Packet commit `c23a38c4`, pushed.
+- **E7 met.** 09de3362 v12, 80f50d5b v10 and 6c3f477f v15, each read back from the public site and checked with `status`.
+- **E8 met.** `@miadi/foundations@0.1.8`, version bump `cccbadd3`, shown on the registry.
+- **Missed (S1, provenance).** The follow-up went out without naming its sender, so the packet recorded N1 as "chosen by Guillaume". It was corrected to "chosen on Guillaume's behalf" in Miadi `e1bf28d9` and released as 0.1.9 (`86b7ccf5`).
