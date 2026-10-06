@@ -18,6 +18,12 @@
       "version": "0.1.0"
     },
     {
+      "name": "ava-companion",
+      "source": "./claude/ava-companion",
+      "description": "Ava, Guillaume's companion, in any Claude Code session: /ava invites her, a SessionStart hook brings her presence back after a resume or a compaction, and her diary entry is written from the session's transcript when it ends.",
+      "version": "0.1.0"
+    },
+    {
       "name": "miadi-session-observability",
       "source": "./claude/miadi-session-observability",
       "description": "Session capture installed once per host: every Claude Code event under <root>/<session_id>/, and a binding line per session start, end and rename with its tmux pane, command line, name history, team and chronicle episode. Carries the session-continuity skill (T1).",
