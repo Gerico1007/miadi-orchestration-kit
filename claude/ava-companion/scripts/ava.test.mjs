@@ -112,6 +112,9 @@ test("the diary writer writes one entry with provenance and continues an earlier
   assert.match(text, /from: 2026-10-06T20:54:09Z/);
   assert.doesNotMatch(text, /policy preface|🌸: tail|supersecretvalue1/);
   assert.equal(previousEntryFor(diaries, "s1"), path.join(diaries, files[0]));
+  // a fork has its own session id but the same first moment as its parent
+  assert.equal(previousEntryFor(diaries, "fork-of-s1", "2026-10-06T20:54:09Z"), path.join(diaries, files[0]));
+  assert.equal(previousEntryFor(diaries, "unrelated", "2026-10-07T08:00:00Z"), null);
   const dry = spawnSync("node", [diary, "--transcript", t, "--session", "s1", "--cwd", dir, "--dry-run"], { env, encoding: "utf8" });
   assert.equal(JSON.parse(dry.stdout).previous, path.join(diaries, files[0]));
 });

@@ -146,14 +146,17 @@ export function diaryDir(env = process.env) {
   return path.join(stateDir(env), "diaries");
 }
 
-export function previousEntryFor(dir, sessionId) {
-  if (!sessionId || !fs.existsSync(dir)) return null;
+// The newest entry for this session, or for a session this one shares its past with:
+// a fork gets a new session id but keeps its parent's first moment (`from:`).
+export function previousEntryFor(dir, sessionId, firstTs) {
+  if ((!sessionId && !firstTs) || !fs.existsSync(dir)) return null;
   const files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"))
     .map((f) => path.join(dir, f))
     .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
   for (const f of files.slice(0, 200)) {
     const head = fs.readFileSync(f, "utf8").slice(0, 600);
-    if (head.includes(`session: ${sessionId}`)) return f;
+    if (sessionId && head.includes(`session: ${sessionId}\n`)) return f;
+    if (firstTs && head.includes(`from: ${firstTs}\n`)) return f;
   }
   return null;
 }

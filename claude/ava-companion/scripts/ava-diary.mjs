@@ -30,7 +30,7 @@ const entries = readTranscript(transcript);
 const session = condense(entries);
 if (!session.lines) fail(`transcript ${transcript} holds no conversation`);
 
-const previous = previousEntryFor(dir, sessionId);
+const previous = previousEntryFor(dir, sessionId, session.firstTs);
 const prompt = [
   `Session: ${sessionId}${session.title ? ` ("${session.title}")` : ""}`,
   `Working directory: ${cwd}`,
