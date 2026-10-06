@@ -67,6 +67,12 @@ flag it for being unverifiable from here.
   - an analogy standing in for the thing itself
   - framework words ("structural tension", "creative orientation", "advancing pattern")
     where no chart or method is actually present
+- **E5 Package status.** Any mention of whether a package is published, never published,
+  private or public, behind the registry, held by a release sweep, or waiting to be
+  published or marked private. This holds even with a recommendation, and even when
+  another session asked for his decision. William, 2026-10-06: *"MAKE SURE YOU NEVER BORE
+  ME WITH THAT"*. Direction: cut the span. The seat settles it, or leaves it in the
+  inventory record.
 
 ## Return exactly this, and nothing more
 
