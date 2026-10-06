@@ -155,7 +155,7 @@ function ensureState(seat, view) {
     seat,
     created_at: new Date().toISOString(),
     inputs: view.inputs.blocks.map((block) => block.key),
-    threads: view.seatThreads.map((thread) => thread.session_id),
+    threads: [...new Set([...view.seatThreads, ...(view.wakeThreads ?? [])].map((thread) => thread.session_id))],
     statuses: statusesOf(view.watched),
     delivered: [],
   };
@@ -187,18 +187,26 @@ function stopBeating(seat) {
 
 // ---------- the view and its events ----------
 
-export function view({ seat, watch = [], self = null }) {
+// onlyWatched: a seat that witnesses a few sessions (a circle, a peer) wakes for those sessions
+// and their forks, and for nothing else of the seat. Every seat thread is still recorded as seen,
+// so a listener started later without the flag does not wake on a backlog.
+export function view({ seat, watch = [], self = null, onlyWatched = false }) {
   const model = snapshot(defaultPaths());
   const threads = Object.values(model.threads);
   const seatThreads = threads.filter((thread) => thread.seat === seat && thread.session_id !== self);
-  const watchedIds = new Set(seatThreads.map((thread) => thread.session_id));
+  const named = new Set();
   for (const wanted of watch) {
     const hit = threads.find((thread) => thread.session_id === wanted || thread.session_id.startsWith(wanted) || thread.names.includes(wanted));
-    if (hit && hit.session_id !== self) watchedIds.add(hit.session_id);
+    if (hit && hit.session_id !== self) named.add(hit.session_id);
   }
+  const wakeThreads = onlyWatched
+    ? threads.filter((thread) => thread.session_id !== self && (named.has(thread.session_id) || named.has(thread.parent?.session_id)))
+    : seatThreads;
+  const watchedIds = new Set([...named, ...wakeThreads.map((thread) => thread.session_id)]);
   return {
     model,
     seatThreads,
+    wakeThreads,
     watched: threads.filter((thread) => watchedIds.has(thread.session_id)),
     inputs: scanScratchpads(),
   };
@@ -209,7 +217,7 @@ export function eventsOf(state, current) {
   const seenInputs = new Set(state.inputs);
   for (const block of current.inputs.blocks) if (!seenInputs.has(block.key)) events.push({ kind: "input", block });
   const seenThreads = new Set(state.threads);
-  for (const thread of current.seatThreads) if (!seenThreads.has(thread.session_id)) events.push({ kind: "thread", thread });
+  for (const thread of current.wakeThreads ?? current.seatThreads) if (!seenThreads.has(thread.session_id)) events.push({ kind: "thread", thread });
   for (const thread of current.watched) {
     const before = state.statuses[thread.session_id];
     if (before === "busy" && thread.live && thread.status === "idle") events.push({ kind: "idle", thread, before });
@@ -219,7 +227,7 @@ export function eventsOf(state, current) {
 
 export function absorb(state, current, events) {
   state.inputs = [...new Set([...state.inputs, ...current.inputs.blocks.map((block) => block.key)])];
-  state.threads = [...new Set([...state.threads, ...current.seatThreads.map((thread) => thread.session_id)])];
+  state.threads = [...new Set([...state.threads, ...[...current.seatThreads, ...(current.wakeThreads ?? [])].map((thread) => thread.session_id)])];
   state.statuses = { ...state.statuses, ...statusesOf(current.watched) };
   if (events.length) {
     state.delivered = [...state.delivered, {
@@ -243,7 +251,7 @@ function tmuxOf(thread) {
   return thread.tmux ? `tmux ${thread.tmux.session} ${thread.tmux.pane_id ?? ""}`.trim() : "no tmux";
 }
 
-export function formatWake({ seat, events, threads, asks, sessiondata, rearm = true, watch = [] }) {
+export function formatWake({ seat, events, threads, asks, sessiondata, rearm = true, watch = [], onlyWatched = false }) {
   const lines = [`WITNESS WAKE · seat ${seat} · ${events.length} event${events.length === 1 ? "" : "s"} · ${new Date().toISOString()}`, ""];
   events.forEach((event, index) => {
     const n = `${index + 1}.`;
@@ -278,7 +286,7 @@ export function formatWake({ seat, events, threads, asks, sessiondata, rearm = t
   lines.push(`Open asks (${open.length}, ledger ${join(asksDir(), `${seat}.json`)}):`);
   for (const ask of open) lines.push(`  ${ask.id} ${ask.status} · ${ask.title}`);
   if (!open.length) lines.push("  none");
-  const watchArgs = watch.map((w) => ` --watch "${w}"`).join("");
+  const watchArgs = watch.map((w) => ` --watch "${w}"`).join("") + (onlyWatched ? " --only-watched" : "");
   lines.push(
     "",
     "Turn budget (miadi-witness): this wake carries what an ordinary event needs.",
@@ -294,7 +302,7 @@ export function formatWake({ seat, events, threads, asks, sessiondata, rearm = t
 // ---------- commands ----------
 
 function parseArgs(argv) {
-  const args = { _: [], seat: "mino", interval: 20, timeout: 0, watch: [], self: undefined };
+  const args = { _: [], seat: "mino", interval: 20, timeout: 0, watch: [], self: undefined, onlyWatched: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--seat") args.seat = argv[++i];
@@ -302,13 +310,15 @@ function parseArgs(argv) {
     else if (arg === "--timeout") args.timeout = Number(argv[++i]);
     else if (arg === "--watch") args.watch.push(argv[++i]);
     else if (arg === "--self") args.self = argv[++i];
+    else if (arg === "--only-watched") args.onlyWatched = true;
     else if (arg === "-h" || arg === "--help") args.help = true;
     else args._.push(arg);
   }
   return args;
 }
 
-const USAGE = `usage: witness-listen.mjs <command> [--seat mino] [--watch <session id or name>]... [--self <id>|none]
+const USAGE = `usage: witness-listen.mjs <command> [--seat mino] [--watch <session id or name>]... [--only-watched] [--self <id>|none]
+  --only-watched  wake for the --watch sessions and their forks only, not every thread of the seat
   status   what this seat has seen, what is waiting, whether a listener runs
   peek     print what is waiting as a wake, without marking it seen
   await    block until an event, print the wake, exit 0
@@ -329,9 +339,9 @@ async function main() {
   const sessiondata = defaultPaths().sessiondata;
   const resolveSelf = (model) => (args.self === "none" ? null : args.self ?? ownSessionId(model.threads));
 
-  let current = view({ seat: args.seat, watch: args.watch });
+  let current = view({ seat: args.seat, watch: args.watch, onlyWatched: args.onlyWatched });
   const self = resolveSelf(current.model);
-  if (self) current = view({ seat: args.seat, watch: args.watch, self });
+  if (self) current = view({ seat: args.seat, watch: args.watch, self, onlyWatched: args.onlyWatched });
   const { state, created } = ensureState(args.seat, current);
   const asks = () => readLedger(args.seat).asks;
 
@@ -377,7 +387,7 @@ async function main() {
     working = absorb(working, current, events);
     saveState(working);
     if (events.length) {
-      console.log(formatWake({ seat: args.seat, events, threads: current.model.threads, asks: asks(), sessiondata, watch: args.watch }));
+      console.log(formatWake({ seat: args.seat, events, threads: current.model.threads, asks: asks(), sessiondata, watch: args.watch, onlyWatched: args.onlyWatched }));
       return 0;
     }
     if (Date.now() >= deadline) {
@@ -385,7 +395,7 @@ async function main() {
       return EXIT_TIMEOUT;
     }
     await sleep(current.inputs.unsettled.length ? Math.min(intervalMs, 3000) : intervalMs);
-    current = view({ seat: args.seat, watch: args.watch, self });
+    current = view({ seat: args.seat, watch: args.watch, self, onlyWatched: args.onlyWatched });
   }
 }
 

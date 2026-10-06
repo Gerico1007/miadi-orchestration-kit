@@ -41,6 +41,12 @@ the seat at each one (2026-10-06: three wakes in three minutes on one block). Pr
 with `WITNESS_SETTLE_MS=60000` so a block wakes the seat once he has stopped editing for a minute.
 Thread events are not delayed by it.
 
+Add `--only-watched` when another witness seat is live, or when the mission is one circle. The
+seat then wakes for the watched sessions and their forks only, and not for every thread of the
+seat (2026-10-06: six wakes in an hour about other seats' work, each reaching William as a reply).
+A fork of the watched session wakes it even when the fork belongs to no seat. Without the flag,
+the trunk's fork ran 21 hours unseen.
+
 ## 3. Keep the inventory, both sessions
 
 ```bash

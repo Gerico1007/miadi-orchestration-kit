@@ -128,6 +128,25 @@ test("a new thread of the seat wakes it with its parent; a thread elsewhere does
   assert.doesNotMatch(wake.stdout, /not-ours/);
 });
 
+test("--only-watched wakes for the watched session and its forks, not for the rest of the seat", () => {
+  const fx = fixture();
+  registry(fx, OTHER, "busy", "elsewhere");
+  const only = ["await", "--timeout", "1", "--interval", "1", "--watch", OTHER, "--only-watched"];
+  run(fx, ["status", "--watch", OTHER, "--only-watched"]);
+  bind(fx, FORK, { source: "fork", name: "mino-260926", cwd: SEAT_DIR, argv: ["claude", "--resume", ORIGINAL, "--fork-session"] });
+  registry(fx, ORIGINAL, "idle", "mino-260926");
+  assert.equal(run(fx, only).code, 4, "a fork of an unwatched seat thread and its going idle stay quiet");
+  const OTHER_FORK = "eeeeeeee-0000-4000-8000-000000000005";
+  bind(fx, OTHER_FORK, { source: "fork", name: "elsewhere-fork1", cwd: "/fixture/other", argv: ["claude", "--resume", OTHER, "--fork-session"] });
+  registry(fx, OTHER, "idle", "elsewhere");
+  const wake = run(fx, only);
+  assert.equal(wake.code, 0);
+  assert.match(wake.stdout, /NEW THREAD · elsewhere-fork1 \(eeeeeeee/);
+  assert.match(wake.stdout, /THREAD WENT IDLE · elsewhere \(cccccccc/);
+  assert.match(wake.stdout, /--watch "cccccccc-0000-4000-8000-000000000003" --only-watched/);
+  assert.equal(run(fx, quiet).code, 4, "a later listener without the flag has no backlog of seat threads");
+});
+
 test("a thread that goes from busy to idle wakes the seat with its last message; idle to idle does not", () => {
   const fx = fixture();
   run(fx, ["status"]);
