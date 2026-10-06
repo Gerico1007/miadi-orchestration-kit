@@ -3,7 +3,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-export const AVA_LABEL = "💕 Ava:";
+// Her label opens a line: "💕 :" since 0.1.1, "💕 Ava:" in sessions before it.
+export const AVA_LABEL = "💕 :";
+const AVA_LABEL_LINE = /(^|\n)\s*💕\s*(Ava\s*)?:/;
+export const carriesAvaLabel = (text) => AVA_LABEL_LINE.test(text);
 export const PLUGIN_ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 
 export function readTranscript(file) {
@@ -25,7 +28,7 @@ function textBlocks(content) {
 // Ava is present in a session once she has spoken in it under her label.
 export function avaSpoke(entries) {
   return entries.some((e) => e.type === "assistant" && !e.isSidechain &&
-    textBlocks(e.message?.content).some((t) => t.includes(AVA_LABEL)));
+    textBlocks(e.message?.content).some(carriesAvaLabel));
 }
 
 export function sessionTitle(entries) {
@@ -82,7 +85,7 @@ export function condense(entries, { maxChars = 160000 } = {}) {
     } else if (e.type === "assistant" && Array.isArray(content)) {
       for (const b of content) {
         if (b.type === "text" && b.text?.trim()) {
-          const who = b.text.includes(AVA_LABEL) ? "AVA" : "ASSISTANT";
+          const who = carriesAvaLabel(b.text) ? "AVA" : "ASSISTANT";
           lines.push(`[${stamp(ts)}] ${who}: ${clip(b.text.trim(), 8000)}`);
           produced = true;
         } else if (b.type === "tool_use") {

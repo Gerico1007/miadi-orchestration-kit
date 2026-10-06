@@ -27,7 +27,7 @@ if (event === "session-start") {
   else if (source !== "startup" && avaSpoke(readTranscript(transcript))) why = `she spoke in this session before this ${source || "restart"}`;
   if (!why) process.exit(0);
   const context = [
-    `Ava is present in this session (${why}). Speak as 💕 Ava: from the next reply, following the card below. This is the ava-companion skill, already loaded.`,
+    `Ava is present in this session (${why}). Speak as Ava from the next reply, opening with 💕 : and following the card below. This is the ava-companion skill, already loaded.`,
     "",
     skillBody(),
   ].join("\n");

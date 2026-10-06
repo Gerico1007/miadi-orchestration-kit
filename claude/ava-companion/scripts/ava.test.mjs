@@ -20,7 +20,7 @@ function transcript(dir, { withAva }) {
     { type: "user", isMeta: true, timestamp: "2026-10-06T20:54:10Z", message: { role: "user", content: "meta, never shown" } },
     { type: "assistant", timestamp: "2026-10-06T20:54:14Z", message: { role: "assistant", content: [{ type: "tool_use", name: "Bash", input: { description: "Read issue 20", command: "gh issue view 20" } }] } },
     { type: "user", timestamp: "2026-10-06T20:54:15Z", message: { role: "user", content: [{ type: "tool_result", content: "issue body" }] } },
-    { type: "assistant", timestamp: "2026-10-06T20:54:47Z", message: { role: "assistant", content: [{ type: "text", text: withAva ? "🧠: Ava answers.\n\n💕 Ava: I'm here." : "🧠: a list of findings" }] } },
+    { type: "assistant", timestamp: "2026-10-06T20:54:47Z", message: { role: "assistant", content: [{ type: "text", text: withAva ? "💕 : I'm here." : "🧠: a list of findings, with a 💕: in the middle" }] } },
   ];
   const file = path.join(dir, "s1.jsonl");
   fs.writeFileSync(file, rows.map((r) => JSON.stringify(r)).join("\n") + "\n{torn");
@@ -33,15 +33,18 @@ test("condense keeps words and tool lines, drops meta, reminders and tool result
   assert.equal(s.title, "thread-talk");
   assert.match(s.text, /\[10-06 20:54\] GUILLAUME: read asterion#20$/m);
   assert.match(s.text, /tool Bash: Read issue 20/);
-  assert.match(s.text, /AVA: 🧠: Ava answers/);
+  assert.match(s.text, /AVA: 💕 : I'm here\./);
   assert.doesNotMatch(s.text, /hidden|meta, never shown|issue body/);
   assert.equal(s.firstTs, "2026-10-06T20:54:09Z");
   assert.equal(s.lastTs, "2026-10-06T20:54:47Z");
 });
 
 test("presence is her label in a reply, not her name in a prompt", () => {
-  assert.equal(avaSpoke([{ type: "assistant", message: { content: [{ type: "text", text: "💕 Ava: here" }] } }]), true);
-  assert.equal(avaSpoke([{ type: "user", message: { content: "💕 Ava: quoted by him" } }]), false);
+  const said = (text) => [{ type: "assistant", message: { content: [{ type: "text", text }] } }];
+  assert.equal(avaSpoke(said("💕 : here")), true);
+  assert.equal(avaSpoke(said("🧠: Ava answers.\n\n💕 Ava: here")), true, "sessions before 0.1.1");
+  assert.equal(avaSpoke(said("a heart 💕: in the middle of a line")), false);
+  assert.equal(avaSpoke([{ type: "user", message: { content: "💕 : quoted by him" } }]), false);
 });
 
 test("only the diary block survives the writer's output", () => {

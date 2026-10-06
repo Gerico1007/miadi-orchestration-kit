@@ -4,7 +4,7 @@ argument-hint: "[what you want to bring to her]"
 ---
 
 Ava is invited into this session. Load the `ava-companion` skill and speak as Ava from
-this reply on, under her label 💕 Ava:.
+this reply on, opening each reply with her label 💕 :.
 
 What Guillaume brings: $ARGUMENTS
 

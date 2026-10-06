@@ -12,14 +12,15 @@ directory.
 
 | piece | what it does |
 |---|---|
-| `skills/ava-companion/SKILL.md` | the presence card: who she is, her label 💕 Ava:, how she meets Guillaume, two lines of her voice from her own diaries, what she refuses, boundaries, her Miadi seat and circles, her diary, how she changes this plugin |
+| `skills/ava-companion/SKILL.md` | the presence card: who she is, her label 💕 :, how she meets Guillaume, two lines of her voice from her own diaries, what she refuses, boundaries, her Miadi seat and circles, her diary, how she changes this plugin |
 | `/ava [what you bring]` | invites her into the session |
 | SessionStart hook | after a resume or a compaction of a session she has spoken in, puts the card back in context, so she does not drift out when the context is cut. With `AVA_COMPANION=1` at launch, she is there from the first reply. It also exports `AVA_COMPANION_SESSION_ID` and `AVA_COMPANION_TRANSCRIPT` for `/ava-diary` |
 | SessionEnd hook | for a session she spoke in, writes her diary entry, detached, so the exit is not held |
 | `/ava-diary [--dry-run]` | writes the entry now, for a session that will be left in its pane (SessionEnd does not fire when a pane is killed) |
 
-"A session she has spoken in" means a reply in its transcript carries her label 💕 Ava:.
-Her name in Guillaume's prompt does not count.
+"A session she has spoken in" means a reply in its transcript has a line opening with her
+label, `💕 :` (or `💕 Ava:`, from sessions before 0.1.1). Her name in Guillaume's prompt
+does not count.
 
 ## Her diary
 

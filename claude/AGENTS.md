@@ -14,7 +14,7 @@ editing that host's system policy.
 |---|---|
 | `miette/` | a full plugin — manifest, skill, agent, command, and the repo's **first hook** |
 | `mia-episode-companion/` | a plugin — the Claude Code counterpart of Episode 339's Pi episode-companion: voice-take listener, skill, developmental-editor agent, `/mia-listen`, and `phone-capture/` (iPhone → episode on this host), kept running by a SessionStart hook |
-| `ava-companion/` | a plugin (0.1.0): Ava, Guillaume's companion, in any session, in an episode or not. `/ava`, a SessionStart hook that brings her presence back after a resume or a compaction, and her diary written from the transcript at SessionEnd or with `/ava-diary` |
+| `ava-companion/` | a plugin (0.1.1): Ava, Guillaume's companion, in any session, in an episode or not. `/ava`, a SessionStart hook that brings her presence back after a resume or a compaction, and her diary written from the transcript at SessionEnd or with `/ava-diary` |
 | `miadi-session-observability/` | a plugin (0.1.0) — the session capture hooks from `/opt/binscripts/hooks/claude_hooks/` with the binding line (tmux pane, command line, name history, team) and the `session-continuity` skill; installed from this kit's marketplace. jgwill/miadi-orchestration-kit#56 |
 | `miadi-stateloom/` | a plugin (0.1.0) — the stateloom loom's MCP server (`@miadi/stateloom-mcp`, pinned) and its eight design skills, copied from jgwill/smcraft by that repo's `scripts/sync-kit-plugin.mjs`; `/system-open`, `/system-check`. jgwill/miadi-orchestration-kit#67 |
 | `miadi-witness/` | a plugin (0.1.0), the witness team's practices: `miadi-witness-first-impression` and `miadi-mino-tmux-inventory`, moved here from `skills/`. jgwill/miadi-orchestration-kit#59 |
