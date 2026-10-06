@@ -132,7 +132,8 @@ test("--only-watched wakes for the watched session and its forks, not for the re
   const fx = fixture();
   registry(fx, OTHER, "busy", "elsewhere");
   const only = ["await", "--timeout", "1", "--interval", "1", "--watch", OTHER, "--only-watched"];
-  run(fx, ["status", "--watch", OTHER, "--only-watched"]);
+  run(fx, ["status"]);
+  assert.equal(run(fx, only).code, 4, "a session named with --watch is not news to the seat that named it");
   bind(fx, FORK, { source: "fork", name: "mino-260926", cwd: SEAT_DIR, argv: ["claude", "--resume", ORIGINAL, "--fork-session"] });
   registry(fx, ORIGINAL, "idle", "mino-260926");
   assert.equal(run(fx, only).code, 4, "a fork of an unwatched seat thread and its going idle stay quiet");

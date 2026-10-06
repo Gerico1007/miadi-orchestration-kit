@@ -199,8 +199,9 @@ export function view({ seat, watch = [], self = null, onlyWatched = false }) {
     const hit = threads.find((thread) => thread.session_id === wanted || thread.session_id.startsWith(wanted) || thread.names.includes(wanted));
     if (hit && hit.session_id !== self) named.add(hit.session_id);
   }
+  // a session named with --watch is already known to whoever named it, so only its forks are news
   const wakeThreads = onlyWatched
-    ? threads.filter((thread) => thread.session_id !== self && (named.has(thread.session_id) || named.has(thread.parent?.session_id)))
+    ? threads.filter((thread) => thread.session_id !== self && !named.has(thread.session_id) && named.has(thread.parent?.session_id))
     : seatThreads;
   const watchedIds = new Set([...named, ...wakeThreads.map((thread) => thread.session_id)]);
   return {
@@ -228,7 +229,8 @@ export function eventsOf(state, current) {
 export function absorb(state, current, events) {
   state.inputs = [...new Set([...state.inputs, ...current.inputs.blocks.map((block) => block.key)])];
   state.threads = [...new Set([...state.threads, ...[...current.seatThreads, ...(current.wakeThreads ?? [])].map((thread) => thread.session_id)])];
-  state.statuses = { ...state.statuses, ...statusesOf(current.watched) };
+  // seat threads too, so a scoped listener leaves no stale "busy" behind for an unscoped one
+  state.statuses = { ...state.statuses, ...statusesOf(current.seatThreads), ...statusesOf(current.watched) };
   if (events.length) {
     state.delivered = [...state.delivered, {
       at: new Date().toISOString(),
