@@ -42,6 +42,7 @@ writer token).
   that first registers it**, so no sync runs before it is private:
   `node scripts/coaia-sync.mjs register <key> --name "<name>" --file <path> --private`
 - `--public` makes a project public again. `list` marks private projects `PRIVATE`.
+- **The chronicle is private.** `/srv/miadi/episodes` has a private bare repository on gaia as its origin, so an episode's chart memory is registered `--private`. `ep060` was made private on 2026-10-06 by the ingest-door lane for this reason, after being public since 2026-09-28.
 - Earned twice. On 2026-10-01, `jgwill/dummass` (private) showed on the public site for about ten
   minutes. On 2026-10-03, Mino's chart (`miadisabelle/workspace`, private) was kept off Asterion
   until private projects existed. It is now registered as `mino-triage`, private.
