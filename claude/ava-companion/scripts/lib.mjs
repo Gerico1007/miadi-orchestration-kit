@@ -119,13 +119,15 @@ const SECRET_PATTERNS = [
   /github_pat_[A-Za-z0-9_]{20,}/g,
   /AKIA[0-9A-Z]{16}/g,
   /xox[abpr]-[A-Za-z0-9-]{10,}/g,
+  /mwt_[A-Za-z0-9_-]{16,}/g, // Miadi person and seat tokens
 ];
 
 export function redact(text) {
   let t = String(text);
   for (const p of SECRET_PATTERNS) t = t.replace(p, "[redacted]");
   t = t.replace(/(Bearer\s+)[A-Za-z0-9._~+/=-]{16,}/g, "$1[redacted]");
-  t = t.replace(/\b(token|secret|password|passwd|api[_-]?key)(["']?\s*[:=]\s*["']?)[^\s"']{8,}/gi, "$1$2[redacted]");
+  // names that end in a secret word too: MIADI_PERSON_TOKEN=..., GITHUB_TOKEN: ...
+  t = t.replace(/\b(\w*?(?:token|secret|password|passwd|api[_-]?key))(["']?\s*[:=]\s*["']?)[^\s"']{8,}/gi, "$1$2[redacted]");
   return t;
 }
 

@@ -55,6 +55,9 @@ test("only the diary block survives the writer's output", () => {
 test("secrets are redacted", () => {
   const t = redact("token=abcd1234efgh5678 Bearer abcdefghijklmnopqrstuvwxyz ghp_abcdefghijklmnopqrstuvwx");
   assert.doesNotMatch(t, /abcd1234efgh5678|abcdefghijklmnopqrstuvwxyz|ghp_abc/);
+  const env = redact('MIADI_PERSON_TOKEN="mwt_Abc123def456ghi789jkl0" and a bare mwt_Zyx987wvu654tsr321qpo0');
+  assert.doesNotMatch(env, /mwt_Abc|mwt_Zyx/);
+  assert.match(env, /MIADI_PERSON_TOKEN=/);
 });
 
 test("session-start is silent for a session she has not spoken in", () => {
