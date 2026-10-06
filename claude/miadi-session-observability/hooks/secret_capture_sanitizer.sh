@@ -34,6 +34,8 @@ hook_secret_sanitize_stream() {
         s{((?:sk|pk|rk)_live_[A-Za-z0-9]{20,})}{redact($1)}ge;
         s{(dop_v1_[A-Za-z0-9]{32,})}{redact($1)}ge;
         s{(shpat_[A-Za-z0-9]{32,})}{redact($1)}ge;
+        s{(mwt_[A-Za-z0-9_-]{32,})}{redact($1)}ge;
+        s{(mr_[A-Za-z0-9]{32,})}{redact($1)}ge;
         s{(eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,})}{redact($1)}ge;
         s{((?i:\bBearer\s+))([A-Za-z0-9._~+/=-]{12,})}{$1 . redact($2)}gex;
         s{((?i:\b[A-Za-z0-9_.-]*(?:api[_-]?key|secret|token|passwd|password|client[_-]?secret|access[_-]?key|private[_-]?key|auth[_-]?token)[A-Za-z0-9_.-]*\b)["\047\s]*[:=]\s*["\047]?)([A-Za-z0-9][A-Za-z0-9/_+.\-=~:]{7,})}{$1 . redact($2)}gex;
@@ -68,7 +70,7 @@ hook_secret_sanitize_file_to() {
 
 hook_secret_self_test() {
     local sample sanitized failed=0
-    local openai anthropic github aws slack google hf npm stripe jwt kv bearer pem
+    local openai anthropic github aws slack google hf npm stripe miadi miadi_reader jwt kv bearer pem
     openai="sk-b45abcDEF1234567890""XYZ"
     anthropic="sk-ant-api03-ABCDEFGHIJKLM""NOPQRSTUVWX"
     github="ghp_ABCDefgh1234""IJKLmnop5678QRSTuvwx9012"
@@ -78,6 +80,8 @@ hook_secret_self_test() {
     hf="hf_ABCDEFGHIJKLMNO""PQRSTUVWXYZ123456"
     npm="npm_abcdefghijklmnop""qrstuvwxyz1234567890"
     stripe="sk_live_abcdefghijklm""nopqrstuvwxyz"
+    miadi="mwt_Qn5pB2ctOgl0-xY_""abcdefghijklmnopqrstuvwxyz0"
+    miadi_reader="mr_ABCDEFGHIJKLMNOPQRST""abcdefghijklmnopqrst"
     jwt="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"".eyJzdWIiOiIxMjM0NQ.SflKxwRJSMeKKF2QT4fwpMeJ"
     kv="DATABASE_PASSWORD=s3cr3tP4ssw0rdValue"
     bearer="Authorization: Bearer abcdefghijklmnopqrstuvwxyz"
@@ -93,15 +97,17 @@ hook_secret_self_test() {
             --arg hf "$hf" \
             --arg npm "$npm" \
             --arg stripe "$stripe" \
+            --arg miadi "$miadi" \
+            --arg miadi_reader "$miadi_reader" \
             --arg jwt "$jwt" \
             --arg kv "$kv" \
             --arg bearer "$bearer" \
             --arg pem "$pem" \
-            '{openai:$openai,anthropic:$anthropic,github:$github,aws:$aws,slack:$slack,google:$google,hf:$hf,npm:$npm,stripe:$stripe,jwt:$jwt,kv:$kv,bearer:$bearer,pem:$pem}'
+            '{openai:$openai,anthropic:$anthropic,github:$github,aws:$aws,slack:$slack,google:$google,hf:$hf,npm:$npm,stripe:$stripe,miadi:("your token is " + $miadi),miadi_reader:$miadi_reader,jwt:$jwt,kv:$kv,bearer:$bearer,pem:$pem}'
     )"
     sanitized="$(hook_secret_sanitize_text "$sample")"
 
-    for raw in "$openai" "$anthropic" "$github" "$aws" "$slack" "$google" "$hf" "$npm" "$stripe" "$jwt" \
+    for raw in "$openai" "$anthropic" "$github" "$aws" "$slack" "$google" "$hf" "$npm" "$stripe" "$miadi" "$miadi_reader" "$jwt" \
         's3cr3tP4ssw0rdValue' 'abcdefghijklmnopqrstuvwxyz' 'secret-material'; do
         if printf '%s' "$sanitized" | grep -Fq "$raw"; then
             printf 'FAILED: raw secret remained: %s\n' "$raw" >&2
@@ -111,6 +117,7 @@ hook_secret_self_test() {
 
     printf '%s' "$sanitized" | grep -Fq 'sk-b45***' || { printf 'FAILED: OpenAI prefix redaction missing\n' >&2; failed=1; }
     printf '%s' "$sanitized" | grep -Fq 'ghp_AB***' || { printf 'FAILED: GitHub prefix redaction missing\n' >&2; failed=1; }
+    printf '%s' "$sanitized" | grep -Fq 'mwt_Qn***' || { printf 'FAILED: Miadi token prefix redaction missing\n' >&2; failed=1; }
     printf '%s' "$sanitized" | grep -Fq 'DATABASE_PASSWORD=s3cr3t***' || { printf 'FAILED: key/value redaction missing\n' >&2; failed=1; }
 
     if [ "$failed" -eq 0 ]; then
