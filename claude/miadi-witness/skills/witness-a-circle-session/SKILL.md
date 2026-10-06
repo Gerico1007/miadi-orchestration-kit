@@ -36,6 +36,11 @@ node "$KIT/claude/miadi-witness/scripts/witness-listen.mjs" await --seat mino --
 Run it with `run_in_background: true`. The first wake usually carries a backlog of older
 scratchpad blocks and threads. Hold every event that is not this mission, in one clause.
 
+William writes scratchpad blocks over several saves, and the default settle of 3 seconds wakes
+the seat at each one (2026-10-06: three wakes in three minutes on one block). Prefix the command
+with `WITNESS_SETTLE_MS=60000` so a block wakes the seat once he has stopped editing for a minute.
+Thread events are not delayed by it.
+
 ## 3. Keep the inventory, both sessions
 
 ```bash
