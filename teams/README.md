@@ -83,7 +83,8 @@ From William's @stckin note in `bash_aliases_common` (2026-09-29): this work "sh
   - Asterion's Settings link opens a page that says who is signed in, which memories feed it, and which instance it is (miadisabelle/asterion@653fbbb).
   - A private project is shown only to signed-in writers, and a read route that never asks who is reading fails the build (miadisabelle/asterion@2c3fa5d, @f52d90d). Checked on all six Asterion addresses, signed out and as a writer.
   - Mino's chart is on Asterion as the private project `mino-triage`: 165 charts and 12 threads for signed-in writers, nothing for anyone else (William's word, D1).
-- **Next:** a project names its seat and its checkouts, so a steer made on Asterion reaches the agent session responsible for the chart (the design is in the skill). The vocabulary in the skill waits for William's corrections.
+  - 2026-10-06: a project names its seat, the tmux session that keeps its charts, shown on the project page and named there by a writer (miadisabelle/asterion@015a767). Tested live on `ep060`. Mino read back William's part-two feedback ("RECEIVED 093064b6").
+- **Next:** a steer made on Asterion reaches the project's seat through Miadi's steering, and a project names its checkouts (the design is in the skill). The vocabulary in the skill waits for William's corrections.
 - **Skill:** `skills/chart-path/SKILL.md` in this kit: the path, private sources, the words (repository, checkout, chart memory, project, seat, workspace), what `/stc-config` holds that Asterion must keep, and steering through a seat. Any agent that learns something about the chart path writes it there.
 
 ## T5 · Production context exploration (stub, 2026-10-06)

@@ -79,7 +79,7 @@ Asterion knows where a chart memory is. It does not know where the work happens.
 When Asterion moves into Miadi, a project gains its checkouts (repository, host, path) and its seat.
 Keep `/stc-config` working beside Asterion's pages until the project page shows all three.
 
-## Steering a chart (design, not built)
+## Steering a chart (the seat is built, the steer is not)
 
 Asterion does not write a chart memory. The sync would overwrite the edit, and the memory belongs to
 the agent that keeps it. Steering goes to the seat instead:
@@ -90,7 +90,20 @@ the agent that keeps it. Steering goes to the seat instead:
 3. If the seat's session is closed, it is brought back first (T1: `tide agents restore`, the binding line).
 4. The seat changes the chart through its MCP, and the save returns through the door or the sync.
 
-What is missing: a project names no seat yet, and a steer is not yet an event a seat receives.
+**Built 2026-10-06 (miadisabelle/asterion 015a767): a project names its seat.** The project page
+shows it to everyone. A signed-in writer names, changes or clears it there, or with
+`PATCH /api/projects/<id>` and `{ "seat": { "session": "<tmux session>", "host": "<host>" } }` (or
+`{ "seat": null }`). It is kept in `projects.metadata.seat` as `{ kind: 'tmux', session, host,
+set_by, set_at }`, the shape of a seat in Miadi's `config/stc-steering.json`, and the registry sync
+never touches it. Every change is a `project.seat_named` or `project.seat_cleared` event. First seat:
+`ep060` → `episode-060-coaia-agent-asterion-system` on gaia.
+
+Name a seat only for a session that should receive steers. A session renamed `*-OFFLINE` is one its
+person took offline on purpose: naming it routes steers back in. `mino-triage` stays without a seat
+until William brings Mino's seat back online (Mino recommends `stcbot` on gaia).
+
+What is missing: a steer made on Asterion is not yet an event that reaches the seat (steps 1 and 2
+above).
 
 ## Where Asterion goes (absorption into jgwill/Miadi)
 
