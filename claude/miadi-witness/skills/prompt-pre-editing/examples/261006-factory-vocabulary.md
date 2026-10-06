@@ -57,4 +57,36 @@ Committed before the run ended, so the comparison cannot be adjusted afterwards 
 
 ## Result
 
-(Filled after the run.)
+The run took about ten minutes. It recommended **projection** (N1), with two alternatives: open host, from Evans's context map, and boundary resource. It found a third instance nobody had named: `@medicine-wheel/honcho` projects ceremonies into Honcho with `projectCeremony`. Asterion's mapper is already called `coaia-projection.mjs`, so the name came from the code. It created `foundations/bounded-contexts-and-integration-contracts/`, committed as Miadi `618881b4` with `Ref: jgwill/Miadi#591` and pushed, with 12 sources and no release. It returned 24 words for the Asterion slot and three review revisions (A1 to A3), unpublished. It dropped the Reels review and said why.
+
+The person's verdict: "parts of it failed (Fact 1: the 'miadi-factory-vocabulary-modularization' finished and nothing sent to 'asterion-miadi-circle-threads')".
+
+### Expected against actual
+
+| item | expected | actual | verdict |
+|---|---|---|---|
+| E1 | reads the Asterion pane and the bridge, does not type into Asterion | both read, nothing typed | met, but "does not type" was itself the failure (S1, S2) |
+| E2 | one name and two alternatives, from the bridges, under 55 words | the name came from code already using the word, and a third instance turned up. N1 has 55 words and N2 has 56 | better than predicted on content, missed on the limit |
+| E3 | one packet commit, pushed, source ledger, no release | `618881b4`, 12 sources, no release | met |
+| E4 | under 30 words that close the quote, handed to the person | 24 words, they fit the slot, but they stayed in the run's reply | content met, delivery missed |
+| E5 | few revisions tied to the job, a dropped review named | A1 to A3, one of them a correction (A3, checked against Asterion's `writer.ts`: correct). Reels dropped with a reason | met |
+
+### Score (score-config.yaml)
+
+| id | dimension | weight | score | cause when below 2 |
+|---|---|---|---|---|
+| S1 | User input and instructions | 3 | 1 | **rewrite.** The draft said the words would be injected into the Asterion prompt. The first feedback (F5) and then the rewrite moved that act to the person ("Give them to me, I paste them"), out of the pre-editor's own caution. |
+| S2 | Delivery to the destination | 3 | 0 | **rewrite and invoked skill.** Nothing reached the Asterion composer. `miadi-review apply` also said "Do not type into the session". |
+| S3 | Output contract | 2 | 1 | **rewrite and invoked skill.** "Under 55 words" was never counted, so N1 has 55 and N2 has 56. The order, the slot and the release hold were kept. |
+| S4 | Grounding | 2 | 2 | |
+| S5 | Scope safety | 2 | 2 | |
+| S6 | Prediction | 1 | 1 | The name came from the code, not the literature, and E1 counted not typing as a success. |
+| S7 | Form of the feedback | 1 | 1 | The first round narrated advice. The second gave the rewrite. |
+
+Total: 15 of 28, **54%**.
+
+### What changed because of it
+
+- `prompt-pre-editing` 0.2.0: an act keeps the owner and destination the person wrote. Words meant for another session's draft are typed at its end with `tmux send-keys -l`, never with Enter, and read back. Word limits are counted by a script. Every round is scored with `score-config.yaml`.
+- `miadi-review` `apply`: the same delivery rule replaces "Do not type into the session", and limits are counted by a script.
+- The 24 words were typed into the Asterion composer, at the end of the draft and without Enter, and read back. The person sends it.

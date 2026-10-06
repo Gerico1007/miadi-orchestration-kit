@@ -12,7 +12,7 @@ description: >
   in another pane. Not for writing your own brief to a lane (dispatch-discipline).
 metadata:
   type: skill
-  version: 0.1.0
+  version: 0.2.0
   scope: a person's draft prompt to another agent, the rewrite, following the run, evolving from it
 ---
 
@@ -33,13 +33,16 @@ Earned 2026-10-06. The worked example is `examples/261006-factory-vocabulary.md`
 
 Name each defect by its class and by what it will do to the result. They are listed in the order they most often decide the outcome.
 
-1. **Missing referent.** The draft points at something ("that", "these patterns", "the fact that we want") and never describes it, so the agent fills it with the generic meaning. Find the person's own instances. Two instances make a pattern nameable from evidence.
+1. **Missing referent.** The draft points at something ("that", "these patterns", "the fact that we want") and never describes it, so the agent fills it with the generic meaning. Find the person's own instances. Two instances make a pattern nameable from evidence. Ask the agent to look for more instances and for the word the code already uses. A name already in the code is preferred over one from the literature.
 2. **Several readings.** A phrase that can mean different jobs, such as the patterns themselves, the property of having them, or the practice of drawing them out. Pick the reading the evidence supports, or ask for one answer per reading.
 3. **Unranked goals.** Several jobs with equal weight. Rank them and put the one the person needs most first.
 4. **Sources with no role.** Give each source its reason, and let the agent drop one that contributes nothing.
 5. **Asks that return what is known.** Cut them, or narrow them to what only this job can find.
-6. **An act with no owner.** "We'd inject", "it will be published". Say who does each act. The agent hands words back to the person. It does not type into another session.
-7. **No output contract.** Give numbered returns in order, word limits, the exact slot the words must fit, and holds on outward acts such as publishing a package or a review. A rewrite owes the five things a brief owes (`dispatch-discipline` §5): the task in the imperative, stores by path, the scope boundary, verified facts and completion marks.
+6. **An act with no owner.** "We'd inject", "it will be published". Give the act to the owner and the destination the person's words imply, and say how it is done. Never move an act to the person because of your own caution. On 2026-10-06 the draft said words would be injected into another session's prompt, and the rewrite changed that to "give them to me, I paste them". The run then left them in its reply, and the person's first verdict was "nothing sent". When words are meant for another session's draft, the rewrite tells the agent to do this:
+   - Check that the cursor sits at the end of that draft (`tmux display -p -t <session> '#{cursor_x},#{cursor_y}'` against `capture-pane`).
+   - Type the words with `tmux send-keys -l`, and never press Enter. The person submits, as `dispatch-discipline` §4 requires.
+   - Read the pane back and quote the result.
+7. **No output contract.** Give numbered returns in order, word limits, the exact slot the words must fit, and holds on outward acts such as publishing a package or a review. Every word limit says "count with a script and show the counts", and "under N" means fewer than N. A rewrite owes the five things a brief owes (`dispatch-discipline` §5): the task in the imperative, stores by path, the scope boundary, verified facts and completion marks.
 
 ## 3. Hand back
 
@@ -53,7 +56,7 @@ Do not narrate what the person will do, as in "add one line" or "watch whether".
 
 1. **Commit the expected results before the run ends.** Put them in an example file in `examples/`. The commit time shows they were not adjusted to fit the result (`dispatch-discipline` §7).
 2. **Follow the run without polling by hand.** Run a background loop on the pane's busy line (`esc to interrupt`) that exits after three idle checks 30 seconds apart. Then read the result from the transcript (`~/.claude/projects/<cwd-slug>/<session-id>.jsonl`) and from its artefacts, such as commits and files. Do not judge from the screen alone, because a pane's state is not the work's state.
-3. **Judge each `E` item:** met, partly met or missed. For each miss, name its cause: the draft, the rewrite, or the skill the prompt invoked.
+3. **Score the round with `score-config.yaml`.** Use seven dimensions, each 0 to 2 and weighted. S1 (the person's input and instructions) and S2 (delivery to the destination) weigh most. Put a table of expected against actual for each `E` item, and the scored table, in the example file. Each score below 2 names its cause: the draft, the rewrite, the invoked skill or the run. Read the destination itself, such as the other pane, the commit or the public review. The run's own report is not enough. When the person gives a verdict, it overrides your scoring on S1 and S2.
 4. **Change the skill at fault in the same turn.** Change this one when the rewrite caused the miss. Change the invoked skill (for example the `apply` action of `miadi-review`) when it misled the agent. Add a ledger line, commit and push.
 5. **Pre-edit the next prompt for that session** with this same procedure.
 6. **Report:** what came back, what changed in which skill, and the next prompt ready to paste. Do not type it into the session.
@@ -63,6 +66,7 @@ The person expects the first run to miss and does not want to discuss the miss. 
 ## Ledger
 
 - 2026-10-06, 0.1.0. First version, from the round on `miadi-review apply` for naming the factory's bridge pattern. The first feedback was advice, and the person called it passive. The second was a rewrite, and the person sent it.
+- 2026-10-06, 0.2.0. The first scored round got 54%. The person said: "nothing sent to 'asterion-miadi-circle-threads'". The rewrite had moved the injection to the person. Now an act keeps its owner and destination, words for another draft are typed without Enter and read back, limits are counted by a script, and every round is scored with `score-config.yaml`. The run's content scored well: the name came from code that already used the word, and a third instance turned up. So a rewrite now asks the agent to look for more instances and for the word the code already uses.
 
 ## Related
 
