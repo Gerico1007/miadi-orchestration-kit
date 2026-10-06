@@ -112,6 +112,20 @@ The schema is machine-readable. Code can later parse these files to:
 - Cross-reference GitHub issues to sessions that touched them
 - Audit who closed sessions and why
 
+### Step 5: Keep watching the sessions that are still running (since 2026-10-06)
+
+A record is not the end of the job when the session is still `in_progress`. In the same turn as the records, start the listener on every session that is still running, and keep following them:
+
+```bash
+node "$KIT/claude/miadi-witness/scripts/witness-listen.mjs" await --seat <this seat's tmux name> --watch <session id>...   # run_in_background: true
+```
+
+- **Use this seat's own tmux name as `--seat`.** One listener runs per seat name, and the `mino` seat is often held by another session (exit 5). A second seat name does not interfere with it. Check that `status --seat <name> --watch <id>...` lists each session under `watching:`.
+- **On each wake for a session going idle:** read its last reply, add an observation to its record, do the work the inventory seat owns (relay a staged handoff to the session it names, judge against criteria committed earlier), commit, re-arm. Write to William only what needs him: a staged send, a gate he owns, a choice with a recommendation.
+- **"Come back to me" with running sessions does not mean stop watching.** Report what needs him, and leave the listener armed. Watching is reading, so it changes nothing that needs his consent.
+
+Earned 2026-10-06. The seat inventoried four sessions, reported back, and ended its turn. One of them, `miadi-review-upgrades-261006`, kept working: it judged a run and typed a handoff into another session's draft. William had to tell the seat to go and watch it: *"why dont you monitor their session to continue … I will not babysit you like that"*.
+
 ## Why This Matters
 
 - **Sessions don't disappear**: their work lives in the inventory

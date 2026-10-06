@@ -21,7 +21,10 @@ Arguments: `$ARGUMENTS`
    node "${CLAUDE_PLUGIN_ROOT}/scripts/witness-listen.mjs" await --seat mino [--watch <name>]...
    ```
 
-   Exit 5 means another process already listens for this seat. Say which one and stop.
+   Exit 5 means another process already listens for this seat. Say which one. If you were
+   given `--watch` names, do not stop: listen under this session's own tmux name
+   (`--seat <tmux name>`) with the same `--watch` names, and check with `status` that each
+   one is listed under `watching:`.
    Otherwise tell William in one line that the seat is listening, and what is waiting. If
    events are already waiting, the listener wakes at once. That is expected.
 
