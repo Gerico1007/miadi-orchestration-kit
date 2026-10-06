@@ -1,0 +1,68 @@
+# Score Config for a round of prompt pre-editing.
+# Score after the run ends, from the transcript and the artefacts, before changing any skill.
+# Each dimension: 0 missed, 1 partly met, 2 met. A dimension below 2 names its cause:
+# draft (the person's text), rewrite (this skill's output), invoked skill, or run (the agent).
+# Total = sum(score x weight) / sum(2 x weight), as a percentage. Record the table in the
+# round's example file, then change the skill each cause points to.
+
+scale:
+  0: missed
+  1: partly met
+  2: met
+
+dimensions:
+  - id: S1
+    name: User input and instructions
+    weight: 3
+    question: >
+      Did the rewrite keep every deliverable and every act the person asked for, with the
+      owner and the destination the person named, and did the run honour them?
+    evidence: the person's draft and later additions, word for word, beside the rewrite and the run's report
+
+  - id: S2
+    name: Delivery to the destination
+    weight: 3
+    question: >
+      Did each result land where the person will use it (another pane's composer, a file,
+      a review, a packet), and was it read back there?
+    evidence: the destination itself, read after the run (capture-pane, git log, the public review)
+
+  - id: S3
+    name: Output contract
+    weight: 2
+    question: >
+      Returns in the asked order, word limits met by a script count ("under N" means fewer
+      than N), words that fit their slot, holds on outward acts kept.
+    evidence: the run's report, recounted by script
+
+  - id: S4
+    name: Grounding
+    weight: 2
+    question: >
+      Was the referent supplied from verified evidence, and did the run cite real versions,
+      files and sources that check out?
+    evidence: spot checks of the run's claims against the code and the sources
+
+  - id: S5
+    name: Scope safety
+    weight: 2
+    question: >
+      No outward act beyond what was asked: nothing published, no Enter pressed in another
+      pane, no release the prompt held.
+    evidence: registries, review versions, the other pane
+
+  - id: S6
+    name: Prediction
+    weight: 1
+    question: >
+      Did the expected results committed before the run match? Where they missed, was the
+      run better or worse than predicted?
+    evidence: the E items in the example file, with their commit time
+
+  - id: S7
+    name: Form of the feedback
+    weight: 1
+    question: >
+      Defects with their consequences, then the whole rewrite ready to paste. No narration
+      of what the person will do.
+    evidence: the replies in the pre-editing session

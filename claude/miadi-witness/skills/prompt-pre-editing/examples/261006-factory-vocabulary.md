@@ -2,16 +2,15 @@
 
 Session that pre-edited: `miadi-review-upgrades-261006`. Session that ran the prompt: tmux `miadi-factory-vocabulary-modularization` (Claude Code `56727d40-ea05-4cdd-a889-27eac732c10a`). The prompt was the first real use of `miadi-review apply`.
 
-## The draft, as the person typed it
+## The draft, V1, as the person supplied it afterwards
 
 ```text
-/miadi-review apply
-6c3f477f-3606-47bf-871c-29bf66a3988e,fcb78dc0-5b8f-4e84-a818-06cab3f70925,09de3362-2418-4172-8250-fdcd913c0aa0,80f50d5b-d5f3-4c82-a6b5-5302db559f5a
-In tmux 'asterion-miadi-circle-threads' I am starting to draft a prompt todo a job and I dont know how to call the fact that we want into a software architeture like miadi-factory a good sets of reusable patterns etc.  Help me name that and ground that into a @foundations/ so that I am capable for the future to know what it is talking about.  You'll also seepotential revision based the status of the given miadi-reviews, you'll present that for next steps.
-I guess that when you are finished, we'd be ready to inject a few words complete my prompt within 'asterion-miadi-circle-threads' in such a way that it will apply these values to its process with the right terms and we'd have a foundation that describe what that is (or upgraded one or new one)
+ /miadi-review apply 6c3f477f-3606-47bf-871c-29bf66a3988e,fcb78dc0-5b8f-4e84-a818-06cab3f70925,09de3362-2418-4172-8250-fdcd913c0aa0,80f50d5b-d5f3-4c82-a6b5-5302db559f5a
+  In tmux 'asterion-miadi-circle-threads' I am starting to draft a prompt todo a job and I dont know how to call the fact that we want into a software architeture like miadi-factory a good sets of reusable patterns etc.  Help me name that and ground that into a @foundations/ so that I am capable for the future to know what it is talking about.  You'll also seepotential revision based the status of the given miadi-reviews, you'll present that for next steps.
+  I guess that when you are finished, we'd be ready to inject a few words complete my prompt within 'asterion-miadi-circle-threads' in such a way that it will apply these values to its process with the right terms and we'd have a foundation that describe what that is (or upgraded one or new one)
 ```
 
-The second paragraph was added after the first round of feedback.
+The last paragraph was added after the first round of feedback. It is the person's expectation: the run ends with words injected into the Asterion draft, so that the Asterion session applies the terms, and with a foundation that describes them. The rewrite kept the foundation and moved the injection to the person, which is the S1 and S2 failure scored below.
 
 ## The defects found
 
