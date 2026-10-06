@@ -2,7 +2,9 @@
 // circle-listen — wake the witness seat when a talking circle it sits in moves: a new turn, a new
 // diary entry, a new Miadi review, or a new version of one. The seat's own turns and entries never wake it.
 //
-//   circle-listen.mjs await  --seat mino --ceremony <id>... [--reviews] [--interval <s>] [--timeout <s>]
+//   circle-listen.mjs await  --seat mino --ceremony <id>... [--reviews] [--review <id>]... [--interval <s>] [--timeout <s>]
+//       --reviews wakes on a new review; --review <id> also wakes on a new version of that review,
+//       so a person's edits to reviews the seat is not in conversation with do not wake it.
 //   circle-listen.mjs peek   --seat mino --ceremony <id>... [--reviews]   what is waiting; marks nothing seen
 //   circle-listen.mjs status --seat mino --ceremony <id>... [--reviews]
 //   circle-listen.mjs mark   --seat mino --ceremony <id>... [--reviews]   mark everything there now as seen
@@ -38,12 +40,13 @@ function usage(msg) {
 }
 
 function parseArgs(argv) {
-  const a = { cmd: argv[0], seat: "mino", ceremonies: [], reviews: false, interval: 30, timeout: 6 * 3600 };
+  const a = { cmd: argv[0], seat: "mino", ceremonies: [], reviews: false, reviewIds: [], interval: 30, timeout: 6 * 3600 };
   for (let i = 1; i < argv.length; i++) {
     const k = argv[i];
     if (k === "--seat") a.seat = argv[++i];
     else if (k === "--ceremony") a.ceremonies.push(argv[++i]);
     else if (k === "--reviews") a.reviews = true;
+    else if (k === "--review") { a.reviews = true; a.reviewIds.push(argv[++i]); }
     else if (k === "--interval") a.interval = Number(argv[++i]);
     else if (k === "--timeout") a.timeout = Number(argv[++i]);
     else usage(`unknown argument ${k}`);
@@ -131,7 +134,7 @@ async function read(args, state) {
         const url = `${REVIEW_BASE}/review/${r.id}`;
         if (!(r.id in before)) {
           events.push({ kind: "REVIEW", ceremony: "", intention: "", who: "", at: r.created_at || "", words: `${r.title || "Untitled review"} · ${url}` });
-        } else if (before[r.id] != null && (r.latest_version ?? 0) > before[r.id]) {
+        } else if (args.reviewIds.includes(r.id) && before[r.id] != null && (r.latest_version ?? 0) > before[r.id]) {
           // A person can write a version by hand. Their words are what the seat needs, so the
           // wake carries the lines the new version added.
           const added = await addedLines(r.id, before[r.id], token).catch((err) => `(could not read the versions: ${err.message})`);
@@ -159,6 +162,7 @@ function rearmCommand(args) {
   const parts = [`node "${SCRIPT}" await --seat ${args.seat}`];
   for (const c of args.ceremonies) parts.push(`--ceremony ${c}`);
   if (args.reviews) parts.push("--reviews");
+  for (const id of args.reviewIds) parts.push(`--review ${id}`);
   return parts.join(" ");
 }
 
