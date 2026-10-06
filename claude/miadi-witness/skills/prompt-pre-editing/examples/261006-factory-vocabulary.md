@@ -89,3 +89,14 @@ Total: 15 of 28, **54%**.
 - `prompt-pre-editing` 0.2.0: an act keeps the owner and destination the person wrote. Words meant for another session's draft are typed at its end with `tmux send-keys -l`, never with Enter, and read back. Word limits are counted by a script. Every round is scored with `score-config.yaml`.
 - `miadi-review` `apply`: the same delivery rule replaces "Do not type into the session", and limits are counted by a script.
 - The 24 words were typed into the Asterion composer, at the end of the draft and without Enter, and read back. The person sends it.
+
+## Round 2: the person handed the next steps over
+
+On 2026-10-06 the person wrote: "you'll handle these next steps, I am tired and I can't follow what is going on... the only important thing is that we end up with the asterion platform and all its relation developed to its next stage". The pre-editor now submits the prompts itself: the completed Asterion draft as the person wrote it, and the follow-up for the vocabulary session.
+
+Expected results, committed before both runs end:
+
+- **E6.** N1 and N2 shortened to 54 words or fewer, with a script count shown, the packet updated, committed and pushed.
+- **E7.** Three new review versions, read back from the public site: 09de3362 (carrying A1, A2 and A3), 80f50d5b (A1) and 6c3f477f (A2).
+- **E8.** `@miadi/foundations` published at 0.1.8 or later, carrying the new packet.
+- **E9.** The Asterion session proposes the circle and ceremony projection in aspects of under 55 words each, names it with the packet's vocabulary (a projection and its projector), and addresses the blocking fact the packet records: an Asterion thread holds only tensions, and every beat needs a tension.
