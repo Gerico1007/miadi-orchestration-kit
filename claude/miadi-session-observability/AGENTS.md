@@ -75,8 +75,11 @@ those rules here goes there too.
   and a start and end binding line (pane `%3`). The session that made the edit stopped
   capturing at the edit: Claude Code reloaded `settings.json` at once, and the plugin's hooks
   load only at the next start. Its last tool calls, its Stop and its SessionEnd were not written.
-- gaia, ava: still wired to `/opt/binscripts/hooks/claude_hooks` in `settings.json`, until ava
-  switches.
+- gaia, ava: installed on 2026-10-06 from the GitHub marketplace (0.1.5), with the 14
+  `claude_hooks` commands removed from `~/.claude/settings.json` (backup:
+  `~/.claude/settings.json.bak.261006-before-session-observability`). They pointed at
+  `/opt/binscripts/hooks/claude_hooks`. Checked: a headless session wrote each event once, with
+  `_transcript_final.jsonl` and a start and end binding line.
 
 An installed plugin is a copy in `~/.claude/plugins/cache/`. A change here reaches an installed
 host only after the version in `.claude-plugin/plugin.json` and in the kit's
