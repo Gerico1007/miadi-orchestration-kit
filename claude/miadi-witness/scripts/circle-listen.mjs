@@ -14,7 +14,7 @@
 //
 // `await` blocks until something new arrives, prints a CIRCLE WAKE with the exact words, marks
 // them seen, and exits 0. Exit 4: timeout, nothing new. Exit 5: another await already listens
-// for this seat. Exit 2: usage, or a door that refused ten polls in a row. Run it with run_in_background: true.
+// for this seat. Exit 2: usage, or a door that refused forty polls in a row (about twenty minutes). Run it with run_in_background: true.
 //
 // The first read of a ceremony or of the review list is a baseline: what is already there is
 // seen. Tokens are read from the environment, else from ~/.env, and never printed:
@@ -249,11 +249,12 @@ async function main() {
       result = await read(args, state);
       failures = 0;
     } catch (err) {
-      // A door that fails once (a 502 while the wheel's tunnel is down) is not the end of the
-      // watch. Ten failures in a row, about five minutes at the default interval, is.
+      // A door that fails for a while is not the end of the watch: a 502 while the wheel's tunnel
+      // is down, or a production rebuild of the app (about ten minutes, measured 2026-10-06).
+      // Forty failures in a row, about twenty minutes at the default interval, is.
       failures += 1;
       console.error(`circle-listen: ${err.message} (${failures} in a row)`);
-      if (failures >= 10) process.exit(2);
+      if (failures >= 40) process.exit(2);
       await new Promise((r) => setTimeout(r, args.interval * 1000));
       continue;
     }
