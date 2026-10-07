@@ -177,7 +177,10 @@ function answersFor(event) {
   try {
     const inv = readInventory(inventoryDir());
     // Only a turn spoken after the account was given back can answer it.
-    return pendingRetellings([...inv.byId.values()], event.ceremony).filter((r) => !event.at || !r.at || event.at > r.at);
+    // Only the person an account was given to can answer it, and only after it was given.
+    const person = (r) => r.for ?? (process.env.WITNESS_PERSON || "Guillaume");
+    return pendingRetellings([...inv.byId.values()], event.ceremony)
+      .filter((r) => (!event.at || !r.at || event.at > r.at) && event.who === person(r));
   } catch {
     return [];
   }

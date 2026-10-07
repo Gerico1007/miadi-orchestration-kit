@@ -6,7 +6,9 @@
 // judgment link.
 //
 //   give-back.mjs account --session <id> --ceremony <id> --asked <a> --done <d> --next <n>
-//                         [--from-turn <turn id>] [--seat mino] [--dry-run]
+//                         [--for <person>] [--from-turn <turn id>] [--seat mino] [--dry-run]
+//       --for names the person the account is given to (default WITNESS_PERSON, else Guillaume);
+//       only that person's turn can answer it.
 //       speak the three-line account as the seat's turn and record it as given back.
 //       --from-turn names the person's turn this new version was written from.
 //   give-back.mjs answer  --session <id> --turn <turn id> --verdict confirm|correct [--retelling <turn id>]
@@ -97,6 +99,7 @@ function parseArgs(argv) {
     else if (k === "--turn") a.turn = v();
     else if (k === "--verdict") a.verdict = v();
     else if (k === "--retelling") a.retelling = v();
+    else if (k === "--for") a.for = v();
     else if (k === "--seat") a.seat = v();
     else if (k === "--json") a.json = true;
     else if (k === "--dry-run") a.dryRun = true;
@@ -126,7 +129,7 @@ async function main() {
       return 2;
     }
     try {
-      const version = recordRetelling(dir, args.session, { turnId: args.turn, ceremony: args.ceremony, seat: args.seat, fromTurn: args.fromTurn, by, now: new Date().toISOString() });
+      const version = recordRetelling(dir, args.session, { turnId: args.turn, ceremony: args.ceremony, seat: args.seat, fromTurn: args.fromTurn, forPerson: args.for, by, now: new Date().toISOString() });
       console.log(`recorded  · turn ${args.turn} · session ${args.session} · version ${version}`);
       return 0;
     } catch (err) {
@@ -194,7 +197,7 @@ async function main() {
   // The turn is in the circle now. Record it on the record as it is on disk at this moment,
   // so a write made by another tool since the start is kept.
   try {
-    const version = recordRetelling(dir, args.session, { turnId: body.turn.id, ceremony: args.ceremony, seat: args.seat, fromTurn: args.fromTurn, by, now });
+    const version = recordRetelling(dir, args.session, { turnId: body.turn.id, ceremony: args.ceremony, seat: args.seat, fromTurn: args.fromTurn, forPerson: args.for, by, now });
     console.log(`given back · turn ${body.turn.id} · session ${args.session} · version ${version}`);
     return 0;
   } catch (err) {
@@ -205,14 +208,14 @@ async function main() {
 }
 
 // Record a turn already spoken in the circle as a retelling waiting for an answer.
-export function recordRetelling(dir, sessionId, { turnId, ceremony, seat = "mino", fromTurn, by, now = new Date().toISOString() }) {
+export function recordRetelling(dir, sessionId, { turnId, ceremony, seat = "mino", fromTurn, forPerson = process.env.WITNESS_PERSON || "Guillaume", by, now = new Date().toISOString() }) {
   const existing = readInventory(dir).byId.get(sessionId);
   if (!existing) throw new Error(`no record for ${sessionId}`);
   const record = structuredClone(existing.record);
   if ((record.retellings ?? []).some((r) => r.turn_id === turnId)) throw new Error(`turn ${turnId} is already recorded`);
   const version = (record.retellings ?? []).filter((r) => r.kind === "session_account").length + 1;
   record.retellings = [...(record.retellings ?? []), {
-    turn_id: turnId, kind: "session_account", version, ceremony, state: "given_back", at: now,
+    turn_id: turnId, kind: "session_account", version, ceremony, state: "given_back", at: now, for: forPerson,
     written_by: fromTurn ? `${seat} from turn ${fromTurn}` : seat,
   }];
   record.observations = [...(record.observations ?? []), { at: now, by, what: `Account version ${version} given back in ceremony ${ceremony} as turn ${turnId}.` }];
