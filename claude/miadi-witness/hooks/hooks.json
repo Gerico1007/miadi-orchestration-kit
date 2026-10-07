@@ -1,0 +1,16 @@
+{
+  "description": "miadi-witness: the inventory-keeper reads sessions through miadi-hooks-interpret, never through the raw capture. The guard acts only on that agent's tool calls.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Read|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/raw-capture-guard.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}
