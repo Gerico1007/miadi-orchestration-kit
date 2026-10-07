@@ -46,6 +46,12 @@
       "source": "./claude/miadi-deepdiver",
       "description": "DeepDiver for the production team (T6): Miadi reviews and their screenwalk videos into a Gemini Notebook, cited answers to the episode's questions, generated media kept with a manifest, and that media on screen in the next screenwalk.",
       "version": "0.1.1"
+    },
+    {
+      "name": "miadi-operator-desk",
+      "source": "./claude/miadi-operator-desk",
+      "description": "The operator desk (T7): William's questions about how the factory works answered from the owning team's text and checked against the tool, kept in a ledger, an unanswered one sent to the team that owns the tool, and a question that comes back turned into a pointer in the skill.",
+      "version": "0.1.0"
     }
   ]
 }

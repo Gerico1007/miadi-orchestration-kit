@@ -122,6 +122,22 @@
       ],
       "folders": [],
       "name_patterns": []
+    },
+    {
+      "id": "T7",
+      "name": "Operator desk",
+      "level": "between William and the whole factory",
+      "human_lead": "William",
+      "agent_lead": "miadi-how-to-set-with-tide-a-team",
+      "sessions": [
+        "miadi-how-to-set-with-tide-a-team"
+      ],
+      "folders": [
+        "/workspace/repos/jgwill/miadi-orchestration-kit/claude/miadi-operator-desk"
+      ],
+      "name_patterns": [
+        "^desk-"
+      ]
     }
   ]
 }

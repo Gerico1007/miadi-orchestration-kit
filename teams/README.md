@@ -107,6 +107,16 @@ From William's @stckin note in `bash_aliases_common` (2026-09-29): this work "sh
 - **Uses:** chronicle episodes, Miadi reviews, screenwalk captures.
 - **Next:** William names it (D11), and the team gets an agent lead.
 
+## T7 · Operator desk
+
+- **Level:** between William and the whole factory.
+- **Named:** 2026-10-07, by William, in the session `miadi-how-to-set-with-tide-a-team`. He asked how to set a session's team with `tide`, and that session fit none of T1 to T6.
+- **Desired outcome:** every question William asks about how the factory works gets a short answer from the owning team's text, checked against the tool itself. The question is kept, and when the docs or tools fail to answer it, that failure reaches the team that owns them.
+- **Leads:** William (human). The session `miadi-how-to-set-with-tide-a-team` (agent).
+- **Makes:** the `miadi-operator-desk` plugin (`claude/miadi-operator-desk`): the skill `operator-desk`, the command `/desk-record`, and the desk ledger `desk/ledger.jsonl`, one line per question with its answer, sources, owning team and any handoff (jgwill/miadi-orchestration-kit#71).
+- **Uses:** every team's section here and its skill, to find the answer. T1's binding line, to know which team a session is on.
+- **Sessions:** `miadi-how-to-set-with-tide-a-team`. A tmux session named `desk-…` is on T7 by its name.
+
 ## Not named yet
 
 Other sessions point to teams William has not named: trading (`trading-draw-on-ao-issue-154`, `mia-trading-wave-labeler-blueprint-service`), story (`miadi-ncp-story-studio`, `miadi-orchestration-kit-storytelling`), research (`ep316-concordia-pitch-revising`). Film production (`mw-film-prod-devops-credibility`) moved to the T6 stub on 2026-10-06. Naming them is William's.
