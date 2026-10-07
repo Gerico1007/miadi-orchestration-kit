@@ -108,12 +108,13 @@ Gemini Notebook changes without notice. When a command fails on the interface:
 
 If downloads stop starting after a file upload, look for an "Open Files" window of the debug Chrome and close it: while a file picker is open, Chrome blocks the `window.open` every Studio Download uses. DeepDiver names this cause in its failure reason.
 
-Selectors that broke before, so they are not reintroduced: a bare `button:has-text("Add")` matches the header's "add_2 Create notebook" and creates empty notebooks; a generating card already shows its family and title; Mind Map cards say only "Artifact"; a card's identity is the UUID in its inner `id="artifact-labels-<uuid>"`.
+Selectors that broke before, so they are not reintroduced: a bare `button:has-text("Add")` matches the header's "add_2 Create notebook" and creates empty notebooks; a generating card already shows its family and title; Mind Map cards say only "Artifact"; a card's identity is the UUID in its inner `id="artifact-labels-<uuid>"`; a report is read from the `labs-tailwind-doc-viewer` inside `artifact-viewer`, because every chat answer is the same element and comes first.
 
 ## Log
 
 - **0.1, 2026-10-06.** Written by Mia from the first two production notebooks: `78507190…` (review `f9d6fb1e` and its screenwalk) and `0ae51b4c…` (Episode 550's screenwalk reviews `d64a2fdf`, `6c3f477f`, `b2558ceb`, `6a2b5b59`, their videos, and one stored transcript). That day DeepDiver was fixed for the card-menu download, notebook creation, the "Websites" source panel, completion detection and card identity, and gained Reports, `notebook ask`, `studio open` and import-failure reporting. Two of four same-day videos could not be imported.
 - **0.1.1, 2026-10-07.** From the second notebook's video and downloads: Video Overview formats are Short and Explainer, and video takes far longer than other media; an open file picker blocks downloads, which DeepDiver now avoids and names.
+- **0.1.2, 2026-10-07.** The T6 lead, carrying notebook 0ae51b4c into Episode 550, found that the saved Interactive report was the notebook's first chat answer. Reports saved from a notebook with chat history before `miadisabelle/deepdiver` 9cefb64 hold a chat answer and must be saved again. A signed-out Chrome profile now fails with "Not signed in" instead of reporting zero cards.
 
 ## Related
 
