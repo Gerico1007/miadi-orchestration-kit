@@ -103,7 +103,7 @@ From William's @stckin note in `bash_aliases_common` (2026-09-29): this work "sh
 - **Level:** after an episode.
 - **Desired outcome, in William's words:** 2026-10-03, "it's like your production team that did a lot of work inside of, with, within the enterprise … because this is a factory. And this feels like it's a new team responsibility here". On review fcb78dc0: "Producer/supplier of video for the miadi-chronicle" and "Agent's team at a certain point produce a video of what they created (the transition from where we were when we started the work to now as well as what the next team will be capable todo with the work that our team completed".
 - **Leads:** William (human). No agent lead yet.
-- **Makes (proposed, nothing built):** documentaries of the factory's own work: the screenwalk protocol, notebooks and generated media (Deep Diver is its first instrument), and a video pipeline such as the one in review fcb78dc0 (Remotion).
+- **Makes:** the `miadi-deepdiver` plugin (`claude/miadi-deepdiver`, 2026-10-07): Deep Diver notebooks built from Miadi reviews and screenwalk videos, with questions answered and cited, and infographics, video overviews, mind maps and reports kept under a manifest. Proposed, not built: documentaries of the factory's own work, and a video pipeline such as the one in review fcb78dc0 (Remotion).
 - **Uses:** chronicle episodes, Miadi reviews, screenwalk captures.
 - **Next:** William names it (D11), and the team gets an agent lead.
 
