@@ -61,6 +61,12 @@ docker run --rm -e DEBIAN_FRONTEND=noninteractive -v "$debs:/tmp/debs:ro" -v "$t
     if dpkg-query -W -f="\${db:Status-Abbrev}" tmux 2>/dev/null | grep -q "^ii"; then echo "the distribution tmux is still installed" >&2; exit 1; fi
     tmux -L probe -f /dev/null new-session -d -s probe && tmux -L probe kill-server
     echo "$(tmux -V) at /usr/bin/tmux in place of the distribution tmux, and a server starts"
+    # A session named after a circle id is a target by its name (prep/patches/tmux-3.7c).
+    tmux -L colons -f /dev/null new-session -d -s "circle:1791110394383:jj1ql8"
+    tmux -L colons split-window -t "circle:1791110394383:jj1ql8:0"
+    test "$(tmux -L colons display -p -t "circle:1791110394383:jj1ql8:0.1" "#{session_name}:#{pane_index}")" = "circle:1791110394383:jj1ql8:1"
+    tmux -L colons has-session -t "circle:1791110394383:jj1ql8" && tmux -L colons kill-server
+    echo "a session named circle:1791110394383:jj1ql8 is reached by its name, down to its panes"
   fi
 
   # miadi-terminal restore, the whole cycle a fresh machine runs (jgwill/gaia#90): enable it over a

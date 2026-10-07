@@ -14,6 +14,12 @@ mkdir -p "$cache"
 build=$(mktemp -d)
 trap 'rm -rf "$build"' EXIT
 tar -xzf "$tarball" -C "$build"
+# Patches carried on top of the release, applied in name order: prep/patches/tmux-<release>/.
+for patch in "$(dirname "$0")/patches/tmux-$release"/*.patch; do
+	[ -e "$patch" ] || continue
+	patch -d "$build/tmux-$release" -p1 --quiet < "$patch"
+	echo "miadi-tmux: applied $(basename "$patch")" >&2
+done
 (cd "$build/tmux-$release" && ./configure --prefix=/usr --quiet && make -j"$(nproc)" --quiet)
 built=$("$build/tmux-$release/tmux" -V)
 [ "$built" = "tmux $release" ] || { echo "prep/miadi-tmux.sh: built '$built', expected 'tmux $release'" >&2; exit 1; }

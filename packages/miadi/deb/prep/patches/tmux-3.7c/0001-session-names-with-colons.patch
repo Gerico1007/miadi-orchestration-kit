@@ -1,0 +1,92 @@
+Session names may contain colons: prefer the longest prefix of a target that names a session.
+miadi names sessions after circle ids (circle:1791110394383:jj1ql8), which stay clickable.
+Without this, tmux attach -t a:b:c answers "can't find window: b:c". jgwill/gaia#90
+
+--- a/cmd-find.c
++++ b/cmd-find.c
+@@ -916,6 +916,36 @@
+ }
+ 
+ /*
++ * Session names may contain colons: miadi names sessions after circle ids such as
++ * circle:1791110394383:jj1ql8. Return the colon that ends the longest prefix of copy
++ * that names a session and contains a colon itself, the terminating NUL when the
++ * whole of copy names such a session, or NULL so the first colon separates as usual.
++ */
++static char *
++cmd_find_session_colon(char *copy)
++{
++	char	*name = copy, *cp;
++
++	if (*name == '=')
++		name++;
++	if (strchr(name, ':') == NULL)
++		return (NULL);
++	if (session_find(name) != NULL)
++		return (copy + strlen(copy));
++	for (cp = copy + strlen(copy) - 1; cp > name; cp--) {
++		if (*cp != ':')
++			continue;
++		*cp = '\0';
++		if (strchr(name, ':') != NULL && session_find(name) != NULL) {
++			*cp = ':';
++			return (cp);
++		}
++		*cp = ':';
++	}
++	return (NULL);
++}
++
++/*
+  * Split target into pieces and resolve for the given type. Fills in the given
+  * state. Returns 0 on success or -1 on error.
+  */
+@@ -929,6 +959,7 @@
+ 	char			*colon, *period, *copy = NULL, tmp[256];
+ 	const char		*session, *window, *pane, *s;
+ 	int			 window_only = 0, pane_only = 0;
++	int			 whole_session = 0;
+ 
+ 	/* Can fail flag implies quiet. */
+ 	if (flags & CMD_FIND_CANFAIL)
+@@ -1048,15 +1079,22 @@
+ 
+ 	/* Find separators if they exist. */
+ 	copy = xstrdup(target);
+-	colon = strchr(copy, ':');
+-	if (colon != NULL)
+-		*colon++ = '\0';
+-	if (colon == NULL)
+-		period = strchr(copy, '.');
+-	else
+-		period = strchr(colon, '.');
+-	if (period != NULL)
+-		*period++ = '\0';
++	colon = cmd_find_session_colon(copy);
++	if (colon != NULL && *colon == '\0') {
++		whole_session = 1;
++		colon = period = NULL;
++	} else {
++		if (colon == NULL)
++			colon = strchr(copy, ':');
++		if (colon != NULL)
++			*colon++ = '\0';
++		if (colon == NULL)
++			period = strchr(copy, '.');
++		else
++			period = strchr(colon, '.');
++		if (period != NULL)
++			*period++ = '\0';
++	}
+ 
+ 	/* Set session, window and pane parts. */
+ 	session = window = pane = NULL;
+@@ -1075,7 +1113,7 @@
+ 		pane = period;
+ 		pane_only = 1;
+ 	} else {
+-		if (*copy == '$')
++		if (*copy == '$' || whole_session)
+ 			session = copy;
+ 		else if (*copy == '@')
+ 			window = copy;
