@@ -127,6 +127,19 @@ node "$KIT/claude/miadi-witness/scripts/witness-listen.mjs" await --seat <this s
 
 Earned 2026-10-06. The seat inventoried four sessions, reported back, and ended its turn. One of them, `miadi-review-upgrades-261006`, kept working: it judged a run and typed a handoff into another session's draft. William had to tell the seat to go and watch it: *"why dont you monitor their session to continue … I will not babysit you like that"*.
 
+### Step 6: Steer to finish, then close (since 2026-10-07)
+
+When William asks to close a session that is not done, or asks what it should still be sent, the seat writes the follow-up itself. It does not ask him to write it.
+
+1. **Find the step the session already named.** Read its last reply for a next step that waited on something. Then check whether that thing has since happened in another session or on an issue. A decision William took elsewhere is often the unblock.
+2. **Send one steer while the session is idle** (`tmux send-keys -t <pane> -l "<msg>"`, then `Enter`). Sign it with the seat's tmux name and "at William's request". Name what was decided and where, the exact steps to finish with their files or issue ids, what not to start because it waits on William (and why), and the close: commit, push, live if it was live, and *end with one line: DONE, the commits, anything still held*. Read the pane back, because a pasted steer shows as `paste again to expand` until it lands in the hook capture.
+3. **Add the session to the listener** (Step 5) and note the steer in its record.
+4. **On the DONE wake:** check each commit it names against `origin/main`, record what it finished and what it holds, run `/exit`, verify the session end, and remove the shell.
+
+What it holds goes into the record. A package it left unreleased is for the seat or the release sweep, never for William's messages.
+
+Earned 2026-10-07. William: *"I want to exit even thought it feels that agent was not done … you could steer him to complete what is relevant then when he's done, you inventory and exit"*. `miadi-factory-vocabulary-modularization` had named its next step on 10-07 at 03:34: update its packet once D14 was answered. William answered D12–D17 at 15:29 in another session. The seat steered at 15:31, the session answered DONE with `b74d2471` at 15:34, and it was closed. Minutes later, for `asterion-miadi-circle-threads`, William said *"I just dont know what to send that agent"*. The answer was the same: the steps the layers session had handed it (A50, A51), and nothing that waited on Q8.
+
 ## Why This Matters
 
 - **Sessions don't disappear**: their work lives in the inventory
