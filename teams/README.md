@@ -102,10 +102,21 @@ From William's @stckin note in `bash_aliases_common` (2026-09-29): this work "sh
 - **Status:** a stub, asked for by William on review 6c3f477f v10. Its name is held as William's decision D11 (Mino recommends "Documentary team").
 - **Level:** after an episode.
 - **Desired outcome, in William's words:** 2026-10-03, "it's like your production team that did a lot of work inside of, with, within the enterprise … because this is a factory. And this feels like it's a new team responsibility here". On review fcb78dc0: "Producer/supplier of video for the miadi-chronicle" and "Agent's team at a certain point produce a video of what they created (the transition from where we were when we started the work to now as well as what the next team will be capable todo with the work that our team completed".
-- **Leads:** William (human). No agent lead yet.
+- **Leads:** William (human). The session `t6-production-deepdiver-into-episodes-261007` (agent), started 2026-10-07 by the Mino inventory seat at William's request, to carry Deep Diver's media into episodes (pipeline steps 7 and 8 in `miadisabelle/deepdiver` `docs/MIADI_FACTORY.md`).
+- **Sessions:** `miadi-deepdiver`, which built the plugin and made Deep Diver work with the current Gemini Notebook, and the agent lead above. A tmux session named `t6-…` is on T6 by its name.
 - **Makes:** the `miadi-deepdiver` plugin (`claude/miadi-deepdiver`, 2026-10-07): Deep Diver notebooks built from Miadi reviews and screenwalk videos, with questions answered and cited, and infographics, video overviews, mind maps and reports kept under a manifest. Proposed, not built: documentaries of the factory's own work, and a video pipeline such as the one in review fcb78dc0 (Remotion).
 - **Uses:** chronicle episodes, Miadi reviews, screenwalk captures.
-- **Next:** William names it (D11), and the team gets an agent lead.
+- **Next:** William names it (D11).
+
+## T7 · Operator desk
+
+- **Level:** between William and the whole factory.
+- **Named:** 2026-10-07, by William, in the session `miadi-how-to-set-with-tide-a-team`. He asked how to set a session's team with `tide`, and that session fit none of T1 to T6.
+- **Desired outcome:** every question William asks about how the factory works gets a short answer from the owning team's text, checked against the tool itself. The question is kept, and when the docs or tools fail to answer it, that failure reaches the team that owns them.
+- **Leads:** William (human). The session `miadi-how-to-set-with-tide-a-team` (agent).
+- **Makes:** the `miadi-operator-desk` plugin (`claude/miadi-operator-desk`): the skill `operator-desk`, the command `/desk-record`, and the desk ledger `desk/ledger.jsonl`, one line per question with its answer, sources, owning team and any handoff (jgwill/miadi-orchestration-kit#71).
+- **Uses:** every team's section here and its skill, to find the answer. T1's binding line, to know which team a session is on.
+- **Sessions:** `miadi-how-to-set-with-tide-a-team`. A tmux session named `desk-…` is on T7 by its name.
 
 ## Not named yet
 

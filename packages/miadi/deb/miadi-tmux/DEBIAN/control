@@ -1,5 +1,5 @@
 Package: miadi-tmux
-Version: 3.7c-1
+Version: 3.7c-2
 Section: admin
 Priority: optional
 Architecture: amd64
@@ -15,3 +15,7 @@ Description: tmux 3.7c for a Miadi host, in place of the distribution's tmux
  runs one tmux. This package is the upstream release built for the host:
  /usr/bin/tmux and its manual. It replaces the distribution's tmux package,
  and packages that depend on tmux (tmuxinator, miadi-tide) take this one.
+ .
+ One patch: a session name may contain colons, such as a circle id
+ (circle:1791110394383:jj1ql8), and still be a target: tmux attach -t
+ a:b:c finds session a:b:c instead of window b:c of session a.

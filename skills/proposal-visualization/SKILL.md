@@ -53,11 +53,23 @@ Leave out any part the proposal does not need. Keep the order of the ones you us
    data or types split between layers. Say in the caption what the colours mean.
 6. **Mechanism figure,** only when a subtle behaviour is the value being
    preserved, for example a timeline of an iOS selection event and a grace window.
-7. **Clickable wireframe.** The real UI, in the product's own look, with
-   example data marked "example". It runs the proposed behaviour where that is
-   cheap, and has a toggle, on by default, that outlines each region and labels
-   who renders or supplies it. When a second host will use the same component,
-   put a second frame beside the first in that host's colours.
+7. **Clickable wireframe.** The real screen the change lands on, as it will look
+   after the change, in the product's own look. It runs the proposed behaviour
+   where that is cheap. When a second host will use the same component, put a
+   second frame beside the first in that host's colours.
+   - Build it from the product's real content: its real page (the same
+     breadcrumb, title and cards), its colour tokens, and real records from the
+     work, such as the images, names and dates already in the folder. Mark what
+     is example data "example". Mark a real item placed where it is not yet
+     placed "real, proposed placement".
+   - Why: on 2026-10-07 the owner said of the episode-images wireframe that it
+     showed "the actual result that it would look like on the user interface".
+     He read the proposal from the screen he already knows, not from a diagram
+     of it.
+   - When more than one owner renders the screen, offer a toggle, on by default,
+     that outlines each region and labels who renders or supplies it. It is
+     suggested, not required. The owner called it an interesting experience
+     because it put ownership on the screen itself.
 8. **Reference.** The public API or config as tabs, one per entry point.
 9. **What review changed,** when a reviewer or another agent corrected the
    draft: one coded card per correction with its evidence path.

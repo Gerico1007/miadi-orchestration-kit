@@ -11,13 +11,14 @@
 // Binds to loopback. `tailscale serve` fronts it with HTTPS, which Safari needs
 // before it will open the microphone, and keeps it on the tailnet.
 
+import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import {
   appendFileSync, createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync,
 } from "node:fs";
 import { rm } from "node:fs/promises";
 import { createServer } from "node:http";
-import { homedir } from "node:os";
+import { homedir, hostname, userInfo } from "node:os";
 import { join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -172,6 +173,56 @@ export function originProblem(origin) {
   return `origin.multiplexer is "${origin.multiplexer}": the voice layer answers a tmux or herdr seat only`;
 }
 
+// tmux numbers its panes again when it restarts. The session-continuity restore resumes
+// each Claude session in a new pane of the same named tmux session and writes where on
+// the binding line (<root>/data/terminal_bindings.jsonl). A reply keeps the pane it was
+// written from, so after a reboot it names a pane that is gone and the voice layer
+// refuses it. On 2026-10-07 gaia rebooted: the seat that wrote ten replies from
+// episode-339-mia-companion %85 on 2026-10-03 had been resumed in %19 of that session.
+//
+// The seat is followed only when the binding line shows the same Claude session: the
+// named tmux session and pane find who wrote the reply, the session id finds where that
+// writer is now, and the live panes confirm it. Without all three this returns null,
+// the origin goes unchanged, and the voice layer gives its own reason.
+export function followSeat(origin, { panes, bindings, self, at }) {
+  if (origin?.multiplexer !== "tmux" || !origin.session || !origin.pane || !Array.isArray(panes)) return null;
+  if (origin.host !== self.host || origin.user !== self.user) return null; // another host's panes are not these
+  const live = (session, pane) => panes.some((p) => p.session === session && p.pane === pane);
+  if (live(origin.session, origin.pane)) return null;
+  const written = Date.parse(at);
+  const writer = origin.occupantId || bindings.findLast((b) =>
+    b.tmux?.session === origin.session && b.tmux?.pane_id === origin.pane && b.event !== "session.end"
+    && !(Date.parse(b.at) > written))?.session_id;
+  if (!writer) return null;
+  const latest = bindings.findLast((b) => b.session_id === writer);
+  if (!latest || latest.event === "session.end" || !live(latest.tmux?.session, latest.tmux?.pane_id)) return null;
+  return { ...origin, session: latest.tmux.session, pane: latest.tmux.pane_id, occupantId: writer, observedAt: new Date().toISOString() };
+}
+
+// This host's live tmux panes, or null when no tmux server answers.
+function tmuxPanes() {
+  try {
+    return execFileSync("tmux", ["list-panes", "-a", "-F", "#{session_name}\t#{pane_id}"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 3000 })
+      .split("\n").filter(Boolean).map((line) => {
+        const [session, pane] = line.split("\t");
+        return { session, pane };
+      });
+  } catch {
+    return null;
+  }
+}
+
+// The binding line, rooted the way miadi-session-observability's hooks root it.
+function bindingLine() {
+  const root = process.env.CLAUDE_SESSIONDATA_ROOT || process.env.MIADI_SESSION_DIR || process.env.MIADI_SESSIONDATA_ROOT
+    || process.env.SESSION_DATA_ROOT || "/src/_sessiondata";
+  const file = join(root, "data", "terminal_bindings.jsonl");
+  if (!existsSync(file)) return [];
+  return readFileSync(file, "utf8").split("\n").filter(Boolean).flatMap((line) => {
+    try { return [JSON.parse(line)]; } catch { return []; }
+  });
+}
+
 const POST_WITH_MIA_LISTEN = "Post replies with `mia-listen.mjs reply`, which reads the seat's origin in the same invocation.";
 
 // tailscale serve adds these to every request it forwards. A request without them came
@@ -219,6 +270,39 @@ export function speakable(text) {
     .trim();
 }
 
+// Edge-TTS renders at about the speed of speech, and the voice layer gives one render
+// 120 s: on 2026-10-07 a 2181-character reply took 133 s and was refused. A long reply is
+// voiced in parts cut at paragraphs, then sentences, then spaces. The engine writes bare
+// MPEG frames with no ID3 header, so the parts join by concatenation.
+const VOICE_PART_CHARS = 900;
+const VOICE_PARTS_AT_ONCE = 4;
+
+export function voiceParts(text, limit = VOICE_PART_CHARS) {
+  const pieces = []; // [text, paragraph index]
+  text.split(/\n{2,}/).map((para) => para.trim()).filter(Boolean).forEach((para, index) => {
+    if (para.length <= limit) { pieces.push([para, index]); return; }
+    for (const sentence of (para.match(/[^.!?]+(?:[.!?]+|$)/g) ?? [para]).map((s) => s.trim()).filter(Boolean)) {
+      let rest = sentence;
+      while (rest.length > limit) {
+        const space = rest.lastIndexOf(" ", limit);
+        const cut = space > 0 ? space : limit;
+        pieces.push([rest.slice(0, cut).trim(), index]);
+        rest = rest.slice(cut).trim();
+      }
+      if (rest) pieces.push([rest, index]);
+    }
+  });
+  const parts = [];
+  let previous = -1;
+  for (const [piece, index] of pieces) {
+    const joint = index === previous ? " " : "\n\n";
+    if (parts.length && parts.at(-1).length + joint.length + piece.length <= limit) parts[parts.length - 1] += joint + piece;
+    else parts.push(piece);
+    previous = index;
+  }
+  return parts;
+}
+
 // One take at a time: the capture service holds a single recorder.
 function serializer() {
   let tail = Promise.resolve();
@@ -229,9 +313,41 @@ function serializer() {
   };
 }
 
-export function createApp({ service, chronicleRoot, uploadsDir, repliesDir, listenerDir, voice = null, defaultEpisode = "" }) {
+// How long a posted reply waits for its voice, so the seat hears a refusal while it can
+// still fix it. A longer render finishes after the answer, and the page plays it then.
+const VOICE_AT_POST_MS = 20_000;
+
+export function createApp({
+  service, chronicleRoot, uploadsDir, repliesDir, listenerDir, voice = null, defaultEpisode = "",
+  locate = () => null, log = () => {},
+}) {
   const serial = serializer();
   const voicing = new Map(); // reply id → in-flight synthesis, so two taps make one voice
+
+  // One voice per reply, rendered once and cached as a file on this host.
+  function render(reply) {
+    if (!voicing.has(reply.id)) {
+      voicing.set(reply.id, (async () => {
+        const moved = locate(reply.origin, reply.at);
+        if (moved) log(`reply ${reply.id}: its seat moved from ${reply.origin.session} ${reply.origin.pane} to ${moved.session} ${moved.pane} (Claude session ${moved.occupantId})`);
+        const parts = voiceParts(speakable(reply.text));
+        const voiced = [];
+        for (let at = 0; at < parts.length; at += VOICE_PARTS_AT_ONCE) {
+          voiced.push(...await Promise.all(parts.slice(at, at + VOICE_PARTS_AT_ONCE).map((text) => voice.render({
+            text,
+            episode: reply.episode,
+            persona: "mia",
+            lang: "en",
+            source: "phone-capture",
+            origin: moved ?? reply.origin,
+          }))));
+        }
+        mkdirSync(join(repliesDir, "audio"), { recursive: true });
+        writeFileSync(join(repliesDir, "audio", `${reply.id}.mp3`), Buffer.concat(voiced), { mode: 0o600 });
+      })().finally(() => voicing.delete(reply.id)));
+    }
+    return voicing.get(reply.id);
+  }
 
   async function postReply(req) {
     if (!fromThisHost(req)) throw new Refusal(403, "replies are posted from this host only");
@@ -254,7 +370,20 @@ export function createApp({ service, chronicleRoot, uploadsDir, repliesDir, list
     appendFileSync(join(repliesDir, `${reply.episode}.jsonl`), `${JSON.stringify(reply)}\n`, { mode: 0o600 });
     // The text is kept either way: William can still read and copy it.
     const problem = originProblem(reply.origin);
-    return { success: true, id: reply.id, ...(problem ? { unvoiced: `${problem}. ${POST_WITH_MIA_LISTEN}` } : {}) };
+    if (problem) return { success: true, id: reply.id, unvoiced: `${problem}. ${POST_WITH_MIA_LISTEN}` };
+    if (!voice) return { success: true, id: reply.id };
+    // Voiced now, while the pane that wrote it is the pane its origin names. The mp3 is a
+    // file on this host, so a later reboot that renumbers the panes cannot take it away.
+    let timer;
+    const refused = await Promise.race([
+      render(reply).then(() => "", (error) => {
+        const reason = error instanceof Error ? error.message : String(error);
+        log(`reply ${reply.id}: not voiced: ${reason}`);
+        return reason;
+      }),
+      new Promise((done) => { timer = setTimeout(done, VOICE_AT_POST_MS, ""); }),
+    ]).finally(() => clearTimeout(timer));
+    return { success: true, id: reply.id, ...(refused ? { unvoiced: `the voice layer refused: ${refused}` } : {}) };
   }
 
   function listReplies(url) {
@@ -281,22 +410,8 @@ export function createApp({ service, chronicleRoot, uploadsDir, repliesDir, list
     if (!voice) throw new Refusal(503, "the voice layer is not configured on this host");
     const problem = originProblem(reply.origin);
     if (problem) throw new Refusal(422, `this reply cannot be voiced: ${problem}. ${POST_WITH_MIA_LISTEN}`);
-    if (!voicing.has(id)) {
-      voicing.set(id, (async () => {
-        const bytes = await voice.render({
-          text: speakable(reply.text),
-          episode: reply.episode,
-          persona: "mia",
-          lang: "en",
-          source: "phone-capture",
-          origin: reply.origin,
-        });
-        mkdirSync(join(repliesDir, "audio"), { recursive: true });
-        writeFileSync(file, bytes, { mode: 0o600 });
-      })().finally(() => voicing.delete(id)));
-    }
     try {
-      await voicing.get(id);
+      await render(reply);
     } catch (error) {
       throw new Refusal(502, `the voice layer refused: ${error instanceof Error ? error.message : error}`);
     }
@@ -476,6 +591,10 @@ async function main() {
       || join(process.env.XDG_STATE_HOME || join(homedir(), ".local", "state"), "miadi-mia-companion"),
     voice: await voiceLayer(),
     defaultEpisode: process.env.MIADI_PHONE_CAPTURE_EPISODE || "",
+    locate: (origin, at) => followSeat(origin, {
+      panes: tmuxPanes(), bindings: bindingLine(), self: { host: hostname(), user: userInfo().username }, at,
+    }),
+    log: (line) => console.log(`[phone-capture] ${line}`),
   });
   createServer(handle).listen(port, host, () => {
     console.log(`[phone-capture] http://${host}:${port} → ${publicUrl}`);

@@ -522,9 +522,12 @@ const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
 // Who wrote this reply, read in the same invocation that posts it: the voice layer
 // answers a voiced reply to this seat, and a pane id copied from elsewhere would point
-// that answer at somebody else's terminal.
+// that answer at somebody else's terminal. The Claude session id is the one part a
+// reboot does not change: phone-capture follows it on the binding line to the pane the
+// restore resumed this seat in.
 function currentOrigin() {
   const pane = process.env.TMUX_PANE;
+  const occupantId = process.env.CLAUDE_CODE_SESSION_ID;
   let session = "";
   if (pane) {
     try {
@@ -538,6 +541,8 @@ function currentOrigin() {
     multiplexer: pane ? "tmux" : "none",
     ...(session ? { session } : {}),
     ...(pane ? { pane } : {}),
+    ...(occupantId ? { occupantId } : {}),
+    observedAt: new Date().toISOString(),
   };
 }
 
