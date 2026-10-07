@@ -71,7 +71,8 @@ deepdiver studio report --format document --template "Briefing Doc" -n <id>
 ```
 
 - Make the report last. An Interactive report embeds the notebook's studio items, and its prompt can name which ones. It also recommends items to generate next ("Recommended · Infographic: …").
-- Video Overview takes minutes. Audio Overview can take ten or more.
+- Video Overview has two formats: `--format short` (vertical 9:16, about a minute) and `--format explainer` (16:9, several minutes). A one-minute Short took 17 minutes to generate.
+- Audio Overview can take ten minutes or more.
 - Each command exits 1 when nothing was generated. A command that times out may still leave a card; `deepdiver studio list -n <id>` shows what exists.
 
 ### 5. Keep
@@ -105,11 +106,14 @@ Gemini Notebook changes without notice. When a command fails on the interface:
 2. Fix DeepDiver in `miadisabelle/deepdiver`, add a test, run `python -m pytest`, commit and push.
 3. Add one line to the log below: the date, what changed in the interface, what was fixed.
 
+If downloads stop starting after a file upload, look for an "Open Files" window of the debug Chrome and close it: while a file picker is open, Chrome blocks the `window.open` every Studio Download uses. DeepDiver names this cause in its failure reason.
+
 Selectors that broke before, so they are not reintroduced: a bare `button:has-text("Add")` matches the header's "add_2 Create notebook" and creates empty notebooks; a generating card already shows its family and title; Mind Map cards say only "Artifact"; a card's identity is the UUID in its inner `id="artifact-labels-<uuid>"`.
 
 ## Log
 
 - **0.1, 2026-10-06.** Written by Mia from the first two production notebooks: `78507190…` (review `f9d6fb1e` and its screenwalk) and `0ae51b4c…` (Episode 550's screenwalk reviews `d64a2fdf`, `6c3f477f`, `b2558ceb`, `6a2b5b59`, their videos, and one stored transcript). That day DeepDiver was fixed for the card-menu download, notebook creation, the "Websites" source panel, completion detection and card identity, and gained Reports, `notebook ask`, `studio open` and import-failure reporting. Two of four same-day videos could not be imported.
+- **0.1.1, 2026-10-07.** From the second notebook's video and downloads: Video Overview formats are Short and Explainer, and video takes far longer than other media; an open file picker blocks downloads, which DeepDiver now avoids and names.
 
 ## Related
 
