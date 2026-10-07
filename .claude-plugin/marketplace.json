@@ -40,6 +40,12 @@
       "source": "./claude/miadi-stateloom",
       "description": "The stateloom design loom in one install: its MCP server from npm and the design skills. Design a system's data, behaviours and scenarios as one system; check the names that cross between them; replay a scenario through the machines; let it update the machines, the ERD and the actors (propose or auto); point the live canvas while talking.",
       "version": "0.1.5"
+    },
+    {
+      "name": "miadi-deepdiver",
+      "source": "./claude/miadi-deepdiver",
+      "description": "DeepDiver for the production team (T6): Miadi reviews and their screenwalk videos into a Gemini Notebook, cited answers to the episode's questions, generated media kept with a manifest, and that media on screen in the next screenwalk.",
+      "version": "0.1.0"
     }
   ]
 }

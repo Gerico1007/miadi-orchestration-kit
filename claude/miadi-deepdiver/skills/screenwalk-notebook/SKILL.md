@@ -1,0 +1,119 @@
+---
+name: screenwalk-notebook
+description: Turn Miadi reviews and their screenwalk videos into a Gemini Notebook, ask it the episode's questions, generate and keep its media (infographic, video and audio overviews, interactive and document reports), and put that media on screen in the next screenwalk. Performs the NotebookFed and MediaMade transitions of the screenwalk media cycle with the DeepDiver CLI. Use when asked to "make a notebook from these reviews", "add the reviews and their videos to NotebookLM", "ask the notebook", "generate an infographic / video overview / report for the episode", "prepare media to play in the next screenwalk", or "deep diver".
+---
+
+# Screenwalk notebook
+
+The production team (T6) makes the factory's own media. A screenwalk is reviewed, the review and its video go into a notebook, the notebook answers questions and makes media, and the person plays that media in the next screenwalk and talks over it. This skill is the notebook part, done with DeepDiver (`miadisabelle/deepdiver`, a Python CLI that drives Gemini Notebook in Chrome).
+
+It performs two transitions of the screenwalk media cycle (`~/workspace/.mino/stateloom/screenwalk-media-cycle.smdf.json`, which continues Episode 550's machine after Reviewed):
+
+| transition | from → to | done here by |
+|---|---|---|
+| NotebookFed | Enriched → Notebooked | `notebook create`, `notebook add-source` |
+| MediaMade | Notebooked → MediaGenerated | `notebook ask`, `studio generate`, `studio report`, `studio download` |
+| PlayedWhileRecording | MediaGenerated → Watched | the person, with `studio open` putting the media on screen |
+
+What happens after Watched (the person's spoken corrections into the talking circle diary) belongs to `screenwalk-presence` in the `miadi-witness` plugin.
+
+DeepDiver's own operating manual is canonical in `miadisabelle/deepdiver` and is read with `deepdiver skills show notebooklm-automation`. This skill does not copy it.
+
+## Before you start
+
+1. **DeepDiver** from `miadisabelle/deepdiver` `main` at or after 2026-10-06. PyPI `deepdiver` 0.1.1 predates the current Gemini Notebook interface and fails on it. `pip install git+https://github.com/miadisabelle/deepdiver@main`, or from a checkout `python -m deepdiver.deepdive …`. Commands below are written as `deepdiver …`.
+2. **Chrome with CDP on 9222**, signed in to the Google account that owns the notebooks. `deepdiver chrome launch --clone-profile "Profile N"` copies that profile so the live one is never touched. Check: `curl -s http://127.0.0.1:9222/json/version`. If you do not know which account or profile holds the notebooks, ask. Never guess an account.
+3. **Where the media will be kept.** Default: DeepDiver's `output/artifacts/<notebook id>/`. Writing into an episode vessel is a chronicle write; follow the `chronicle-episode` skill and the episode owner's word.
+
+## The run
+
+### 1. Choose the sources
+
+- From an episode: the `reviews:` list in its `episode.yaml`.
+- By subject: `miadi_review.py search '<words>'` (the `miadi-review` skill's client) matches review text, titles and video IDs.
+- For each review: its Markdown from `https://miadi-review-service.vercel.app/review/<id>/raw`, and its video URL from the `Source` line at the top.
+
+### 2. NotebookFed
+
+```bash
+deepdiver notebook create --source review-a.md          # prints the notebook ID
+deepdiver notebook add-source <id> review-b.md review-c.md https://youtu.be/A https://youtu.be/B
+```
+
+All URLs go in one insert; files upload one by one. Read every `Not imported:` line. A video uploaded the same day has no YouTube transcript yet ("This video cannot be imported. Transcript not available."). Use the transcript the review service keeps instead:
+
+```bash
+python3 <miadi-review>/scripts/miadi_review.py transcript <review id> --out screenwalk-<stem>-transcript.txt
+deepdiver notebook add-source <id> screenwalk-<stem>-transcript.txt
+```
+
+When a review has no stored transcript, say so. Generating one writes into the shared review record and costs a full video pass, so it needs the person's word.
+
+### 3. Questions
+
+Ask what the episode is trying to learn, one question per call, all into one file:
+
+```bash
+deepdiver notebook ask <id> "<question>" -o <dir>/asked.md
+```
+
+Answers come back as Markdown with the notebook's citations as `[n]`. They are the notebook's reading of the sources, not verified facts. Quote them as "the notebook answered".
+
+### 4. MediaMade
+
+```bash
+deepdiver studio generate infographic -n <id> --focus "<what it should show>"
+deepdiver studio generate video_overview -n <id> --focus "<audience and point>"
+deepdiver studio audio -n <id> --focus "..."                       # not run on 2026-10-06
+deepdiver studio generate mind_map -n <id>
+deepdiver studio report --prompt "Include only the infographic and the video overview. <what to walk through>" -n <id>
+deepdiver studio report --format document --template "Briefing Doc" -n <id>
+```
+
+- Make the report last. An Interactive report embeds the notebook's studio items, and its prompt can name which ones. It also recommends items to generate next ("Recommended · Infographic: …").
+- Video Overview takes minutes. Audio Overview can take ten or more.
+- Each command exits 1 when nothing was generated. A command that times out may still leave a card; `deepdiver studio list -n <id>` shows what exists.
+
+### 5. Keep
+
+```bash
+deepdiver studio download -n <id> -o <dir>
+```
+
+Audio `.m4a`, video `.mp4`, infographic `.png`, reports as `.md` and `.html` (read from the report viewer, since reports have no file download), and `manifest.json` with sha256, size and ffprobe codec and duration. Mind maps have no download and are listed as not downloadable. The command exits 1 when an artifact that offered a download did not land.
+
+### 6. On screen, in the next screenwalk
+
+```bash
+deepdiver studio open --family reports -n <id>                 # Interactive report, full screen, with its table of contents
+deepdiver studio open --title "<artifact title>" -n <id>
+deepdiver studio open --family video_overview --play -n <id>   # starts playback; the person pauses and talks over it
+```
+
+## What to report
+
+1. The notebook URL (`https://notebook.google.com/notebook/<id>`) and its sources: imported, and not imported with the reason.
+2. The questions asked and the file that holds the answers.
+3. Each artifact: family, title, and the path it was kept at.
+4. Everything that failed, with the command's own words.
+
+## When DeepDiver breaks
+
+Gemini Notebook changes without notice. When a command fails on the interface:
+
+1. Read the live page over CDP (Playwright `connect_over_cdp`): the controls' `aria-label`s, the dialog's text, the card's DOM.
+2. Fix DeepDiver in `miadisabelle/deepdiver`, add a test, run `python -m pytest`, commit and push.
+3. Add one line to the log below: the date, what changed in the interface, what was fixed.
+
+Selectors that broke before, so they are not reintroduced: a bare `button:has-text("Add")` matches the header's "add_2 Create notebook" and creates empty notebooks; a generating card already shows its family and title; Mind Map cards say only "Artifact"; a card's identity is the UUID in its inner `id="artifact-labels-<uuid>"`.
+
+## Log
+
+- **0.1, 2026-10-06.** Written by Mia from the first two production notebooks: `78507190…` (review `f9d6fb1e` and its screenwalk) and `0ae51b4c…` (Episode 550's screenwalk reviews `d64a2fdf`, `6c3f477f`, `b2558ceb`, `6a2b5b59`, their videos, and one stored transcript). That day DeepDiver was fixed for the card-menu download, notebook creation, the "Websites" source panel, completion detection and card identity, and gained Reports, `notebook ask`, `studio open` and import-failure reporting. Two of four same-day videos could not be imported.
+
+## Related
+
+- `screenwalk-presence` (plugin `miadi-witness`): what a seat says in a screenwalk, and what happens after the playback.
+- `miadi-review`: the review client, step 1 of the review process.
+- `miadisabelle/deepdiver` `docs/MIADI_FACTORY.md`: DeepDiver's place in the factory, its contract and open decisions.
+- Episode 550, *The Screenwalk as a Media Type*, and review `miadi-review:f9d6fb1e-75f4-4635-96d9-8f2d0bcff5eb`, where this use of Deep Diver was first discussed.
