@@ -1,0 +1,17 @@
+Package: miadi-tmux
+Version: 3.7c-1
+Section: admin
+Priority: optional
+Architecture: amd64
+Depends: libc6 (>= 2.34), libevent-core-2.1-7 (>= 2.1.8-stable), libtinfo6 (>= 6)
+Provides: tmux (= 3.7c)
+Conflicts: tmux
+Replaces: tmux
+Maintainer: Miadi <mia@jgwill.com>
+Homepage: https://github.com/jgwill/miadi-orchestration-kit
+Description: tmux 3.7c for a Miadi host, in place of the distribution's tmux
+ Ubuntu 22.04 ships tmux 3.2a. A tmux client cannot attach to a server of
+ another version ("open terminal failed: not a terminal"), so a Miadi host
+ runs one tmux. This package is the upstream release built for the host:
+ /usr/bin/tmux and its manual. It replaces the distribution's tmux package,
+ and packages that depend on tmux (tmuxinator, miadi-tide) take this one.

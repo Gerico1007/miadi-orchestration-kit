@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+# Install built .debs in a clean Ubuntu container and check each package given.
+#   bash test-install.sh dist/*_<version>_all.deb
+#   IMAGE=ubuntu:24.04 bash test-install.sh dist/*_<version>_all.deb
+# The host-level check, including the upgrade from the published package, is
+# runtime/miadi-host in miadisabelle/workspace.
+set -euo pipefail
+debs=$(mktemp -d)
+trap 'rm -rf "$debs"' EXIT
+cp "$@" "$debs/"
+# A package carries its sources, never the bytecode a test run leaves beside them (#66).
+for deb in "$@"; do
+	if dpkg-deb -c "$deb" | grep -E '\.pyc$|/__pycache__/'; then
+		echo "$deb carries bytecode" >&2
+		exit 1
+	fi
+done
+tests=$(cd "$(dirname "$0")/tests" && pwd)
+docker run --rm -e DEBIAN_FRONTEND=noninteractive -v "$debs:/tmp/debs:ro" -v "$tests:/tmp/tests:ro" "${IMAGE:-ubuntu:22.04}" bash -euc '
+  # miadi-terminal depends on python3 and xdg-utils, which a bare image lacks.
+  apt-get update -qq >/dev/null
+  # miadi-tide needs Python >= 3.11 with venv: native on 24.04, deadsnakes on 22.04.
+  if ls /tmp/debs/miadi-tide_*.deb >/dev/null 2>&1 && grep -q "VERSION_CODENAME=jammy" /etc/os-release; then
+    apt-get install -y -qq software-properties-common >/dev/null 2>&1
+    add-apt-repository -y ppa:deadsnakes/ppa >/dev/null 2>&1
+    apt-get update -qq >/dev/null
+  fi
+  # miadi-tmux replaces the distribution tmux: install that first, as a host that has it.
+  if ls /tmp/debs/miadi-tmux_*.deb >/dev/null 2>&1; then
+    apt-get install -y -qq tmux >/dev/null 2>&1
+    echo "before: $(tmux -V) from the distribution"
+  fi
+  apt-get install -y -qq /tmp/debs/*.deb >/tmp/install.log 2>&1 || { tail -30 /tmp/install.log; exit 1; }
+  grep "^miadi-tide:" /tmp/install.log || true
+  if [ -f /etc/miadi/miadi.env ]; then printf "MIADI_URL_BASE=https://example.test\n" >> /etc/miadi/miadi.env; fi
+
+  if dpkg -s miadi >/dev/null 2>&1; then
+    dpkg -s miadi | sed -n "s/^Version: /installed miadi /p"
+  fi
+
+  if dpkg -s miadi-config >/dev/null 2>&1; then
+    grep -qx /etc/miadi/miadi.env /var/lib/dpkg/info/miadi-config.conffiles
+    test -z "$(bash -uc ". /usr/share/miadi/env.sh" 2>&1)"
+    bash -uc ". /usr/share/miadi/env.sh
+      test \"\$MIADI_DATA_DIR\" = /srv/miadi
+      test \"\$MIADI_CHRONICLE_ROOT\" = /srv/miadi/episodes/miadi-chronicle
+      test \"\$MIADI_WEBHOOK_URL\" = https://example.test/api/workflow/webhook
+      test \"\$(MIADI_DATA_DIR=/data bash -c \". /usr/share/miadi/env.sh; echo \\\$MIADI_EPISODES_DIR\")\" = /data/episodes
+      echo \"env ok: \$(env | grep -c ^MIADI_) MIADI_* variables, silent under set -u\""
+    test "$(bash -lc "echo \$MIADI_DATA_DIR")" = /srv/miadi && echo "a login shell loads it"
+    test "$(miadi-config get MIADI_WEBHOOK_URL)" = https://example.test/api/workflow/webhook && echo "miadi-config get resolves"
+    miadi-config settings | grep -q "^MIADI_CHRONICLE_OPEN_URL " && echo "miadi-config knows MIADI_CHRONICLE_OPEN_URL"
+  fi
+
+  if dpkg -s miadi-tmux >/dev/null 2>&1; then
+    dpkg -s miadi-tmux | sed -n "s/^Version: /installed miadi-tmux /p"
+    hash -r
+    test "$(command -v tmux)" = /usr/bin/tmux
+    test "$(tmux -V)" = "tmux $(dpkg -s miadi-tmux | sed -n "s/^Version: \([^-]*\)-.*/\1/p")"
+    # Removed, its config files may remain (rc): only an installed one (ii) is a second tmux.
+    if dpkg-query -W -f="\${db:Status-Abbrev}" tmux 2>/dev/null | grep -q "^ii"; then echo "the distribution tmux is still installed" >&2; exit 1; fi
+    tmux -L probe -f /dev/null new-session -d -s probe && tmux -L probe kill-server
+    echo "$(tmux -V) at /usr/bin/tmux in place of the distribution tmux, and a server starts"
+  fi
+
+  # miadi-terminal restore, the whole cycle a fresh machine runs (jgwill/gaia#90): enable it over a
+  # config that loads the plugins itself, save two sessions, kill the server, start one, and the
+  # sessions come back once, in their folders, with the hook that hands the agents to tide run.
+  # A container has no systemd user manager, so the units are checked on a host, not here.
+  if [ -f /usr/share/miadi-terminal/session-continuity/session-continuity.conf ] && command -v tmux >/dev/null; then
+    apt-get install -y -qq git procps >/dev/null 2>&1
+    export HOME=/root
+    printf "set -g @plugin \x27tmux-plugins/tpm\x27\nrun \x27~/.tmux/plugins/tpm/tpm\x27\n" > ~/.tmux.conf
+    miadi-terminal enable restore >/tmp/restore-enable.log 2>&1 || { cat /tmp/restore-enable.log; exit 1; }
+    test "$(grep -c "^# moved into miadi-terminal restore: " ~/.tmux.conf)" = 2
+    grep -qx "source-file /usr/share/miadi-terminal/session-continuity/session-continuity.conf  # miadi-terminal restore" ~/.tmux.conf
+    test -d ~/.tmux/plugins/tmux-continuum
+    echo "restore: enable commented out the 2 plugin lines, added its source-file line, cloned the plugins"
+    tmux new-session -d -s alpha -c /tmp
+    tmux new-session -d -s beta -c /etc
+    tmux split-window -t beta -c /var
+    sleep 3
+    tmux run-shell "$HOME/.tmux/plugins/tmux-resurrect/scripts/save.sh quiet"
+    test -e ~/.local/share/tmux/resurrect/last
+    tmux kill-server
+    sleep 2
+    tmux new-session -d
+    for i in $(seq 30); do ls ~/.miadi/navigator/restore/hook-*.log >/dev/null 2>&1 && break; sleep 1; done
+    sleep 2
+    test "$(tmux ls -F "#{session_name}" | sort | tr "\n" " ")" = "alpha beta "
+    test "$(tmux list-panes -a -F "#{session_name}:#{pane_current_path}" | sort | tr "\n" " ")" = "alpha:/tmp beta:/etc beta:/var "
+    test "$(cat ~/.miadi/navigator/restore/hook-*.log | grep -c "tmux restore finished")" = 1
+    echo "restore: after a kill and a new server, alpha and beta came back in /tmp, /etc and /var, restored once"
+    grep -h "tide" ~/.miadi/navigator/restore/hook-*.log | head -1 | sed "s/^[^ ]* /restore: hook: /"
+    tmux kill-server
+  fi
+
+  if dpkg -s miadi-terminal >/dev/null 2>&1; then
+    dpkg -s miadi-terminal | sed -n "s/^Version: /installed miadi-terminal /p"
+    open=https://example.test/api/chronicle/open?uri=
+    test "$(miadi-chronicle-open miadi-chronicle:126)" = "${open}miadi-chronicle%3A126"
+    test "$(miadi-chronicle-open "miadi-chronicle:092/126#scene=river).")" = "${open}miadi-chronicle%3A092%2F126%23scene%3Driver"
+    test "$(MIADI_CHRONICLE_OPEN_URL=https://tailnet.test/ miadi-chronicle-open miadi-chronicle://311)" = \
+      "https://tailnet.test/api/chronicle/open?uri=miadi-chronicle%3A%2F%2F311"
+    test "$(miadi-chronicle-open "circle:1790787727155:2slscw.")" = "${open}miadi-circle%3Acircle%3A1790787727155%3A2slscw"
+    test "$(miadi-chronicle-open miadi-circle:circle:1790787727155:2slscw)" = "${open}miadi-circle%3Acircle%3A1790787727155%3A2slscw"
+    test "$(miadi-chronicle-open ceremony:ep343:talking-circle:1)" = "${open}miadi-ceremony%3Aceremony%3Aep343%3Atalking-circle%3A1"
+    echo "the opener builds the open door on the configured front, for a chronicle, ceremony or circle reference"
+    code() { set +e; "$@" >/dev/null 2>&1; echo $?; set -e; }
+    test "$(code miadi-chronicle-open)" = 64
+    test "$(code miadi-chronicle-open https://example.test)" = 65
+    test "$(code miadi-chronicle-open circle:foo)" = 65
+    empty=$(mktemp -d)
+    test "$(code env -i PATH=/usr/bin:/bin MIADI_ETC="$empty" miadi-chronicle-open miadi-chronicle:126)" = 78
+    echo "usage 64, not a reference 65, no front 78"
+
+    plugin=/usr/lib/python3/dist-packages/terminatorlib/plugins/miadi_chronicle_url_handler.py
+    python3 - "$plugin" <<PY
+import ast, re, sys
+tree = ast.parse(open(sys.argv[1]).read())
+match = next(n.value.value for n in ast.walk(tree)
+             if isinstance(n, ast.Assign) and getattr(n.targets[0], "id", "") == "match")
+pattern = re.compile(match)
+for text, want in [("see miadi-chronicle:126.", "miadi-chronicle:126"),
+                   ("git log: miadi-chronicle://092/126#scene=river end", "miadi-chronicle://092/126#scene=river"),
+                   ("(miadi-chronicle:311/services-inventory)", "miadi-chronicle:311/services-inventory"),
+                   ("see MIADI-CHRONICLE:126.", "MIADI-CHRONICLE:126"),
+                   ("seated in circle:1790787727155:2slscw.", "circle:1790787727155:2slscw"),
+                   ("<miadi-circle:circle:1790787727155:2slscw?mc.show=card>", "miadi-circle:circle:1790787727155:2slscw?mc.show=card"),
+                   ("opened ceremony:ep343:talking-circle:1 today", "ceremony:ep343:talking-circle:1"),
+                   ("see miadi-ceremony:3f2a9c1e", "miadi-ceremony:3f2a9c1e")]:
+    found = pattern.search(text)
+    assert found, text
+    assert found.group(0).rstrip(".,;:!?)]}\x27\"") == want, (found.group(0), want)
+for text in ["the circle: people", "circle:12", "a ceremony:opening"]:
+    assert not pattern.search(text), text
+print("the plugin parses and its pattern finds chronicle, ceremony and circle references in running text")
+PY
+    apt-get install -y -qq desktop-file-utils >/dev/null 2>&1
+    desktop-file-validate /usr/share/applications/miadi-chronicle-open.desktop
+    for scheme in miadi-chronicle miadi-ceremony miadi-circle; do
+      grep -q "x-scheme-handler/$scheme=miadi-chronicle-open.desktop" /usr/share/applications/mimeinfo.cache
+    done
+    echo "the scheme handler is valid and registered for all three schemes"
+
+    apt-get install -y -qq tmux python3-configobj >/dev/null 2>&1
+    useradd -m reader
+    install -m 0755 /tmp/tests/reader-enable.sh /usr/local/bin/reader-enable.sh
+    su reader -s /bin/bash -c /usr/local/bin/reader-enable.sh
+    python3 /tmp/tests/tmux-click.py /usr/share/miadi-terminal/tmux/miadi-chronicle.conf /usr/bin/miadi-chronicle-open
+    miadi-terminal front https://front.test >/dev/null && unset MIADI_CHRONICLE_OPEN_URL
+    test "$(miadi-chronicle-open miadi-chronicle:126)" = "https://front.test/api/chronicle/open?uri=miadi-chronicle%3A126"
+    echo "miadi-terminal front sets the front through miadi-config"
+  fi
+
+  if dpkg -s miadi-tide >/dev/null 2>&1; then
+    dpkg -s miadi-tide | sed -n "s/^Version: /installed miadi-tide /p"
+    grep -q "(plannotator-tui $(plannotator-tui --version | cut -d" " -f2))" /usr/share/miadi-tide/SOURCE
+    echo "plannotator-tui $(plannotator-tui --version | cut -d" " -f2) is the build SOURCE names"
+    venv=/usr/lib/miadi-tide/tide-runtime
+    grep -qx "include-system-site-packages = false" $venv/pyvenv.cfg
+    test "$($venv/bin/pip list --format=freeze 2>/dev/null | grep -v -E "^(pip|ironsilk)==" | sort)" = \
+      "$(grep -v "^#" /usr/share/miadi-tide/wheels/constraints.txt | sort)"
+    tide --help | grep -q "daemon" && echo "tide $($venv/bin/pip show ironsilk | sed -n "s/^Version: //p") runs from its own venv ($($venv/bin/python -V)), pinned dependencies only"
+    test "$(node_pkg() { sed -n "s/^  \"$1\": \"\(.*\)\",/\1/p" /usr/share/miadi-tide/node/@miadi/tide/package.json; }; node_pkg name)" = "@miadi/tide"
+    ! grep -q "workspace:" /usr/share/miadi-tide/node/@miadi/*/package.json && echo "the @miadi/tide sources are the packed form, no workspace: ranges"
+    for u in tide-runtime.service tide-store-prune.service tide-store-prune.timer; do test -f /usr/lib/systemd/user/$u; done
+    grep -q "^ExecStart=/usr/bin/tide daemon" /usr/lib/systemd/user/tide-runtime.service && echo "the server half ships as user units"
+    code() { set +e; "$@" >/dev/null 2>&1; echo $?; set -e; }
+    test "$(code tan)" = 64 && echo "tan without a target: 64"
+
+    # The loop end to end: a review delivered into a pane, through the packaged guard.
+    useradd -m annotator
+    su annotator -s /bin/bash -c "
+      set -e
+      tmux new-session -d -s work -x 200 -y 50
+      doc=\$HOME/reply.md
+      printf \"# Reply\\n\\nThe build passes.\\n\" > \$doc
+      plannotator-tui --annotate-block \$doc 1 \"say which build\" >/dev/null
+      plannotator-tmux-review work --from-file \$doc --no-tui --submit 2>\$HOME/deliver.log || { cat \$HOME/deliver.log; exit 1; }
+      grep -q \"pane-write-guard: clear\" \$HOME/deliver.log
+      sleep 1
+      tmux capture-pane -p -t work | grep -q \"say which build\"
+      tmux kill-server
+    "
+    echo "tan-style delivery: marked, guarded by the packaged guard, typed into the pane"
+
+    apt-get remove -y -qq miadi-tide >/dev/null 2>&1
+    test ! -e $venv && echo "remove takes the venv with it"
+  fi
+
+  if dpkg -s miadi-config >/dev/null 2>&1; then
+    apt-get remove -y -qq miadi-config >/dev/null 2>&1 && test -f /etc/miadi/miadi.env && echo "remove keeps the edited conffile"
+  fi
+'

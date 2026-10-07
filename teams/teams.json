@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "about": "Which team each session belongs to, for machines. teams/README.md is the text people read, and the two are kept in step. The session-observability plugin puts the team in every binding line (jgwill/miadi-orchestration-kit#56). Rules, in order: a declared team (MIADI_TEAM in the agent's environment, or the tmux session option @miadi-team), then sessions (the tmux session name or the agent session's name), then folders (the agent's folder or one below it, longest prefix wins), then name_patterns (regular expressions on the same two names). Otherwise the team is unassigned.",
+  "teams": [
+    {
+      "id": "T1",
+      "name": "Session continuity",
+      "level": "the machine",
+      "human_lead": "William",
+      "agent_lead": "gaia-tmux-rebooted-restore-finetuning-260928",
+      "sessions": [
+        "gaia-tmux-rebooted-restore-finetuning-260928",
+        "gaia-screen-reboot",
+        "gaia-var-disk-space",
+        "miadi-tide-reusable-components-260923",
+        "episode-019-tide-runtime-orchard",
+        "miadi-orchestration-kit-apt",
+        "mia-claude-plugin-mia-episode-companion"
+      ],
+      "folders": [
+        "/a/src/gaia",
+        "/opt/gaia",
+        "/opt/binscripts/hooks",
+        "/a/src/Miadi/runtime/tide-runtime",
+        "/a/src/Miadi-18/runtime/tide-runtime",
+        "/workspace/repos/jgwill/miadi-orchestration-kit/claude/miadi-session-observability"
+      ],
+      "name_patterns": [
+        "^gaia-"
+      ]
+    },
+    {
+      "id": "T2",
+      "name": "Event path",
+      "level": "the application",
+      "human_lead": "William",
+      "agent_lead": "the episode 548 session",
+      "sessions": [
+        "kafka",
+        "miadi-eda-broker-episode-community-prepare",
+        "miadi-kafka-pto-potentially-as-factory-eda",
+        "miadi-provider-repo-file-replacement-by-r2-cloudflare",
+        "miadi-org-webhook-schema-ep074"
+      ],
+      "folders": [
+        "/b/trading/pto/kafka",
+        "/srv/miadi/episodes/miadi-chronicle/2026-09-27-episode-548-before-choosing-a-broker-preparing-the-question-together"
+      ],
+      "name_patterns": [
+        "kafka",
+        "eda-broker",
+        "episode-548"
+      ]
+    },
+    {
+      "id": "T3",
+      "name": "Witness",
+      "level": "between William and the teams that build",
+      "human_lead": "William",
+      "agent_lead": "Mino, the stcbot seat",
+      "sessions": [
+        "stcbot",
+        "mino-260928-fork-01",
+        "miadi-review-in-episode"
+      ],
+      "folders": [
+        "/a/src/_sessiondata/abd7ba82-f029-4243-93fb-72b7de8537e5",
+        "/home/mia/workspace/.mino"
+      ],
+      "name_patterns": [
+        "^mino-"
+      ]
+    },
+    {
+      "id": "T4",
+      "name": "Chart path",
+      "level": "the application",
+      "human_lead": "William",
+      "agent_lead": "t4-chart-path-asterion-into-miadi-261003a",
+      "sessions": [
+        "t4-chart-path-asterion-into-miadi-261003a",
+        "coaia-asterion-fork-01-episodes",
+        "coaia-asterion-fork-01-episodes-260928",
+        "coaia-narrative-asterion",
+        "episode-060-coaia-agent-asterion-system"
+      ],
+      "folders": [
+        "/workspace/repos/miadisabelle/asterion",
+        "/a/src/coaia-narrative",
+        "/srv/miadi/episodes/miadi-chronicle/2026-06-16-episode-060-coaia-agent-asterion-system-design-f36b0cb2-4ecf-4ee5-8017-bc1ff67af158"
+      ],
+      "name_patterns": [
+        "^t4-",
+        "asterion",
+        "coaia-narrative"
+      ]
+    },
+    {
+      "id": "T5",
+      "name": "Production context exploration",
+      "stub": "2026-10-06; Guillaume's term; the name of record is his (the staging circle proposes 'the germination circle')",
+      "level": "before an episode",
+      "human_lead": "William",
+      "agent_lead": "miadi-staging-episodes-circle:1791110394383:jj1ql8",
+      "sessions": [
+        "miadi-staging-episodes-circle:1791110394383:jj1ql8"
+      ],
+      "folders": [
+        "/srv/miadi/episodes/miadi-chronicle/_staging_for_new_episodes"
+      ],
+      "name_patterns": []
+    },
+    {
+      "id": "T6",
+      "name": "Production",
+      "stub": "2026-10-06; the name is held as William's decision D11",
+      "level": "after an episode",
+      "human_lead": "William",
+      "agent_lead": null,
+      "sessions": [
+        "mw-film-prod-devops-credibility"
+      ],
+      "folders": [],
+      "name_patterns": []
+    }
+  ]
+}

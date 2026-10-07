@@ -1,0 +1,1 @@
+../../../../../share/miadi-terminal/terminator/miadi_chronicle_url_handler.py

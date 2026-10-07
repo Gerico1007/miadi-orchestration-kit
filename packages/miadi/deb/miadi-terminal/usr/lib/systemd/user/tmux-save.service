@@ -1,0 +1,9 @@
+[Unit]
+Description=Save the tmux sessions with tmux-resurrect, whether or not a client is attached
+
+[Service]
+Type=oneshot
+ExecCondition=/usr/bin/env tmux has-session
+ExecStart=/usr/bin/env tmux run-shell "%h/.tmux/plugins/tmux-resurrect/scripts/save.sh quiet"
+# Put the save on disk now rather than at the next writeback, so a crash minutes later keeps it.
+ExecStartPost=/bin/sync -f %h/.local/share/tmux/resurrect/last

@@ -1,0 +1,356 @@
+#!/usr/bin/python3
+"""miadi-chronicle-open — the URL that opens a miadi-chronicle: reference.
+
+Installed by miadi-terminal (jgwill/miadi-orchestration-kit).
+
+A reference is miadi-chronicle:<episode>[/<artifact>], or a ceremony or circle
+(jgwill/Miadi SPEC §9): miadi-circle:<id>, miadi-ceremony:<id>, or the bare
+wheel id as the wheel mints it, circle:1790787727155:2slscw or
+ceremony:<timestamp>:<random> or ceremony:ep<N>:<slug>:<n>, which the opener
+gives its scheme. A foundation packet is miadi-foundation:<slug>[/<file>]
+(SPEC §10, jgwill/miadi-orchestration-kit#69); the door opens its page.
+
+    miadi-chronicle-open miadi-chronicle:126          print the URL
+    miadi-chronicle-open --open miadi-chronicle:126   open it in the browser
+    miadi-chronicle-open --open --line TEXT --column N
+                                                      open the reference at
+                                                      cell N of TEXT
+    miadi-chronicle-open --open --tmux PANE --row Y --column X
+                                                      open the reference under
+                                                      a click in a tmux pane
+
+The URL is <front>/api/chronicle/open?uri=<reference>. That door on the Miadi
+server resolves the reference and redirects to its page, so this machine needs
+no catalog, no node and no network call of its own.
+
+The front is MIADI_CHRONICLE_OPEN_URL, else MIADI_URL_BASE. Each is read
+through `miadi-config get` (the environment wins over miadi.env); where
+miadi-config is not installed, as on Termux, from the environment and then
+from $MIADI_ETC/miadi.env (default /etc/miadi/miadi.env).
+
+Exit: 0 ok · 64 usage · 65 not a chronicle reference · 66 no reference at
+that cell · 78 no front configured
+"""
+
+import os
+import re
+import subprocess
+import sys
+import time
+import unicodedata
+from urllib.parse import quote
+
+SCHEMES = ("miadi-chronicle:", "miadi-ceremony:", "miadi-circle:", "miadi-foundation:")
+FRONT_SETTINGS = ("MIADI_CHRONICLE_OPEN_URL", "MIADI_URL_BASE")
+ETC_DEFAULT = "/etc/miadi"
+# The same pattern the Terminator plugin matches with. It stops at what ends a
+# URI in running text; trailing sentence punctuation is stripped after. A bare
+# wheel id counts only in the form the wheel mints, a timestamp or ep<N> after
+# its kind, so the word "circle:" in running text is not a reference.
+REFERENCE = re.compile(r'''\bmiadi-(?:(?:chronicle|foundation):(?://)?[A-Za-z0-9._~/\-]+|(?:ceremony|circle):(?://)?[A-Za-z0-9._~\-]+(?::[A-Za-z0-9._~\-]+)*)(?:\?[^\s<>"'`]*)?(?:#[^\s<>"'`]*)?|\b(?:circle|ceremony):(?:\d{10,}|ep\d+):[A-Za-z0-9._~\-]+(?::[A-Za-z0-9._~\-]+)*''', re.I)
+BARE_WHEEL_ID = re.compile(r"(circle|ceremony):", re.I)
+TRAILING = ".,;:!?)]}'\""
+# A double click is two clicks; the second must not open the same page again.
+REPEAT_SECONDS = 1.5
+
+
+def from_miadi_env(name):
+    path = os.path.join(os.environ.get("MIADI_ETC") or ETC_DEFAULT, "miadi.env")
+    try:
+        with open(path) as fh:
+            for line in fh:
+                key, sep, value = line.strip().partition("=")
+                if sep and key == name:
+                    return value.strip().strip('"').strip("'")
+    except OSError:
+        pass
+    return ""
+
+
+def setting(name):
+    try:
+        result = subprocess.run(
+            ["miadi-config", "get", name], capture_output=True, text=True, timeout=10,
+        )
+    except FileNotFoundError:
+        return os.environ.get(name, "") or from_miadi_env(name)
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def front():
+    for name in FRONT_SETTINGS:
+        value = setting(name)
+        if value:
+            return value.rstrip("/")
+    return ""
+
+
+def clean(ref):
+    return ref.strip().rstrip(TRAILING)
+
+
+def as_uri(ref):
+    """The reference with its scheme: a bare wheel id is the id itself, so
+    circle:1790787727155:2slscw becomes miadi-circle:circle:1790787727155:2slscw."""
+    bare = BARE_WHEEL_ID.match(ref)
+    if not bare or not REFERENCE.fullmatch(ref):
+        return ref
+    kind = bare.group(1).lower()
+    return f"miadi-{kind}:{kind}:{ref[bare.end():]}"
+
+
+# Whether U+FE0F widens the character before it. tmux 3.4 always did; 3.5
+# made it the option variation-selector-always-wide, on by default; 3.2a did
+# not. Set from the running tmux in tmux mode.
+VS16_WIDE = False
+
+
+def cells(char):
+    """Terminal cells, as tmux counts them: marks and format characters take
+    none (U+FE0F itself, a keycap's U+20E3, U+200B), the soft hyphen takes
+    one, wide and fullwidth characters two."""
+    if char == "\u00ad":
+        return 1
+    if unicodedata.category(char) in ("Mn", "Me", "Cf"):
+        return 0
+    return 2 if unicodedata.east_asian_width(char) in ("W", "F") else 1
+
+
+def cell_widths(text):
+    """The cells each character of `text` takes on one terminal row: a tab runs
+    to the next stop of 8 (tmux 3.7 keeps tabs in what it captures, 3.2a
+    expands them), and U+FE0F widens the character before it where tmux does.
+    Other widths come from Python's Unicode tables; a character newer than
+    them can be counted a cell off."""
+    widths, cell = [], 0
+    for i, char in enumerate(text):
+        if char == "\t":
+            size = 8 - cell % 8
+        else:
+            size = cells(char)
+            if VS16_WIDE and size == 1 and text[i + 1: i + 2] == "\ufe0f":
+                size = 2
+        widths.append(size)
+        cell += size
+    return widths
+
+
+def width(text):
+    return sum(cell_widths(text))
+
+
+def reference_span(line, column):
+    """(reference, cell after its end) covering cell `column` (0-based) of `line`."""
+    offsets, cell = [], 0
+    for size in cell_widths(line):
+        offsets.append(cell)
+        cell += size
+    offsets.append(cell)
+    for found in REFERENCE.finditer(line):
+        ref = clean(found.group(0))
+        end = offsets[found.start() + len(ref)]
+        if offsets[found.start()] <= column < end:
+            return ref, end
+    return "", 0
+
+
+def reference_at(line, column):
+    return reference_span(line, column)[0]
+
+
+# Snapshots of the clicked pane, taken by the binding inside tmux as the click
+# lands (capture-pane -b), so output printed after the click cannot move them.
+SHOWN_BUFFER = "miadi-chronicle-shown"
+JOINED_BUFFER = "miadi-chronicle-joined"
+
+
+def tmux(*args):
+    result = subprocess.run(["tmux", *args], capture_output=True, text=True, timeout=10)
+    return result.stdout if result.returncode == 0 else None
+
+
+def char_at(text, column):
+    """Index of the character covering cell `column` of `text`, or len(text)."""
+    cell = 0
+    for i, size in enumerate(cell_widths(text)):
+        cell += size
+        if cell > column:
+            return i
+    return len(text)
+
+
+def rows_of(logical, physical):
+    """Yield (logical line, [(row index, first character of the row)]).
+
+    Rows are matched to the joined lines by their text, never by counted
+    width: tmux versions disagree on how wide some characters are (3.4 and
+    later lay out a character followed by U+FE0F as two cells, 3.2a as one),
+    and a miscounted row above a click would open the reference of the row
+    below it. capture-pane trims a row's trailing spaces, so the spaces a
+    wrapped line carried at the edge are restored from the joined line."""
+    k = 0
+    for line in logical:
+        taken, used = [], 0
+        while k < len(physical):
+            row = physical[k]
+            if not line.startswith(row, used):
+                break
+            taken.append((k, used))
+            used += len(row)
+            k += 1
+            if line[used:].strip() == "":
+                break
+            while used < len(line) and line[used] == " " and not (
+                k < len(physical) and physical[k] and line.startswith(physical[k], used)
+            ):
+                used += 1
+        if not taken:
+            taken.append((k, 0))
+            k += 1
+        yield line, taken
+
+
+def vs16_wide():
+    option = tmux("show-options", "-gv", "variation-selector-always-wide")
+    if option is not None:
+        return option.strip() == "on"
+    version = (tmux("-V") or "").split()[-1:] or ["0"]
+    digits = "".join(c if c.isdigit() or c == "." else " " for c in version[0]).split()
+    parts = tuple(int(n) for n in digits[0].split(".")) if digits else (0,)
+    return parts >= (3, 4)
+
+
+def tmux_reference(pane, row, column):
+    """The reference under a click at cell `column` of row `row` in `pane`.
+
+    The binding captured the pane twice as the click landed, as shown and with
+    wrapped rows joined (-J), into two paste buffers; the pane's text never
+    passes through a shell. The joined line holding the clicked row carries a
+    reference that wrapped at the pane edge whole. Without the snapshots (a
+    binding from an older miadi-terminal), the pane is captured now."""
+    shown = tmux("show-buffer", "-b", SHOWN_BUFFER)
+    joined = tmux("show-buffer", "-b", JOINED_BUFFER)
+    if shown is None or joined is None:
+        shown = tmux("capture-pane", "-p", "-t", pane)
+        joined = tmux("capture-pane", "-p", "-J", "-t", pane)
+    if shown is None or joined is None:
+        return ""
+    physical = shown.split("\n")
+    for line, taken in rows_of(joined.split("\n"), physical):
+        for index, first in taken:
+            if index == row:
+                at = first + char_at(physical[index], column)
+                for found in REFERENCE.finditer(line):
+                    ref = clean(found.group(0))
+                    if found.start() <= at < found.start() + len(ref):
+                        return ref
+                return ""
+    return ""
+
+
+def say(message, opening, in_tmux):
+    """A click has no terminal to print to: say it where the reader looks."""
+    print(message, file=sys.stderr)
+    if not opening:
+        return
+    if in_tmux:
+        subprocess.run(["tmux", "display-message", f"miadi-chronicle: {message.splitlines()[0]}"],
+                       capture_output=True, timeout=5)
+        return
+    try:
+        subprocess.run(["notify-send", "miadi-chronicle", message], timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+
+
+def repeated(url):
+    """True when this same URL was opened a moment ago (a double click).
+
+    The record lives in the user's own cache, never a shared /tmp path another
+    user could plant a symlink at.
+    """
+    cache = os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache")
+    path = os.path.join(cache, "miadi-terminal", "last-open")
+    now = time.time()
+    try:
+        with open(path) as fh:
+            last_url, _, last_time = fh.read().rpartition("\t")
+        if last_url == url and now - float(last_time) < REPEAT_SECONDS:
+            return True
+    except (OSError, ValueError):
+        pass
+    try:
+        os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
+        with open(path, "w") as fh:
+            fh.write(f"{url}\t{now}")
+    except OSError:
+        pass
+    return False
+
+
+def parse(argv):
+    options, refs = {"open": False}, []
+    args = iter(argv)
+    for arg in args:
+        if arg == "--open":
+            options["open"] = True
+        elif arg in ("--line", "--column", "--tmux", "--row", "--width"):
+            options[arg[2:]] = next(args, None)
+        else:
+            refs.append(arg)
+    return options, refs
+
+
+def number(value):
+    return int(value) if value is not None and value.isdigit() else None
+
+
+def main(argv):
+    options, refs = parse(argv)
+    opening, in_tmux = options["open"], "tmux" in options
+    column = number(options.get("column"))
+    if in_tmux:
+        row = number(options.get("row"))
+        if refs or column is None or row is None:
+            return 64
+        global VS16_WIDE
+        VS16_WIDE = vs16_wide()
+        ref = tmux_reference(options["tmux"], row, column)
+        if not ref:
+            return 66
+    elif "line" in options:
+        if refs or column is None or options["line"] is None:
+            print("usage: miadi-chronicle-open [--open] --line TEXT --column N", file=sys.stderr)
+            return 64
+        ref = reference_at(options["line"], column)
+        if not ref:
+            return 66
+    elif len(refs) == 1:
+        ref = clean(refs[0])
+    else:
+        print("usage: miadi-chronicle-open [--open] miadi-chronicle:<episode>[/<artifact>] | miadi-circle:<id> | circle:<id>",
+              file=sys.stderr)
+        return 64
+
+    ref = as_uri(ref)
+    if not ref.lower().startswith(SCHEMES):
+        print(f"not a chronicle reference: {ref}", file=sys.stderr)
+        return 65
+    base = front()
+    if not base:
+        say("no Miadi front to open on — set one: miadi-terminal front https://<your Miadi>",
+            opening, in_tmux)
+        return 78
+    url = f"{base}/api/chronicle/open?uri={quote(ref, safe='')}"
+    if not opening:
+        print(url)
+        return 0
+    if repeated(url):
+        return 0
+    return subprocess.call(["xdg-open", url])
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

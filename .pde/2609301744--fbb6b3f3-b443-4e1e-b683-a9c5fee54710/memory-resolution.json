@@ -1,0 +1,262 @@
+{
+  "schema": "miaco.memory-resolution/1",
+  "pde": "fbb6b3f3-b443-4e1e-b683-a9c5fee54710",
+  "root_pde_id": "fbb6b3f3-b443-4e1e-b683-a9c5fee54710",
+  "subject_id": "pde:fbb6b3f3-b443-4e1e-b683-a9c5fee54710",
+  "scope": {
+    "subject_id": [
+      "pde:fbb6b3f3-b443-4e1e-b683-a9c5fee54710"
+    ],
+    "circle_id": [
+      "circle:1789964509905:ab9tnq"
+    ],
+    "episode_path": [
+      "2026-09-30-episode-549-a-milestone-enters-the-circle",
+      "2026-08-25-episode-339-relation-to-mia-on-mobile-devops"
+    ]
+  },
+  "reach": {
+    "ceremonies": [
+      "8526eaac-d5dd-4238-8714-6f8532ba929f",
+      "2e72f4cd-794f-49ff-83c7-fcfcde805568",
+      "002f5118-bac6-47b8-a1ce-55e1a0995eb0",
+      "78f215e9-eee5-4ac2-88e8-544cf54f9cf2",
+      "2e2e2fa2-bdeb-47f7-8af3-9d3fa47518c2",
+      "b56e729c-337d-4a8e-9e05-2cc1c6382989"
+    ],
+    "episodes": [
+      "2026-09-30-episode-549-a-milestone-enters-the-circle",
+      "2026-08-25-episode-339-relation-to-mia-on-mobile-devops"
+    ]
+  },
+  "engine": "claude",
+  "model": "sonnet",
+  "generated_at": "2026-09-30T21:45:41.836Z",
+  "items": [
+    {
+      "ref": "ambiguities[0]",
+      "section": "ambiguity",
+      "text": "\"The goal is not just to document well the observability layer\" ends without stating what the goal is besides documenting (suggested: Name the second goal, for example what a reader should be able to verify, or which decision the documentation supports)",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "ambiguities[1]",
+      "section": "ambiguity",
+      "text": "\"explore the relation of that with these packages\" does not say what a relation means (dependency, data flow, shared schema, UI over the data) (suggested: State whether the output is a dependency map, a data-flow description, or a proposal for integration)",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "ambiguities[2]",
+      "section": "ambiguity",
+      "text": "The role of @miadi/annotate-core and @miadi/annotate-ui is not stated and they do not obviously relate to terminal bindings (suggested: Say whether annotation of sessions is an intended use of the binding data)",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "ambiguities[3]",
+      "section": "ambiguity",
+      "text": "\"miadi-chronicle\" is used for the deliverable without saying whether it is one episode, several, or a book (suggested: Name the number of episodes and whether Twine promotion is expected)",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "ambiguities[4]",
+      "section": "ambiguity",
+      "text": "Team ownership of the documentation is not assigned, only the team list given (suggested: Say whether T1, T2 or T3 leads each section)",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "ambiguities[5]",
+      "section": "ambiguity",
+      "text": "The milestone is titled Doc4Chronicle but the content also sets out plugin setup instructions as if already final (suggested: Clarify whether the pasted setup text is source material to reuse or a draft to revise)",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "ambiguities[6]",
+      "section": "ambiguity",
+      "text": "\"related miadi-review to consider\" does not say how the reviews should influence the work (suggested: State whether they are evidence to cite, criteria to satisfy, or background reading)",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "ambiguities[7]",
+      "section": "ambiguity",
+      "text": "Due date 2026-10-29 has no intermediate checkpoints (suggested: Name the steps or dates at which progress is reviewed)",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "actionStack[0]",
+      "section": "action",
+      "text": "Decompose the milestone scope and record it in a committed .pde folder",
+      "status": "inferred",
+      "sources": [
+        {
+          "wheel_id": "c4cb3bcf-d6ba-4ba2-a8e3-f6c8589535a7",
+          "wheel_kind": "beat",
+          "provider": "honcho",
+          "speaker_name": "Mia",
+          "excerpt": "The milestone seat acted on all eight marks. It applied M1, so the milestone description now reaches miaco, and the decomposition runs in the background (commit 988efd61, pushed)."
+        }
+      ],
+      "answer": "The milestone seat applied a change so the milestone description reaches miaco, and the decomposition was running in the background with a pushed commit (988efd61). That points to this step being under way, but no source says the .pde folder is committed."
+    },
+    {
+      "ref": "actionStack[1]",
+      "section": "action",
+      "text": "Name the desired outcome and current reality for the milestone",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "actionStack[2]",
+      "section": "action",
+      "text": "Read the plugin source under claude/miadi-session-observability",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "actionStack[3]",
+      "section": "action",
+      "text": "Inspect terminal_bindings.jsonl lines for session start, end, rename and tmux pane fields",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "actionStack[4]",
+      "section": "action",
+      "text": "Read the two MINO reviews",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "actionStack[5]",
+      "section": "action",
+      "text": "Study @miadi/tide, @miadi/tide-contract and ironsilk against the binding data",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "actionStack[6]",
+      "section": "action",
+      "text": "Study @miadi/annotate-core and @miadi/annotate-ui and decide how they relate to the observability layer",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "actionStack[7]",
+      "section": "action",
+      "text": "Read teams.json and teams/README.md",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "actionStack[8]",
+      "section": "action",
+      "text": "Mint the Chronicle episode vessel and commit it",
+      "status": "inferred",
+      "sources": [
+        {
+          "wheel_id": "c4cb3bcf-d6ba-4ba2-a8e3-f6c8589535a7",
+          "wheel_kind": "beat",
+          "provider": "honcho",
+          "speaker_name": "Mia",
+          "excerpt": "The milestone seat acted on all eight marks. It applied M1, so the milestone description now reaches miaco, and the decomposition runs in the background (commit 988efd61, pushed)."
+        }
+      ],
+      "answer": "An episode named 2026-09-30-episode-549-a-milestone-enters-the-circle is in scope, so a vessel for the milestone may exist. No source says it is the documentation episode or that it is committed."
+    },
+    {
+      "ref": "actionStack[9]",
+      "section": "action",
+      "text": "Write the documentation sections for setup, env vars, launchers, MCP configs, restore and teams",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "actionStack[10]",
+      "section": "action",
+      "text": "Write the relation map between the plugin and the five packages",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "actionStack[11]",
+      "section": "action",
+      "text": "Verify documented facts against source and registries",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "actionStack[12]",
+      "section": "action",
+      "text": "Run tide agents restore on a test session and compare with the documented flow",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "actionStack[13]",
+      "section": "action",
+      "text": "Push the episode and register it on the chronicle medicine wheel",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "actionStack[14]",
+      "section": "action",
+      "text": "Thread child issues under the milestone with structural-issue-authoring sections",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "outputs.artifacts[0]",
+      "section": "output",
+      "text": "Chronicle episode vessel documenting the observability layer",
+      "status": "inferred",
+      "sources": [
+        {
+          "wheel_id": "c4cb3bcf-d6ba-4ba2-a8e3-f6c8589535a7",
+          "wheel_kind": "beat",
+          "provider": "honcho",
+          "speaker_name": "Mia",
+          "excerpt": "The milestone seat acted on all eight marks. It applied M1, so the milestone description now reaches miaco, and the decomposition runs in the background (commit 988efd61, pushed)."
+        }
+      ],
+      "answer": "Episode 549, 2026-09-30-episode-549-a-milestone-enters-the-circle, is in the circle's scope and follows the milestone's entry. No source confirms it documents the observability layer."
+    },
+    {
+      "ref": "outputs.artifacts[1]",
+      "section": "output",
+      "text": "Documentation of the terminal_bindings.jsonl binding-line schema",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "outputs.artifacts[2]",
+      "section": "output",
+      "text": "Relation map between the plugin and @miadi/tide, @miadi/tide-contract, ironsilk, @miadi/annotate-core, @miadi/annotate-ui",
+      "status": "open",
+      "sources": []
+    },
+    {
+      "ref": "outputs.artifacts[3]",
+      "section": "output",
+      "text": ".pde/ decomposition folder for this milestone",
+      "status": "inferred",
+      "sources": [
+        {
+          "wheel_id": "c4cb3bcf-d6ba-4ba2-a8e3-f6c8589535a7",
+          "wheel_kind": "beat",
+          "provider": "honcho",
+          "speaker_name": "Mia",
+          "excerpt": "It applied M1, so the milestone description now reaches miaco, and the decomposition runs in the background (commit 988efd61, pushed)."
+        }
+      ],
+      "answer": "A decomposition of the milestone was running in the background after the milestone description reached miaco, and the commit was pushed. The location of the .pde folder is not stated."
+    }
+  ]
+}

@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Witness Threads</title>
+<style>
+:root {
+  --bg: #f7f6f3; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6a66; --line: #e2e0da;
+  --accent: #2f5d8a; --busy: #b0551b; --idle: #2e7d4f; --gone: #8a8883; --warn: #9a6a00;
+  --open: #b0551b; --partial: #9a6a00; --done: #2e7d4f; --dropped: #8a8883;
+  --quote: #f1efe9;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161615; --panel: #1f1f1d; --ink: #ecebe7; --muted: #a09e98; --line: #34332f;
+    --accent: #8fb6dc; --busy: #e39a62; --idle: #7cc79a; --gone: #7d7b76; --warn: #e0b85a;
+    --open: #e39a62; --partial: #e0b85a; --done: #7cc79a; --dropped: #7d7b76; --quote: #262623;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161615; --panel: #1f1f1d; --ink: #ecebe7; --muted: #a09e98; --line: #34332f;
+  --accent: #8fb6dc; --busy: #e39a62; --idle: #7cc79a; --gone: #7d7b76; --warn: #e0b85a;
+  --open: #e39a62; --partial: #e0b85a; --done: #7cc79a; --dropped: #7d7b76; --quote: #262623;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 960px; margin: 0 auto; padding: 20px 16px 48px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h2 { font-size: 18px; margin: 28px 0 8px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+h3 { font-size: 15px; margin: 18px 0 6px; color: var(--muted); font-weight: 600; }
+.meta { color: var(--muted); font-size: 13px; }
+.team { margin-top: 18px; }
+.seat { margin: 8px 0 14px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 6px 0; overflow-wrap: anywhere; }
+.children { margin-left: 18px; border-left: 2px solid var(--line); padding-left: 10px; }
+.row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+.name { font-weight: 600; }
+.chip { font-size: 12px; border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; white-space: nowrap; }
+.busy { color: var(--busy); } .idle { color: var(--idle); } .gone { color: var(--gone); } .waiting { color: var(--warn); }
+.st-open { color: var(--open); } .st-partial { color: var(--partial); } .st-done { color: var(--done); } .st-dropped { color: var(--dropped); }
+code { font: 12px/1.4 ui-monospace, "SFMono-Regular", Menlo, monospace; }
+.parent { font-size: 13px; color: var(--muted); }
+.parent.known { color: var(--accent); }
+.parent.inferred { color: var(--warn); }
+details { margin-top: 4px; }
+summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+blockquote { margin: 6px 0; padding: 8px 10px; background: var(--quote); border-left: 3px solid var(--accent); white-space: pre-wrap; font-size: 14px; }
+ul { margin: 4px 0; padding-left: 20px; }
+.ask-id { font: 600 13px ui-monospace, Menlo, monospace; }
+.errors { color: var(--warn); font-size: 13px; }
+textarea { width: 100%; margin-top: 6px; font: inherit; font-size: 14px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--quote); padding: 8px; border-radius: 6px; margin: 6px 0; }
+.compose .row { margin-top: 6px; }
+button { font: inherit; font-size: 13px; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 2px 10px; cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Witness threads</h1>
+  <div class="meta" id="meta">loading…</div>
+  <div class="errors" id="errors"></div>
+
+  <h2>Threads</h2>
+  <div class="meta">Every Claude Code session on this host, grouped by team and seat. A parent is recorded when a fork line in the binding file names it, inferred from transcript when a seat thread's transcript holds records copied from an earlier one. A thread whose binding line records a startup is fresh. Otherwise the parent is unknown. The last input is the last thing William typed there (peer messages and notices skipped). Those records carry no time.</div>
+  <div id="threads"></div>
+
+  <h2>Asks</h2>
+  <div class="meta" id="asks-meta"></div>
+  <div id="asks"></div>
+</main>
+<script>
+const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const short = (id) => String(id ?? "").slice(0, 8);
+const statusClass = (status) => /busy/.test(status) ? "busy" : /idle/.test(status) ? "idle" : /waiting/.test(status) ? "waiting" : "gone";
+const when = (iso) => iso ? new Date(iso).toLocaleString() : "unknown";
+
+function threadCard(node, threads) {
+  const t = threads[node.session_id];
+  const parentName = esc(threads[t.parent.session_id]?.name ?? t.parent.session_id);
+  const ev = t.parent.evidence;
+  const parent = t.parent.basis === "fresh"
+    ? `<div class="parent">fresh (recorded): ${esc(t.parent.via)}</div>`
+    : !t.parent.known
+    ? `<div class="parent">parent unknown: ${esc(t.parent.reason)}</div>`
+    : t.parent.basis === "recorded"
+      ? `<div class="parent known">fork of ${parentName} · recorded: ${esc(t.parent.via)}</div>`
+      : `<div class="parent inferred">fork of ${parentName} · inferred from transcript: ${esc(ev.shared_records)} records copied, the first a ${esc(ev.first_copied?.type ?? "?")} record from ${esc(when(ev.first_copied?.at))}${ev.tiebreak ? ` · ${esc(ev.tiebreak)}` : ""}</div>`;
+  const tmux = t.tmux ? `tmux <code>${esc(t.tmux.session)}</code> ${esc(t.tmux.pane_id ?? "")}` : "no tmux";
+  const alias = t.launch_alias ? ` · launched with <code>${esc(t.launch_alias)}</code>` : "";
+  const compose = t.live && t.status === "idle" && t.tmux?.pane_id ? `<details class="compose"><summary>prepare a message</summary>
+      <textarea rows="3" data-target="${esc(t.session_id)}" placeholder="What should this thread receive?"></textarea>
+      <div class="row"><button type="button" data-prepare="${esc(t.session_id)}">Prepare the tide command</button></div>
+      <div class="prepared" data-for="${esc(t.session_id)}"></div></details>` : "";
+  const names = t.names.length > 1
+    ? `<details><summary>${t.names.length} names</summary><ul>${t.names.map((n) => `<li><code>${esc(n)}</code></li>`).join("")}</ul></details>` : "";
+  const input = t.last_input
+    ? `<details><summary>last input from William (${t.last_input.chars} chars)</summary><blockquote>${esc(t.last_input.text)}</blockquote></details>`
+    : `<div class="meta">no input from William captured</div>`;
+  const kids = node.children.length ? `<div class="children">${node.children.map((c) => threadCard(c, threads)).join("")}</div>` : "";
+  return `<div class="card">
+    <div class="row"><span class="name">${esc(t.name ?? "(no name)")}</span>
+      <span class="chip ${statusClass(t.status)}">${esc(t.status)}</span>
+      <span class="meta">${tmux} · <code>${esc(short(t.session_id))}</code>${alias} · last seen ${esc(when(t.last_seen))}</span></div>
+    ${parent}${names}${input}${compose}
+  </div>${kids}`;
+}
+
+function seatLabel(id) {
+  return id.startsWith("folder:") ? `folder ${id.slice(7)}` : `seat ${id}`;
+}
+
+// A prepared message stays a dry run: the page shows tide's exact command and William runs it
+// in his own terminal, because tide sends only from an interactive terminal in controller mode.
+document.addEventListener("click", async (event) => {
+  const prepare = event.target.closest("[data-prepare]");
+  const copy = event.target.closest("[data-copy]");
+  if (prepare) {
+    const id = prepare.dataset.prepare;
+    const message = document.querySelector(`textarea[data-target="${id}"]`).value;
+    const out = document.querySelector(`.prepared[data-for="${id}"]`);
+    const result = await fetch("/api/send", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ target: id, message }) })
+      .then((r) => r.json()).catch((e) => ({ error: e.message }));
+    out.innerHTML = result.ok
+      ? `<div class="meta">Run this in your terminal (tide sends only from an interactive terminal in controller mode):</div>
+         <pre><code>${esc(result.run_this_in_your_terminal)}</code></pre><button type="button" data-copy="${esc(result.run_this_in_your_terminal)}">Copy</button>`
+      : `<div class="errors">${esc(result.error ?? "not prepared")}</div>`;
+  }
+  if (copy) {
+    try {
+      await navigator.clipboard.writeText(copy.dataset.copy);
+      copy.textContent = "Copied";
+    } catch {
+      copy.textContent = "Select the command and copy it";
+    }
+  }
+});
+
+let composing = false;
+document.addEventListener("focusin", (e) => { if (e.target.matches("textarea")) composing = true; });
+document.addEventListener("toggle", (e) => { if (e.target.matches?.(".compose")) composing = [...document.querySelectorAll(".compose")].some((d) => d.open); }, true);
+
+async function loadThreads() {
+  const model = await fetch("/api/threads").then((r) => r.json());
+  const count = Object.keys(model.threads).length;
+  const live = Object.values(model.threads).filter((t) => t.live).length;
+  const listening = Object.entries(model.listening ?? {}).map(([seat, l]) => `witness ${seat} ${l ? "listening" : "not listening"}`).join(" · ");
+  document.getElementById("meta").textContent =
+    `${count} threads, ${live} running · ${listening} · ${model.sources.bindings.lines} binding lines · read ${when(model.generated_at)}`;
+  document.getElementById("errors").textContent = model.sources.errors.join(" · ");
+  const running = (node) => model.threads[node.session_id].live || node.children.some(running);
+  const teams = [...model.tree].sort((a, b) => (b.id === model.home_team) - (a.id === model.home_team));
+  document.getElementById("threads").innerHTML = teams.map((team) => `
+    <section class="team"><h3>${esc(team.id)} · ${esc(team.name)}${team.id === model.home_team ? " · this team" : ""}</h3>
+    ${team.seats.map((seat) => {
+      const live = seat.roots.filter(running);
+      const rest = seat.roots.filter((root) => !running(root));
+      const folded = rest.length ? `<details><summary>${rest.length} not running</summary>${rest.map((root) => threadCard(root, model.threads)).join("")}</details>` : "";
+      return `<div class="seat"><div class="meta">${esc(seatLabel(seat.id))}</div>
+      ${live.map((root) => threadCard(root, model.threads)).join("")}${folded}</div>`;
+    }).join("")}
+    </section>`).join("");
+}
+
+function askCard(ask) {
+  const words = ask.words.map((w) => `<blockquote>${esc(w.text)}</blockquote>
+    <div class="meta">said ${esc(when(w.said_at))} · ${esc(w.where ?? "")}</div>`).join("");
+  const evidence = ask.evidence.length ? `<ul>${ask.evidence.map((e) => `<li>${esc(e)}</li>`).join("")}</ul>` : `<div class="meta">no evidence yet</div>`;
+  const history = `<details><summary>history (${ask.history.length})</summary><ul>${ask.history.map((h) =>
+    `<li>${esc(when(h.at))} · ${esc(h.status)} · ${esc(h.note)}${h.by ? ` · ${esc(h.by)}` : ""}</li>`).join("")}</ul></details>`;
+  return `<div class="card">
+    <div class="row"><span class="ask-id">${esc(ask.id)}</span><span class="chip st-${esc(ask.status)}">${esc(ask.status)}</span><span class="name">${esc(ask.title)}</span></div>
+    ${words}<div class="meta">evidence</div>${evidence}${history}
+  </div>`;
+}
+
+async function loadAsks() {
+  const data = await fetch("/api/asks").then((r) => r.json());
+  const total = data.seats.reduce((n, s) => n + s.asks.length, 0);
+  const notDone = data.seats.reduce((n, s) => n + s.asks.filter((a) => a.status !== "done").length, 0);
+  document.getElementById("asks-meta").textContent = `${notDone} of ${total} asks not done · ledger ${data.dir}`;
+  document.getElementById("asks").innerHTML = data.seats.map((seat) => `
+    <h3>seat ${esc(seat.seat)}${seat.updated_at ? ` · updated ${esc(when(seat.updated_at))}` : ""}</h3>
+    ${seat.error ? `<div class="errors">${esc(seat.error)}</div>` : ""}
+    ${seat.asks.map(askCard).join("")}`).join("");
+}
+
+function refresh() {
+  loadThreads().catch((e) => { document.getElementById("errors").textContent = `threads: ${e.message}`; });
+  loadAsks().catch((e) => { document.getElementById("asks-meta").textContent = `asks: ${e.message}`; });
+}
+refresh();
+// refreshing would erase a message being written, so the tree holds still while one is open
+setInterval(() => { if (!composing) loadThreads().catch(() => {}); }, 15000);
+</script>
+</body>
+</html>

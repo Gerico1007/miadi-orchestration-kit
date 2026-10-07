@@ -1,0 +1,15 @@
+{
+  "about": "Which seat a thread belongs to. A seat is one agent identity that William talks to across many threads (the original, its forks, fresh sessions). A thread is in a seat when its launch folder is the seat folder or one below it, or when one of its names matches a pattern. Other threads are grouped by their launch folder. home_team is listed first on the page.",
+  "home_team": "T3",
+  "seats": [
+    {
+      "id": "mino",
+      "label": "Mino, the witness seat",
+      "team": "T3",
+      "folder": "/a/src/_sessiondata/abd7ba82-f029-4243-93fb-72b7de8537e5",
+      "name_patterns": [
+        "^mino-"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "description": "SessionStart brings Ava's presence card into a session she has spoken in (after a resume or a compaction) or that was launched with AVA_COMPANION=1, and exports the session id and transcript path for /ava-diary. SessionEnd writes her diary entry, detached, for a session she spoke in. Both are silent when AVA_COMPANION=0 and inside the diary writer's own session.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/ava-hook.mjs\" session-start",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/ava-hook.mjs\" session-end",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}

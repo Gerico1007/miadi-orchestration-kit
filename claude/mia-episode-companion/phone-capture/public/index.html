@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b1512">
+<title>Speak to the episode</title>
+<style>
+  :root { --bg:#0b1512; --panel:#12211c; --line:#2a4a3e; --ink:#e8f1ec; --muted:#9fb3a9; --mint:#7fe0b4; --live:#ff8a7a; --gold:#e8c46a; }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; background:var(--bg); color:var(--ink); font:16px/1.45 -apple-system, system-ui, sans-serif;
+         padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); }
+  main { max-width: 520px; margin: 0 auto; display:flex; flex-direction:column; gap:16px; }
+  h1 { font-size: 1.15rem; margin: 4px 0 0; }
+  label { display:block; color:var(--gold); font-size:.8rem; font-weight:700; margin-bottom:6px; }
+  .listening { margin-top:8px; font-size:.82rem; color:var(--muted); }
+  .listening.none { color:var(--gold); }
+  .matches { margin-top:8px; display:flex; flex-direction:column; gap:6px; max-height:46vh; overflow:auto; }
+  .matches[hidden] { display:none; }
+  .matches button { min-height:48px; padding:10px 12px; text-align:left; border:1px solid var(--line); border-radius:11px; background:var(--panel); color:var(--ink); font-size:.92rem; }
+  .matches button:active { background:#1b3129; }
+  #filter { width:100%; min-height:44px; margin-bottom:8px; padding:8px 10px; border-radius:10px; border:1px solid var(--line); background:var(--panel); color:var(--ink); font-size:.95rem; }
+  select { width:100%; min-height:44px; padding:8px 10px; border-radius:10px; border:1px solid var(--line); background:var(--panel); color:var(--ink); font-size:.95rem; }
+  /* Record and her controls stay at the top while the words scroll under them (William, 2026-09-29). */
+  .dock { position:sticky; top:0; z-index:5; display:flex; flex-direction:column; gap:10px;
+          margin:0 -16px; padding:10px 16px 12px; background:var(--bg); border-bottom:1px solid var(--line); }
+  .dock .reply-actions { margin-top:0; }
+  .dock audio { margin-top:0; }
+  .dock [hidden] { display:none; }
+  .dock .timer:empty, .dock .status:empty { display:none; }
+  .record { width:100%; min-height:96px; border:0; border-radius:22px; font-size:1.35rem; font-weight:800; background:var(--mint); color:#062117; }
+  .record.live { background:var(--live); color:#2b0906; }
+  .record:disabled { opacity:.5; }
+  .timer { font: 700 2rem ui-monospace, monospace; text-align:center; color:var(--mint); min-height: 2.4rem; }
+  .status { color:var(--muted); font-size:.9rem; min-height:1.3rem; }
+  .status.error { color:var(--live); }
+  .result { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px; }
+  .result[hidden] { display:none; }
+  .result strong { color:var(--mint); }
+  .transcript { white-space:pre-wrap; margin-top:10px; color:var(--ink); font-size:.92rem; }
+  small { color:var(--muted); font-size:.78rem; }
+  .reply { border-color:#477b65; }
+  .reply-head { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .reply-head strong { color:var(--gold); }
+  .reply-actions { display:flex; gap:10px; margin-top:12px; }
+  .reply-actions button { flex:1; min-height:48px; border:0; border-radius:13px; font-weight:800; font-size:1rem; background:#263c34; color:var(--ink); }
+  .reply-actions button.primary { background:var(--mint); color:#062117; }
+  audio { width:100%; margin-top:10px; }
+  .autoplay { display:flex; align-items:center; gap:9px; margin:2px 0 0; color:var(--muted); font-size:.9rem; font-weight:400; }
+  .autoplay input { width:22px; height:22px; accent-color:var(--mint); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Speak to the episode</h1>
+  <div>
+    <label for="episode">Episode</label>
+    <input id="filter" type="search" inputmode="search" placeholder="Filter by number or name" autocomplete="off">
+    <select id="episode"><option value="">Loading episodes…</option></select>
+    <div id="matches" class="matches" hidden></div>
+    <div id="listening" class="listening"></div>
+  </div>
+  <div class="dock">
+    <button id="record" class="record" type="button" disabled>Record</button>
+    <div id="timer" class="timer" aria-live="off"></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <div id="replyControls" hidden>
+      <div class="reply-actions">
+        <button id="hearReply" class="primary" type="button">Hear Mia</button>
+        <button id="copyReply" type="button">Copy</button>
+      </div>
+      <audio id="replyAudio" controls preload="none" hidden></audio>
+    </div>
+    <div id="replyStatus" class="status" role="status" aria-live="polite"></div>
+  </div>
+  <label class="autoplay"><input id="autoplay" type="checkbox"> Play her reply when it arrives</label>
+  <section id="result" class="result" hidden aria-live="polite">
+    <div id="resultHead"></div>
+    <div id="transcript" class="transcript"></div>
+  </section>
+  <section id="reply" class="result reply" hidden aria-live="polite">
+    <div class="reply-head"><strong>Mia</strong><small id="replyMeta"></small></div>
+    <div id="replyText" class="transcript"></div>
+  </section>
+  <small>Recorded on this phone, stored on gaia in the episode's captures, then heard by the session listening there. Mia's reply appears here. Keep the screen on while you speak.</small>
+</main>
+<script>
+(function () {
+  "use strict";
+  var select = document.getElementById("episode");
+  var button = document.getElementById("record");
+  var timer = document.getElementById("timer");
+  var status = document.getElementById("status");
+  var result = document.getElementById("result");
+  var resultHead = document.getElementById("resultHead");
+  var transcript = document.getElementById("transcript");
+  var replyBox = document.getElementById("reply");
+  var replyControls = document.getElementById("replyControls");
+  var replyMeta = document.getElementById("replyMeta");
+  var replyText = document.getElementById("replyText");
+  var replyAudio = document.getElementById("replyAudio");
+  var hearButton = document.getElementById("hearReply");
+  var copyButton = document.getElementById("copyReply");
+  var replyStatus = document.getElementById("replyStatus");
+  var autoplay = document.getElementById("autoplay");
+  var filter = document.getElementById("filter");
+  var matches = document.getElementById("matches");
+  var listening = document.getElementById("listening");
+  var episodes = [];
+  // A fraction of a second of silence: playing it inside a tap unlocks the element on iOS.
+  var SILENT = "data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA";
+  var recorder = null, stream = null, chunks = [], startedAt = 0, tick = null, wakeLock = null;
+  var state = "loading", pending = null;
+  var current = null, waiting = null, presence = null, needsTap = false;
+  var WAIT_MS = 15 * 60 * 1000;
+
+  function when(iso) {
+    var d = new Date(iso);
+    return isNaN(d) ? "" : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  // The reply's words scroll with the page; its controls sit in the dock beside Record.
+  function showReplyBox(visible) {
+    replyBox.hidden = !visible;
+    replyControls.hidden = !visible;
+  }
+
+  // Auto-play is for a reply that arrives while the page is open. One already there when
+  // the page opens is shown, not played: iOS would refuse it and leave "Tap ▶ below".
+  function showReply(reply, arrived) {
+    var isNew = !current || current.id !== reply.id;
+    current = reply;
+    replyText.textContent = reply.text;
+    replyMeta.textContent = (reply.take ? "take " + reply.take + " · " : "") + when(reply.at);
+    if (isNew) {
+      replyAudio.pause();
+      replyAudio.removeAttribute("src");
+      replyAudio.hidden = true;
+    }
+    hearButton.textContent = reply.unvoiced ? "No voice" : "Hear Mia";
+    hearButton.disabled = !!reply.unvoiced;
+    copyButton.textContent = "Copy";
+    showReplyBox(true);
+    if (reply.unvoiced) {
+      releaseAudioHold();
+      replyStatus.textContent = reply.unvoiced + " Read it here or copy it.";
+      return;
+    }
+    if (isNew) replyStatus.textContent = "";
+    if (isNew && autoplay.checked && arrived !== false) playReply();
+  }
+
+  // The audio renders on demand, so play() starts inside the tap and needs no second one.
+  // On arrival there is no tap, so Safari allows it only if this element was played
+  // before: priming it on the Record tap is what earns that.
+  function playReply() {
+    if (!current) return;
+    replyAudio.loop = false;
+    var src = "api/replies/" + current.id + "/audio";
+    if (replyAudio.getAttribute("src") !== src) replyAudio.src = src;
+    replyAudio.hidden = false;
+    hearButton.textContent = "Voicing…";
+    hearButton.disabled = true;
+    var started = replyAudio.play();
+    if (started && started.catch) {
+      started.catch(function () {
+        hearButton.textContent = "Tap ▶ below";
+        hearButton.disabled = false;
+      });
+    }
+  }
+
+  // Recording takes over the audio session, and iOS then refuses a play() that no tap
+  // asked for: her reply was rendered and sat waiting for a tap. So from the Stop tap
+  // onward the element plays silence on a loop. When the reply lands, only the source
+  // changes, and an element already playing is allowed to keep playing.
+  function holdAudioOpen() {
+    if (!autoplay.checked) return;
+    try {
+      replyAudio.loop = true;
+      replyAudio.src = SILENT;
+      replyAudio.hidden = true;
+      var started = replyAudio.play();
+      if (started && started.catch) started.catch(function () {});
+    } catch (_) {}
+  }
+
+  function releaseAudioHold() {
+    if (replyAudio.loop !== true) return;
+    replyAudio.loop = false;
+    try { replyAudio.pause(); } catch (_) {}
+    replyAudio.removeAttribute("src");
+  }
+
+  // Who is in the room, read from the listener's heartbeat: listening, answering a take,
+  // just answered and re-arming, or away. Answering used to read as away, so the page said
+  // nobody was listening while Mia was writing her reply.
+  function showListening(seen) {
+    presence = seen || null;
+    if (!seen || !select.value) { listening.textContent = ""; listening.className = "listening"; return; }
+    var takes = (seen.takes || []).join(", ");
+    listening.textContent = {
+      listening: "A session is listening on this episode.",
+      answering: "Mia is answering" + (takes ? " take " + takes : "") + ".",
+      answered: "Mia has answered. The session is getting ready to listen again.",
+    }[seen.state] || "No session is listening on this episode. A take you record waits here until one starts.";
+    listening.className = "listening" + (seen.state === "away" ? " none" : "");
+  }
+
+  function waitingLabel(take) {
+    var state = presence ? presence.state : "";
+    if (state === "away") return "Waiting for a session to hear it… ";
+    if (state === "answering" && (presence.takes || []).indexOf(take) !== -1) return "Mia is answering… ";
+    return "Waiting for Mia… ";
+  }
+
+  async function replies(episode, take) {
+    var query = "api/replies?episode=" + encodeURIComponent(episode) + (take ? "&take=" + take : "");
+    var answer = await (await fetch(query)).json();
+    if (answer.success) showListening(answer.presence);
+    return answer.success ? answer.replies : [];
+  }
+
+  // Coming back later is a supported way to hear her: the latest reply is shown on open,
+  // and a new one appears on its own while the page is open.
+  async function loadLatestReply() {
+    if (!select.value || waiting) return;
+    try {
+      var found = await replies(select.value);
+      if (!found.length) { if (!current) showReplyBox(false); return; }
+      if (current && current.id === found[0].id) return; // never interrupt audio already playing
+      showReply(found[0], !!current);
+    } catch (_) {}
+  }
+
+  // The episode and the auto-play choice belong in the URL, so a reload, a bookmark or a
+  // shared link comes back the way William left it: ?episode=<folder>&play=1|0.
+  function urlKeepsState() {
+    if (!select.value) return;
+    try {
+      history.replaceState(null, "", "?episode=" + encodeURIComponent(select.value) + "&play=" + (autoplay.checked ? "1" : "0"));
+    } catch (_) {}
+  }
+
+  function askedToPlay() {
+    var asked = new URLSearchParams(location.search).get("play");
+    if (asked === null) return null;
+    return !/^(0|no|off|false)$/i.test(asked);
+  }
+
+  // A wait outlives a reload or iOS suspending the tab: it is written down, not held in a timer.
+  function rememberWait(episode, take) {
+    remember("waiting", episode && take ? JSON.stringify({ episode: episode, take: take, since: Date.now() }) : "");
+  }
+
+  function resumeWait() {
+    var saved = recall("waiting");
+    if (!saved) return false;
+    try {
+      var w = JSON.parse(saved);
+      if (!w.episode || w.episode !== select.value || Date.now() - w.since > WAIT_MS) { rememberWait(); return false; }
+      waitForReply(w.episode, w.take, w.since);
+      armTapToHold();
+      return true;
+    } catch (_) { return false; }
+  }
+
+  // A reload loses the tap that lets her reply play by itself on iOS. While the page still
+  // waits, the first tap anywhere earns it back.
+  function armTapToHold() {
+    if (!autoplay.checked) return;
+    needsTap = true;
+    function once(event) {
+      document.removeEventListener("click", once, true);
+      document.removeEventListener("touchend", once, true);
+      needsTap = false;
+      if (waiting && event && event.target !== button) holdAudioOpen();
+    }
+    document.addEventListener("click", once, true);
+    document.addEventListener("touchend", once, true);
+  }
+
+  function stopWaiting() {
+    if (waiting) clearInterval(waiting.timer);
+    waiting = null;
+  }
+
+  // A recording that never reaches a reply must not leave silence looping.
+  window.addEventListener("pagehide", function () { releaseAudioHold(); });
+
+  function waitForReply(episode, take, startedAtMs) {
+    stopWaiting();
+    showReplyBox(false);
+    var since = startedAtMs || Date.now();
+    rememberWait(episode, take);
+    async function check() {
+      var elapsed = Math.floor((Date.now() - since) / 1000);
+      try {
+        var found = await replies(episode, take);
+        if (found.length) {
+          stopWaiting();
+          rememberWait();
+          replyStatus.textContent = "";
+          showReply(found[0]);
+          return;
+        }
+      } catch (_) {}
+      if (Date.now() - since > WAIT_MS) {
+        stopWaiting();
+        releaseAudioHold();
+        rememberWait();
+        replyStatus.textContent = "No reply after 15 minutes. It will appear here on its own if it still comes.";
+        return;
+      }
+      replyStatus.textContent = waitingLabel(take) + Math.floor(elapsed / 60) + ":" + String(elapsed % 60).padStart(2, "0")
+        + (needsTap ? " · Tap anywhere once so her reply plays by itself." : "");
+    }
+    waiting = { timer: setInterval(check, 4000) };
+    check();
+  }
+
+  hearButton.addEventListener("click", function () { playReply(); });
+
+  replyAudio.addEventListener("playing", function () {
+    hearButton.textContent = "Hear Mia";
+    hearButton.disabled = false;
+  });
+
+  // The player only knows that the audio failed. The server knows why, so ask it.
+  replyAudio.addEventListener("error", function () {
+    hearButton.textContent = "Hear Mia";
+    hearButton.disabled = false;
+    var src = replyAudio.getAttribute("src") || "";
+    if (!current || src.indexOf("api/replies/") !== 0) return;
+    replyStatus.textContent = "Her voice could not be rendered.";
+    var id = current.id;
+    fetch("api/replies/" + id + "/voice", { method: "POST" })
+      .then(function (response) { return response.json(); })
+      .then(function (answer) {
+        if (!current || current.id !== id) return;
+        replyStatus.textContent = answer.success
+          ? "Her voice is ready now. Tap Hear Mia."
+          : "Her voice could not be rendered: " + answer.error;
+      })
+      .catch(function () {});
+  });
+
+  autoplay.addEventListener("change", function () {
+    remember("autoplay", autoplay.checked ? "1" : "0");
+    urlKeepsState();
+    if (!autoplay.checked) releaseAudioHold();
+  });
+
+  copyButton.addEventListener("click", async function () {
+    if (!current) return;
+    try {
+      await navigator.clipboard.writeText(current.text);
+    } catch (_) {
+      var area = document.createElement("textarea");
+      area.value = current.text;
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+    copyButton.textContent = "Copied";
+    setTimeout(function () { copyButton.textContent = "Copy"; }, 1500);
+  });
+
+  filter.addEventListener("input", function () {
+    showMatches((filter.value || "").trim().toLowerCase());
+    showEpisodes(select.value);
+  });
+
+  select.addEventListener("change", function () {
+    stopWaiting();
+    rememberWait();
+    current = null;
+    showReplyBox(false);
+    replyStatus.textContent = "";
+    remember("episode", select.value);
+    urlKeepsState();
+    setState(state);
+    say("");
+    showListening(null);
+    loadLatestReply();
+  });
+
+  // Keep looking while the page is open, and the moment it comes back to the front:
+  // iOS stops timers in a backgrounded tab, which is how a reply was missed.
+  setInterval(function () { if (document.visibilityState === "visible") loadLatestReply(); }, 10000);
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") loadLatestReply(); });
+
+  function say(text, isError) { status.textContent = text; status.className = "status" + (isError ? " error" : ""); }
+  function remember(key, value) { try { localStorage.setItem(key, value); } catch (_) {} }
+  function recall(key) { try { return localStorage.getItem(key) || ""; } catch (_) { return ""; } }
+
+  // mp4 first: it is what iPhone Safari records and what the Chronicle already keeps out of git.
+  function pickType() {
+    if (typeof MediaRecorder === "undefined") return null;
+    var candidates = ["audio/mp4", "audio/mp4;codecs=mp4a.40.2"];
+    for (var i = 0; i < candidates.length; i++) {
+      if (!MediaRecorder.isTypeSupported || MediaRecorder.isTypeSupported(candidates[i])) return candidates[i];
+    }
+    return null;
+  }
+
+  function clock() {
+    var s = Math.floor((Date.now() - startedAt) / 1000);
+    timer.textContent = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+  }
+
+  // Every episode is listed, so the filter is what makes a long list usable on a phone.
+  function label(ep) {
+    return "Episode " + ep.number + " · " + ep.path.replace(/^\d{4}-\d{2}-\d{2}-episode-\d+-/, "").replace(/-/g, " ");
+  }
+
+  function matching(needle) {
+    if (!needle) return episodes;
+    return episodes.filter(function (ep) {
+      return String(ep.number).indexOf(needle) === 0
+        || String(ep.number).padStart(3, "0").indexOf(needle) === 0
+        || ep.path.toLowerCase().indexOf(needle) !== -1;
+    });
+  }
+
+  // Narrowing the native picker changes nothing a closed picker shows, so the matches
+  // are listed here as buttons William can tap.
+  function showMatches(needle) {
+    matches.textContent = "";
+    var found = needle ? matching(needle) : [];
+    found.slice(0, 25).forEach(function (ep) {
+      var row = document.createElement("button");
+      row.type = "button";
+      row.textContent = label(ep);
+      row.addEventListener("click", function () { pick(ep.path); });
+      matches.appendChild(row);
+    });
+    matches.hidden = found.length === 0;
+    if (needle && found.length === 0) say("No episode matches " + needle + ".");
+  }
+
+  function pick(path) {
+    filter.value = "";
+    showMatches("");
+    showEpisodes(path);
+    select.value = path;
+    remember("episode", path);
+    urlKeepsState();
+    setState(state);
+    say("");
+    showListening(null);
+    loadLatestReply();
+  }
+
+  function showEpisodes(chosen) {
+    var shown = matching((filter.value || "").trim().toLowerCase());
+    if (!shown.length) shown = episodes;
+    select.textContent = "";
+    if (!chosen) {
+      var placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "Choose an episode…";
+      placeholder.selected = true;
+      select.appendChild(placeholder);
+    }
+    shown.forEach(function (ep) {
+      var option = document.createElement("option");
+      option.value = ep.path;
+      option.textContent = label(ep);
+      if (ep.path === chosen) option.selected = true;
+      select.appendChild(option);
+    });
+    if (chosen && select.value !== chosen && shown.length) select.value = shown[0].path;
+  }
+
+  async function loadEpisodes() {
+    try {
+      var answer = await (await fetch("api/episodes")).json();
+      // Only the link chooses an episode. Without one, William picks: a remembered
+      // episode would quietly aim the next take at whatever he recorded last.
+      var chosen = new URLSearchParams(location.search).get("episode") || "";
+      episodes = answer.episodes;
+      showEpisodes(chosen);
+      setState("idle");
+      if (!pickType()) say("This browser cannot record audio/mp4. Use Safari on the iPhone.", true);
+      else if (!select.value) say("Choose the episode this take belongs to.");
+      remember("episode", select.value);
+      var asked = askedToPlay(); // the link wins over what this browser remembers
+      autoplay.checked = asked === null ? recall("autoplay") !== "0" : asked;
+      remember("autoplay", autoplay.checked ? "1" : "0");
+      urlKeepsState();
+      if (!resumeWait()) loadLatestReply();
+    } catch (error) {
+      select.innerHTML = "<option value=''>Episodes unavailable</option>";
+      say("Could not reach gaia: " + error.message, true);
+    }
+  }
+
+  // One state machine owns the recorder. Every action begins with a guard on the state,
+  // which is what makes a double tap harmless: two taps during the microphone prompt used
+  // to start two recorders and two clocks, and only the second clock was ever stopped.
+  function setState(next) {
+    state = next;
+    button.textContent = {
+      loading: "Record", idle: "Record", starting: "Opening the mic…",
+      recording: "Stop & send", sending: "Sending…", retry: "Send again",
+    }[next];
+    button.classList.toggle("live", next === "recording");
+    button.disabled = !pickType() || !select.value || next === "loading" || next === "starting" || next === "sending";
+    select.disabled = next === "starting" || next === "recording" || next === "sending";
+  }
+
+  function tickOn() { tickOff(); startedAt = Date.now(); clock(); tick = setInterval(clock, 500); }
+  function tickOff() { if (tick) clearInterval(tick); tick = null; }
+
+  function releaseMic() {
+    if (stream) { try { stream.getTracks().forEach(function (track) { track.stop(); }); } catch (_) {} }
+    stream = null;
+    recorder = null;
+  }
+
+  async function holdScreen() { try { if (navigator.wakeLock && !wakeLock) wakeLock = await navigator.wakeLock.request("screen"); } catch (_) {} }
+  async function releaseScreen() { if (wakeLock) { try { await wakeLock.release(); } catch (_) {} wakeLock = null; } }
+
+  async function start() {
+    if (state !== "idle" && state !== "retry") return;
+    pending = null;
+    setState("starting");
+    var media;
+    try {
+      media = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (error) {
+      setState("idle");
+      say("Microphone refused: " + error.message, true);
+      return;
+    }
+    if (state !== "starting") { media.getTracks().forEach(function (track) { track.stop(); }); return; }
+    stream = media;
+    chunks = [];
+    try {
+      recorder = new MediaRecorder(stream, { mimeType: pickType() });
+    } catch (error) {
+      releaseMic();
+      setState("idle");
+      say("This browser refused to record: " + error.message, true);
+      return;
+    }
+    recorder.ondataavailable = function (event) { if (event.data && event.data.size) chunks.push(event.data); };
+    recorder.onerror = function () {
+      tickOff();
+      releaseMic();
+      releaseScreen();
+      setState("idle");
+      say("The recording stopped with an error. Nothing was sent.", true);
+    };
+    recorder.start(1000);
+    tickOn();
+    holdScreen();
+    result.hidden = true;
+    stopWaiting();
+    rememberWait();
+    replyStatus.textContent = "";
+    setState("recording");
+    say("Recording for " + select.options[select.selectedIndex].textContent);
+  }
+
+  // Stop, and take what the recorder has even if onstop never fires: a stuck recorder
+  // must not leave the page counting forever.
+  function lastBlob() {
+    return new Promise(function (done) {
+      var settled = false;
+      var give = function () {
+        if (settled) return;
+        settled = true;
+        done(new Blob(chunks, { type: (recorder && recorder.mimeType) || "audio/mp4" }));
+      };
+      var guard = setTimeout(give, 3000);
+      if (!recorder) { clearTimeout(guard); give(); return; }
+      recorder.onstop = function () { clearTimeout(guard); give(); };
+      try { recorder.stop(); } catch (_) { clearTimeout(guard); give(); }
+    });
+  }
+
+  async function stop() {
+    if (state !== "recording") return;
+    setState("sending");
+    tickOff();
+    holdAudioOpen();
+    var blob = await lastBlob();
+    releaseMic();
+    releaseScreen();
+    if (!blob || blob.size === 0) {
+      timer.textContent = "";
+      setState("idle");
+      say("Nothing was recorded. Try again.", true);
+      return;
+    }
+    await send(blob);
+  }
+
+  // A recording whose upload failed is kept, so a dropped connection never loses what
+  // William said. The button becomes Send again.
+  async function send(blob) {
+    setState("sending");
+    var episode = select.value;
+    remember("episode", episode);
+    say("Sending " + (blob.size / 1024 / 1024).toFixed(1) + " MB, then transcribing and storing on gaia…");
+    try {
+      var response = await fetch("api/takes?episode=" + encodeURIComponent(episode), {
+        method: "POST",
+        headers: { "content-type": (blob.type || "audio/mp4").split(";")[0] },
+        body: blob,
+      });
+      var answer = await response.json();
+      if (!answer.success) throw new Error(answer.error || ("HTTP " + response.status));
+      pending = null;
+      resultHead.textContent = "";
+      var strong = document.createElement("strong");
+      strong.textContent = "Take " + answer.take + " is in the episode.";
+      resultHead.appendChild(strong);
+      var seen = answer.presence || { state: answer.listening ? "listening" : "away" };
+      showListening(seen);
+      resultHead.appendChild(document.createTextNode(answer.transcriptError
+        ? " Transcription failed, so no session will wake yet: " + answer.transcriptError
+        : {
+          listening: " The session listening there will hear it.",
+          answering: " Mia is answering an earlier take. She hears this one next.",
+          answered: " The session there hears it as soon as it listens again.",
+        }[seen.state] || " No session is listening yet. It waits here, and her reply appears on this page when a session answers it."));
+      transcript.textContent = answer.english || "";
+      result.hidden = false;
+      say("");
+      timer.textContent = "";
+      setState("idle");
+      // Wait even when nobody is listening: a session can start at any moment, and her
+      // reply should still play by itself when it comes.
+      if (answer.transcriptError) releaseAudioHold(); else waitForReply(episode, answer.take);
+    } catch (error) {
+      pending = blob;
+      releaseAudioHold();
+      setState("retry");
+      say("Not stored: " + error.message + " Your recording is kept — tap Send again.", true);
+    }
+  }
+
+  button.addEventListener("click", function () {
+    if (!select.value) { say("Choose the episode this take belongs to.", true); return; }
+    if (state === "recording") stop();
+    else if (state === "retry" && pending) send(pending);
+    else start();
+  });
+
+  // iOS drops a screen lock when the page goes to the back; take it again on return.
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && state === "recording") holdScreen();
+  });
+  window.addEventListener("pagehide", function () { tickOff(); releaseMic(); });
+
+  loadEpisodes();
+})();
+</script>
+</body>
+</html>

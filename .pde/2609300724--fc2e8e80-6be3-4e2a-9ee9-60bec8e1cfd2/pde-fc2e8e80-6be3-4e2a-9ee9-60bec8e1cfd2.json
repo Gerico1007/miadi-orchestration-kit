@@ -1,0 +1,314 @@
+{
+  "id": "fc2e8e80-6be3-4e2a-9ee9-60bec8e1cfd2",
+  "timestamp": "2026-09-30T11:24:14.835Z",
+  "engine": "claude",
+  "model": "opus",
+  "prompt": "'MIADI_LAUNCH_ALIAS'\n\ncould have a short section where you give our most used which are :  'claudeyolo', 'claudeyolochroniclehoncho' with simple snippet that helps reproduce the aliases...\n-----\nALso, this user is probably not fully configured, therefore and upgrade would supply an experimentation of setting ourself up forall we are talking about which relates to something maybe up to date or not which is @packages/miadi/deb/  which obviously would supply what is needed for user to set their account up... I dont know if that is too much for you here, that 'apt install ...' is new so maybe provide feedback as new issue that I might delegate to agents on what could get better either in that folder or other packages we might need to consider including in the distribution or something...\n\n---\nContext: this follows the cutover of user jgi on host gaia from /opt/binscripts/hooks/claude_hooks (hand-wired in ~/.claude/settings.json) to the Claude Code plugin miadi-session-observability@miadi-orchestration-kit, and a milestone draft \"Miadi-Factory-Observability-Doc4Chronicle\" documenting the plugin's environment variables (MIADI_SESSION_DIR, MIADI_ORCHESTRATION_KIT_ROOT, MIADI_TEAM, MIADI_LAUNCH_ALIAS, MIADI_CHRONICLE_ROOT, MIADI_CHRONICLE_PROD_EPISODE), its launchers, and the teams definition (teams/teams.json). packages/miadi/deb in jgwill/miadi-orchestration-kit builds the apt packages miadi, miadi-config, miadi-terminal, miadi-tide.\n",
+  "result": {
+    "primary": {
+      "action": "add",
+      "target": "a short section under MIADI_LAUNCH_ALIAS in the milestone draft (Miadi-Factory-Observability-Doc4Chronicle) listing the most used launch aliases 'claudeyolo' and 'claudeyolochroniclehoncho', each with a snippet that recreates it",
+      "urgency": "session",
+      "confidence": 0.85
+    },
+    "secondary": [
+      {
+        "action": "locate",
+        "target": "the real definitions of the claudeyolo and claudeyolochroniclehoncho aliases (jgi's shell rc files on gaia, kit launchers, the deb package contents)",
+        "implicit": true,
+        "dependency": null,
+        "confidence": 0.8
+      },
+      {
+        "action": "write",
+        "target": "snippets that recreate each alias, including the MIADI_LAUNCH_ALIAS value and any MIADI_TEAM or chronicle variables they set",
+        "implicit": false,
+        "dependency": "locate the real definitions of the claudeyolo and claudeyolochroniclehoncho aliases",
+        "confidence": 0.85
+      },
+      {
+        "action": "verify",
+        "target": "that the snippets recreate the aliases (source them in a subshell, run 'type claudeyolo', check the plugin records MIADI_LAUNCH_ALIAS)",
+        "implicit": true,
+        "dependency": "write the alias snippets",
+        "confidence": 0.7
+      },
+      {
+        "action": "audit",
+        "target": "how far user jgi on gaia is configured against the documented variables (MIADI_SESSION_DIR, MIADI_ORCHESTRATION_KIT_ROOT, MIADI_TEAM, MIADI_LAUNCH_ALIAS, MIADI_CHRONICLE_ROOT, MIADI_CHRONICLE_PROD_EPISODE), the plugin install, and teams/teams.json",
+        "implicit": true,
+        "dependency": null,
+        "confidence": 0.65
+      },
+      {
+        "action": "inspect",
+        "target": "packages/miadi/deb (README, build.sh, test-install.sh, prep, tests, and the miadi, miadi-config, miadi-terminal, miadi-tide package trees) to see what account setup it provides and whether it reflects the plugin cutover",
+        "implicit": false,
+        "dependency": null,
+        "confidence": 0.8
+      },
+      {
+        "action": "experiment",
+        "target": "setting a user up from the apt packages (build, then test-install) and recording what is missing or out of date",
+        "implicit": false,
+        "dependency": "inspect packages/miadi/deb",
+        "confidence": 0.55
+      },
+      {
+        "action": "identify",
+        "target": "other packages or assets the distribution could include (the miadi-session-observability plugin install, alias snippets, env var defaults, teams.json, chronicle root setup)",
+        "implicit": false,
+        "dependency": "experiment with setting a user up from the apt packages",
+        "confidence": 0.65
+      },
+      {
+        "action": "load",
+        "target": "the structural-issue-authoring skill before drafting the issue",
+        "implicit": true,
+        "dependency": null,
+        "confidence": 0.9
+      },
+      {
+        "action": "create",
+        "target": "a new GitHub issue in jgwill/miadi-orchestration-kit with feedback on improving packages/miadi/deb and the distribution's contents, written so the work can be delegated to agents",
+        "implicit": false,
+        "dependency": "identify other packages or assets the distribution could include",
+        "confidence": 0.8
+      },
+      {
+        "action": "commit and push",
+        "target": "only the edited milestone draft and the .pde vessel for this decomposition",
+        "implicit": true,
+        "dependency": "write the alias snippets",
+        "confidence": 0.75
+      }
+    ],
+    "context": {
+      "files_needed": [
+        ".guillaume/milestone-draft-snippet-team-and-variable-2609300643.md",
+        "packages/miadi/deb/README.md",
+        "packages/miadi/deb/build.sh",
+        "packages/miadi/deb/test-install.sh",
+        "packages/miadi/deb/prep/",
+        "packages/miadi/deb/tests/",
+        "packages/miadi/deb/miadi/",
+        "packages/miadi/deb/miadi-config/",
+        "packages/miadi/deb/miadi-terminal/",
+        "packages/miadi/deb/miadi-tide/",
+        "packages/miadi/deb/termux/",
+        "teams/teams.json",
+        "miadi-session-observability plugin sources (launchers, env var handling)",
+        "~/.bashrc and ~/.bash_aliases of jgi on gaia (alias definitions)",
+        "~/.claude/settings.json of jgi on gaia"
+      ],
+      "tools_required": [
+        "Bash (grep, type, dpkg-deb --contents, build.sh, test-install.sh)",
+        "Read",
+        "Edit",
+        "git",
+        "gh CLI",
+        "structural-issue-authoring skill",
+        "pde-vessel-ceremony skill"
+      ],
+      "assumptions": [
+        "claudeyolo and claudeyolochroniclehoncho are the most used launch aliases",
+        "user jgi on gaia is probably not fully configured after the cutover",
+        "packages/miadi/deb is meant to provide everything a user needs to set up their account",
+        "the packages may or may not be current with the plugin cutover and the documented variables",
+        "the apt install path is new and has had little real use",
+        "the issue will be delegated to agents, so it must stand alone",
+        "the MIADI_LAUNCH_ALIAS section belongs in the milestone draft that documents the plugin's variables"
+      ]
+    },
+    "outputs": {
+      "artifacts": [
+        ".pde/<timestamp>--miadi-launch-alias-and-deb-feedback/ (decomposition JSON and markdown)"
+      ],
+      "updates": [
+        ".guillaume/milestone-draft-snippet-team-and-variable-2609300643.md (short MIADI_LAUNCH_ALIAS section with alias snippets)"
+      ],
+      "communications": [
+        "GitHub issue in jgwill/miadi-orchestration-kit: feedback on packages/miadi/deb and on packages to add to the distribution, naming the milestone by title (Miadi-Factory-Observability-Doc4Chronicle)"
+      ]
+    },
+    "directions": {
+      "east": [
+        {
+          "text": "A reader of the milestone doc can recreate the two most used launch aliases from one short section",
+          "confidence": 0.85,
+          "implicit": false
+        },
+        {
+          "text": "A new user can reach a working Miadi setup through apt install of the miadi packages",
+          "confidence": 0.6,
+          "implicit": true
+        },
+        {
+          "text": "Improvements to the distribution exist as a delegable issue, not only as scrollback",
+          "confidence": 0.8,
+          "implicit": false
+        }
+      ],
+      "south": [
+        {
+          "text": "Find the real definitions of claudeyolo and claudeyolochroniclehoncho",
+          "confidence": 0.8,
+          "implicit": true
+        },
+        {
+          "text": "Read packages/miadi/deb to learn what each of the four packages installs and configures",
+          "confidence": 0.8,
+          "implicit": false
+        },
+        {
+          "text": "Compare the deb contents against the documented variables, launchers, plugin and teams.json",
+          "confidence": 0.7,
+          "implicit": true
+        },
+        {
+          "text": "Audit how far jgi on gaia is configured",
+          "confidence": 0.65,
+          "implicit": true
+        }
+      ],
+      "west": [
+        {
+          "text": "Source the snippets in a subshell and confirm they recreate the aliases",
+          "confidence": 0.7,
+          "implicit": true
+        },
+        {
+          "text": "Build and test-install the packages in a disposable context and record what fails or is missing",
+          "confidence": 0.55,
+          "implicit": false
+        },
+        {
+          "text": "Check the issue draft has the five sections and full owner/repo#number references",
+          "confidence": 0.8,
+          "implicit": true
+        }
+      ],
+      "north": [
+        {
+          "text": "Write the MIADI_LAUNCH_ALIAS section into the milestone draft",
+          "confidence": 0.85,
+          "implicit": false
+        },
+        {
+          "text": "Create the feedback issue in jgwill/miadi-orchestration-kit",
+          "confidence": 0.8,
+          "implicit": false
+        },
+        {
+          "text": "Commit the edited files by name and push",
+          "confidence": 0.75,
+          "implicit": true
+        }
+      ]
+    },
+    "actionStack": [
+      {
+        "text": "Confirm the target is the MIADI_LAUNCH_ALIAS entry in .guillaume/milestone-draft-snippet-team-and-variable-2609300643.md and keep the section short",
+        "direction": "east",
+        "dependency": null,
+        "completed": false
+      },
+      {
+        "text": "Grep jgi's shell rc files, the kit launchers and the deb trees for the claudeyolo and claudeyolochroniclehoncho definitions",
+        "direction": "south",
+        "dependency": "Confirm the target section",
+        "completed": false
+      },
+      {
+        "text": "Write the short section with one snippet per alias, including the MIADI_LAUNCH_ALIAS value each one sets",
+        "direction": "north",
+        "dependency": "Find the alias definitions",
+        "completed": false
+      },
+      {
+        "text": "Source the snippets in a subshell and check 'type claudeyolo' and 'type claudeyolochroniclehoncho'",
+        "direction": "west",
+        "dependency": "Write the short section",
+        "completed": false
+      },
+      {
+        "text": "Read packages/miadi/deb README, build.sh, test-install.sh and each package's control and postinst files",
+        "direction": "south",
+        "dependency": null,
+        "completed": false
+      },
+      {
+        "text": "Audit jgi on gaia against the documented variables, the plugin install and teams/teams.json",
+        "direction": "south",
+        "dependency": null,
+        "completed": false
+      },
+      {
+        "text": "Build the packages and run test-install.sh in a disposable context, not on the live gaia host, and record what is missing or stale",
+        "direction": "west",
+        "dependency": "Read packages/miadi/deb",
+        "completed": false
+      },
+      {
+        "text": "List what the distribution lacks relative to the milestone (plugin install, alias snippets, env var defaults, teams.json, chronicle root)",
+        "direction": "west",
+        "dependency": "Build and test-install the packages",
+        "completed": false
+      },
+      {
+        "text": "Load the structural-issue-authoring skill and draft the issue from the findings",
+        "direction": "east",
+        "dependency": "List what the distribution lacks",
+        "completed": false
+      },
+      {
+        "text": "Create the issue in jgwill/miadi-orchestration-kit, naming the milestone by title",
+        "direction": "north",
+        "dependency": "Draft the issue",
+        "completed": false
+      },
+      {
+        "text": "Stage only the milestone draft and the .pde vessel, commit without a co-author trailer, and push",
+        "direction": "north",
+        "dependency": "Write the short section",
+        "completed": false
+      }
+    ],
+    "ambiguities": [
+      {
+        "text": "'could have a short section' does not name the file",
+        "suggestion": "Use the MIADI_LAUNCH_ALIAS entry in the milestone draft .guillaume/milestone-draft-snippet-team-and-variable-2609300643.md"
+      },
+      {
+        "text": "'this user' is not named",
+        "suggestion": "Take it as jgi on gaia, the user from the cutover context"
+      },
+      {
+        "text": "'an upgrade would supply an experimentation of setting ourself up' could mean running apt install on the live gaia host or a dry run",
+        "suggestion": "Test-install in a disposable context first. A system-wide apt install on gaia needs sudo and changes shared state, so it needs explicit consent"
+      },
+      {
+        "text": "'something maybe up to date or not' leaves the deb packages' currency unknown",
+        "suggestion": "Diff the package contents against the documented variables and the plugin cutover, and report the result in the issue"
+      },
+      {
+        "text": "'I dont know if that is too much for you here' leaves the scope open",
+        "suggestion": "Do the alias section fully, and put the deb audit and distribution proposals into the issue rather than implementing package changes"
+      },
+      {
+        "text": "'other packages we might need to consider including in the distribution' names no candidates",
+        "suggestion": "Derive candidates from what a fresh user lacks after test-install and list each one in the issue with its reason"
+      },
+      {
+        "text": "The exact flags and variables behind claudeyolo and claudeyolochroniclehoncho are not stated",
+        "suggestion": "Copy them from the real alias definitions instead of reconstructing them from the names"
+      }
+    ]
+  },
+  "options": {
+    "extractImplicit": true,
+    "mapDependencies": true
+  },
+  "folder_name": "2609300724--fc2e8e80-6be3-4e2a-9ee9-60bec8e1cfd2",
+  "pde_dir": "/workspace/repos/jgwill/miadi-orchestration-kit/.pde/2609300724--fc2e8e80-6be3-4e2a-9ee9-60bec8e1cfd2"
+}
