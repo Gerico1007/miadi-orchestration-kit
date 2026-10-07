@@ -15,8 +15,8 @@ Integrations:
                 terminal, links in a page
     terminator  Ctrl+click a bare reference in Terminator's output
     tmux        click (or tap, on Termux) a bare reference in a tmux pane
-    restore     tmux starts at boot and restores its sessions, and tide brings the
-                agents back into their panes (enable it by name)
+    restore     tmux starts at boot and restores its sessions, tide's daemon snapshots
+                them, and tide brings the agents back into their panes (enable it by name)
 
 The package installs system-wide. Each user enables what they use, because
 Terminator and tmux read only that user's own config.
@@ -382,7 +382,12 @@ class Restore:
         # Enable only: starting tmux-server.service while a tmux server runs adds a session 0.
         server = run("systemctl", "--user", "enable", "tmux-server.service")
         timer = run("systemctl", "--user", "enable", "--now", "tmux-save.timer")
-        for unit, result in (("tmux-server.service", server), ("tmux-save.timer", timer)):
+        units = [("tmux-server.service", server), ("tmux-save.timer", timer)]
+        # tide's daemon takes the snapshots a restore reads: without it the panes come back and
+        # no agent does (tushell on gaia, 2026-10-07).
+        if shutil.which("tide"):
+            units.append(("tide-runtime.service", run("systemctl", "--user", "enable", "--now", "tide-runtime.service")))
+        for unit, result in units:
             ok = result is not None and result.returncode == 0
             print(f"restore: {unit} {'enabled' if ok else 'not enabled: ' + (result.stderr.strip() if result else 'systemctl did not run')}")
         self.notes()
