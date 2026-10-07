@@ -62,7 +62,9 @@ latest reply for the selected episode.
 - **Hear Mia.** A reply is voiced when it is posted, through `@miadi/voice-client`:
   persona `mia`, `en`, bound to the episode, with the reply's origin, so an answer routes
   back to that seat. The post waits up to 20 s, so the seat is told when the voice layer
-  refuses. The page reads the words without glyph labels or markup. The mp3 is cached
+  refuses. Edge-TTS renders at about the speed of speech and the voice layer allows one
+  render 120 s, so a reply is voiced in parts of at most 900 characters, four at a time,
+  each its own voice message, joined in order into one mp3. The page reads the words without glyph labels or markup. The mp3 is cached
   and served with byte ranges, which iOS Safari needs. With no voice layer configured,
   the page says so. It never substitutes another voice.
 - **After a reboot.** tmux numbers its panes again, and the voice layer refuses a pane

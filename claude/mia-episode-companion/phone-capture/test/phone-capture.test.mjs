@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CaptureService, ConcatSegmentJoiner, FileImportDriver, resolveConfig } from "@miadi/capture-service";
-import { createApp, followSeat, listenerState, speakable, SpokenLanguageTranscriber } from "../server.mjs";
+import { createApp, followSeat, listenerState, speakable, SpokenLanguageTranscriber, voiceParts } from "../server.mjs";
 
 const LISTENER = fileURLToPath(new URL("../../scripts/mia-listen.mjs", import.meta.url));
 const EPISODE = "2026-09-20-episode-901-phone-fixture";
@@ -223,6 +223,32 @@ test("a reply is voiced as it is posted, through the pane its seat is in now", a
     assert.equal(requests[0].origin.pane, "%19");
     const listed = await (await fetch(`${b.url}/api/replies?episode=${EPISODE}`)).json();
     assert.equal(listed.replies[0].audio, `api/replies/${posted.id}/audio`);
+  } finally {
+    b.close();
+  }
+});
+
+test("a long reply is voiced in parts the engine can render inside the voice layer's budget, joined in order", async () => {
+  // 2181 characters took Edge-TTS 133 s on 2026-10-07; the voice layer allows 120 s.
+  const sentence = "The third field is the one where a relation is held across a restart. ";
+  const text = `Seminar, part three of three.\n\n${sentence.repeat(18).trim()}\n\n${sentence.repeat(12).trim()}`;
+  const parts = voiceParts(text);
+  assert.ok(parts.length > 1);
+  assert.ok(parts.every((part) => part.length <= 900), "every part fits the budget");
+  assert.equal(parts.join(" ").replace(/\s+/g, " "), text.replace(/\s+/g, " "), "no word is lost or reordered");
+  assert.deepEqual(voiceParts("Short reply."), ["Short reply."]);
+  assert.equal(voiceParts("x".repeat(2000)).join(""), "x".repeat(2000), "a word longer than a part is still cut");
+
+  const requests = [];
+  const voice = { async render(request) { requests.push(request); return Buffer.from(`[${requests.length - 1}]`); } };
+  const b = await bridge({ transcriber: stubTranscriber, voice });
+  try {
+    const posted = await (await fetch(`${b.url}/api/replies`, { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ episode: EPISODE, text: `🧠: ${text}`, origin: { ...WRITTEN, pane: "%1" } }) })).json();
+    assert.equal(posted.unvoiced, undefined);
+    assert.equal(requests.length, parts.length);
+    const audio = await (await fetch(`${b.url}/api/replies/${posted.id}/audio`)).text();
+    assert.equal(audio, parts.map((_, index) => `[${index}]`).join(""), "the parts play in the order they were written");
   } finally {
     b.close();
   }

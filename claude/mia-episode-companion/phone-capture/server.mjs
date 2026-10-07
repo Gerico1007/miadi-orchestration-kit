@@ -270,6 +270,39 @@ export function speakable(text) {
     .trim();
 }
 
+// Edge-TTS renders at about the speed of speech, and the voice layer gives one render
+// 120 s: on 2026-10-07 a 2181-character reply took 133 s and was refused. A long reply is
+// voiced in parts cut at paragraphs, then sentences, then spaces. The engine writes bare
+// MPEG frames with no ID3 header, so the parts join by concatenation.
+const VOICE_PART_CHARS = 900;
+const VOICE_PARTS_AT_ONCE = 4;
+
+export function voiceParts(text, limit = VOICE_PART_CHARS) {
+  const pieces = []; // [text, paragraph index]
+  text.split(/\n{2,}/).map((para) => para.trim()).filter(Boolean).forEach((para, index) => {
+    if (para.length <= limit) { pieces.push([para, index]); return; }
+    for (const sentence of (para.match(/[^.!?]+(?:[.!?]+|$)/g) ?? [para]).map((s) => s.trim()).filter(Boolean)) {
+      let rest = sentence;
+      while (rest.length > limit) {
+        const space = rest.lastIndexOf(" ", limit);
+        const cut = space > 0 ? space : limit;
+        pieces.push([rest.slice(0, cut).trim(), index]);
+        rest = rest.slice(cut).trim();
+      }
+      if (rest) pieces.push([rest, index]);
+    }
+  });
+  const parts = [];
+  let previous = -1;
+  for (const [piece, index] of pieces) {
+    const joint = index === previous ? " " : "\n\n";
+    if (parts.length && parts.at(-1).length + joint.length + piece.length <= limit) parts[parts.length - 1] += joint + piece;
+    else parts.push(piece);
+    previous = index;
+  }
+  return parts;
+}
+
 // One take at a time: the capture service holds a single recorder.
 function serializer() {
   let tail = Promise.resolve();
@@ -297,16 +330,20 @@ export function createApp({
       voicing.set(reply.id, (async () => {
         const moved = locate(reply.origin, reply.at);
         if (moved) log(`reply ${reply.id}: its seat moved from ${reply.origin.session} ${reply.origin.pane} to ${moved.session} ${moved.pane} (Claude session ${moved.occupantId})`);
-        const bytes = await voice.render({
-          text: speakable(reply.text),
-          episode: reply.episode,
-          persona: "mia",
-          lang: "en",
-          source: "phone-capture",
-          origin: moved ?? reply.origin,
-        });
+        const parts = voiceParts(speakable(reply.text));
+        const voiced = [];
+        for (let at = 0; at < parts.length; at += VOICE_PARTS_AT_ONCE) {
+          voiced.push(...await Promise.all(parts.slice(at, at + VOICE_PARTS_AT_ONCE).map((text) => voice.render({
+            text,
+            episode: reply.episode,
+            persona: "mia",
+            lang: "en",
+            source: "phone-capture",
+            origin: moved ?? reply.origin,
+          }))));
+        }
         mkdirSync(join(repliesDir, "audio"), { recursive: true });
-        writeFileSync(join(repliesDir, "audio", `${reply.id}.mp3`), bytes, { mode: 0o600 });
+        writeFileSync(join(repliesDir, "audio", `${reply.id}.mp3`), Buffer.concat(voiced), { mode: 0o600 });
       })().finally(() => voicing.delete(reply.id)));
     }
     return voicing.get(reply.id);
@@ -339,7 +376,11 @@ export function createApp({
     // file on this host, so a later reboot that renumbers the panes cannot take it away.
     let timer;
     const refused = await Promise.race([
-      render(reply).then(() => "", (error) => (error instanceof Error ? error.message : String(error))),
+      render(reply).then(() => "", (error) => {
+        const reason = error instanceof Error ? error.message : String(error);
+        log(`reply ${reply.id}: not voiced: ${reason}`);
+        return reason;
+      }),
       new Promise((done) => { timer = setTimeout(done, VOICE_AT_POST_MS, ""); }),
     ]).finally(() => clearTimeout(timer));
     return { success: true, id: reply.id, ...(refused ? { unvoiced: `the voice layer refused: ${refused}` } : {}) };
