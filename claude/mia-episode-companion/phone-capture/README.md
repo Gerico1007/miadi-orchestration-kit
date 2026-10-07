@@ -59,12 +59,17 @@ latest reply for the selected episode.
   invocation. `POST /api/replies` is refused (403) for anything `tailscale serve`
   forwarded, so only a process on this host can post a reply. Replies are kept in
   `<state>/replies/<episode>.jsonl`.
-- **Hear Mia.** The first tap asks the Miadi voice layer through `@miadi/voice-client`:
+- **Hear Mia.** A reply is voiced when it is posted, through `@miadi/voice-client`:
   persona `mia`, `en`, bound to the episode, with the reply's origin, so an answer routes
-  back to that seat. The page reads the words without glyph labels or markup. The mp3 is
-  cached and served with byte ranges, which iOS Safari needs. A second tap plays the
-  cache. With no voice layer configured, the page says so. It never substitutes another
-  voice.
+  back to that seat. The post waits up to 20 s, so the seat is told when the voice layer
+  refuses. The page reads the words without glyph labels or markup. The mp3 is cached
+  and served with byte ranges, which iOS Safari needs. With no voice layer configured,
+  the page says so. It never substitutes another voice.
+- **After a reboot.** tmux numbers its panes again, and the voice layer refuses a pane
+  that is gone. A reply that was never voiced follows its writer's Claude session id on
+  the binding line (`<root>/data/terminal_bindings.jsonl`) to the pane the restore
+  resumed it in, and is voiced there only when that pane is live
+  (jgwill/miadi-orchestration-kit#72).
 - **Updates reach the running service.** `/api/health` reports a build hash of
   `server.mjs`, `public/index.html` and `package-lock.json`. `ensure.sh` restarts an idle
   service whose hash differs from disk, and reinstalls when the lockfile changed.

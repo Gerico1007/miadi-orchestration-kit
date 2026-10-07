@@ -162,7 +162,7 @@ test("reply posts the return on stdin to phone-capture with this invocation's or
   });
   mkdirSync(fx.state, { recursive: true });
   writeFileSync(join(fx.state, `${FOLDER}.listening.json`), JSON.stringify({ state: "answering", takes: ["260101000001"], at: new Date().toISOString() }));
-  const posted = await runReply({ MIADI_PHONE_CAPTURE_PORT: String(server.address().port), TMUX_PANE: "%999", MIADI_MIA_COMPANION_STATE_DIR: fx.state }, "William, it arrived.\n");
+  const posted = await runReply({ MIADI_PHONE_CAPTURE_PORT: String(server.address().port), TMUX_PANE: "%999", CLAUDE_CODE_SESSION_ID: "4ae4c17d", MIADI_MIA_COMPANION_STATE_DIR: fx.state }, "William, it arrived.\n");
   const answered = JSON.parse(readFileSync(join(fx.state, `${FOLDER}.listening.json`), "utf8"));
   assert.equal(answered.state, "answered", "a posted reply ends the answering; the re-arm comes next");
   assert.deepEqual(answered.takes, ["260101000001"]);
@@ -181,6 +181,8 @@ test("reply posts the return on stdin to phone-capture with this invocation's or
   assert.equal(received[0].body.text, "William, it arrived.");
   assert.equal(received[0].body.origin.pane, "%999");
   assert.equal(received[0].body.origin.multiplexer, "tmux");
+  assert.equal(received[0].body.origin.occupantId, "4ae4c17d", "the Claude session id survives a reboot that renumbers the pane");
+  assert.ok(Date.parse(received[0].body.origin.observedAt));
 
   const refused = await runReply({ MIADI_PHONE_CAPTURE_PORT: "1" }, "text");
   assert.equal(refused.status, 3);
