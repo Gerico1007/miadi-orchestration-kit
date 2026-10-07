@@ -15,7 +15,10 @@ keeper='"agent_type"[[:space:]]*:[[:space:]]*"miadi-witness:inventory-keeper"'
 [[ $input =~ $keeper ]] || exit 0
 
 raw='(_claude_[A-Za-z_]+\.jsonl|last_claude_[A-Za-z_]+\.json|_responses_progressive|_transcript_final|_terminal_binding|terminal_bindings\.jsonl|/tool-results/|\.claude/projects/[^[:space:]"]*\.jsonl|/subagents/agent-)'
-[[ $input =~ $raw ]] || exit 0
+# Only what the tool was asked to touch. Every payload also carries the session's own
+# transcript_path, which is not a read (the first version matched it and blocked every call).
+target=$(jq -r '.tool_input // {} | [.command, .file_path, .path, .pattern] | map(select(type == "string")) | join("\n")' <<<"$input" 2>/dev/null)
+[[ $target =~ $raw ]] || exit 0
 
 cat >&2 <<'EOF'
 Blocked for the inventory-keeper: session data is read through the interpreter, not the raw capture.

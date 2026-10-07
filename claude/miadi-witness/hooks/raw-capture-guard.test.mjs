@@ -12,8 +12,13 @@ function run(payload, spaced = false) {
   const r = spawnSync("bash", [GUARD], { input, encoding: "utf8" });
   return { code: r.status, stderr: r.stderr };
 }
-const bash = (command, agent_type) => ({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command }, ...(agent_type ? { agent_id: "a1", agent_type } : {}) });
-const read = (file_path, agent_type) => ({ hook_event_name: "PreToolUse", tool_name: "Read", tool_input: { file_path }, ...(agent_type ? { agent_id: "a1", agent_type } : {}) });
+// Every real payload names the session's own transcripts. They are not what the tool reads.
+const paths = {
+  transcript_path: "/home/mia/.claude/projects/-a-src--sessiondata-abd7ba82/5bd16014.jsonl",
+  agent_transcript_path: "/home/mia/.claude/projects/-a-src--sessiondata-abd7ba82/5bd16014/subagents/agent-a73f.jsonl",
+};
+const bash = (command, agent_type) => ({ ...paths, hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command }, ...(agent_type ? { agent_id: "a1", agent_type } : {}) });
+const read = (file_path, agent_type) => ({ ...paths, hook_event_name: "PreToolUse", tool_name: "Read", tool_input: { file_path }, ...(agent_type ? { agent_id: "a1", agent_type } : {}) });
 
 test("the keeper is refused the raw ledgers, transcripts and binding line, and told what to use", () => {
   for (const payload of [
