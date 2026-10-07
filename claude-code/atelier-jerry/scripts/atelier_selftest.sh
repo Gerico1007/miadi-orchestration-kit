@@ -155,9 +155,10 @@ for b in abc2midi fluidsynth ffmpeg abcm2ps rubberband rsvg-convert; do
   command -v "$b" >/dev/null 2>&1 && ok "$b" || skip "$b" "absent — the plugin must refuse loudly, not silently"
 done
 "$PY" -c "import numpy" 2>/dev/null && ok "numpy on python3" \
-  || { [ -x /opt/anaconda3/bin/python3 ] && /opt/anaconda3/bin/python3 -c "import numpy" 2>/dev/null \
-       && ok "numpy on a fallback interpreter" \
-       || skip "numpy" "no interpreter with numpy — spectral measurement unavailable"; }
+  || { np_ok=; for fb in /usr/lib/miadi-music/venv/bin/python3 /opt/anaconda3/bin/python3; do
+         [ -x "$fb" ] && "$fb" -c "import numpy" 2>/dev/null && { np_ok=$fb; break; }; done
+       [ -n "$np_ok" ] && ok "numpy on a fallback interpreter ($np_ok)" \
+       || skip "numpy" "no interpreter with numpy — apt install miadi-music-measure"; }
 
 # ── 9. a real render, end to end ────────────────────────────────────────────
 if [ "$QUICK" -eq 0 ] && command -v abc2midi >/dev/null 2>&1; then

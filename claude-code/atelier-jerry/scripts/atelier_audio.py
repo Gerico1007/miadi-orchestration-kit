@@ -84,7 +84,7 @@ STRIDENCE_BAND = (2000.0, 5000.0)
 # verified on the atelier host, and is a declaration, not an assumption —
 # if it is absent the error below says exactly that.
 _ENV_INTERPRETER = "ATELIER_PYTHON"
-_FALLBACK_INTERPRETERS = ("/opt/anaconda3/bin/python3",)
+_FALLBACK_INTERPRETERS = ("/usr/lib/miadi-music/venv/bin/python3", "/opt/anaconda3/bin/python3")
 _REEXEC_GUARD = "ATELIER_AUDIO_REEXEC"
 
 _np = None

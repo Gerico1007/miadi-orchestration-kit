@@ -104,6 +104,10 @@ stops working, rather than discovered mid-session:
 | `rubberband` | no pitch-shifted sample instrument |
 | `numpy` | no spectral measurement — the audio tool finds an interpreter that has it, or refuses |
 
+On a Miadi host, `apt install miadi-music` brings every tool above, and NumPy in its own venv
+(`/usr/lib/miadi-music/venv`), which the audio tool tries first. `miadi-music check` reports what
+is missing (`packages/miadi/deb` in this repository).
+
 **No `mido`, no `librosa`, no `soundfile`, no `requests`.** The MIDI reader is hand-rolled
 and the HTTP client is `urllib` on purpose: the machine this was built for has none of those
 installed, and a plugin that imports one fails on its own home.
