@@ -33,7 +33,7 @@ computer rebooted."
 |---|---|---|
 | binding line | each Claude session's id, tmux `session:window.pane`, pane id, command line, name history, team, chronicle episode | this plugin's `hooks/claude_hooks/terminal_binding.sh`, written to `<root>/data/terminal_bindings.jsonl` |
 | tmux save and restore | layout, folders, visible screens, saved every 15 minutes by `tmux-save.timer`; the server started at boot by `tmux-server.service` | `jgwill/gaia` `linux_migration/14-tmux-resurrect.sh` and its two hooks; on a new machine `miadi-terminal enable restore` (apt) |
-| tide | the agent in each pane, every 60 s, and the relaunch after a restore | `ironsilk` 0.9.36 and later (claude, hermes, pi), `tide agents list`, `tide agents restore`; apt `miadi-tide` |
+| tide | the agent in each pane, every 60 s, and the relaunch after a restore | `ironsilk` 0.9.39 and later (claude, hermes, pi), `tide agents list`, `tide agents restore`; apt `miadi-tide` |
 | one tmux | 3.7c everywhere: a client of another version cannot attach | apt `miadi-tmux` |
 | recovery list | what each pane probably held, when the three above had nothing | built by hand as in "After a crash" below |
 
@@ -60,8 +60,10 @@ session name changes with `/rename`, and every change is a `session.rename` line
 2. The `post-restore-all` hook (`tmux-restore-agents.sh`) starts `tide agents restore`.
 3. tide reads its last snapshot with panes from before this tmux server started. It relaunches
    the agents that were running, with their launch alias and `--resume <id>`, 10 seconds apart,
-   the most recently active first, while 16 GiB of memory stays available. For exited agents it
-   types the command without Enter.
+   the most recently active first, while 16 GiB of memory stays available. An agent that had
+   exited starts nothing and gets nothing typed: its pane keeps a note (the pane option
+   `@miadi-resume`), `tide agents list` shows it `exited`, and `tide agents resume [pane]`
+   brings it back when the human chooses (William, 2026-10-07).
 4. It runs once per tmux server start. A second hook call answers "already restored".
 
 Try it without touching anything: `tide agents restore --dry-run --force`.
@@ -105,8 +107,8 @@ When tmux did not come back by itself (2026-10-03, jgwill/gaia#90):
    environment, `CLAUDECODE` included, to every pane): `systemctl --user start tmux-server.service`.
 3. Wait for `~/.miadi/navigator/restore/agents-*.jsonl` to list every step, then
    `tide agents list`. Every relaunched pane should show `running` with its own session id.
-4. Compare the pane addresses with the snapshot's. The agents that were not running are typed
-   without Enter. Give the human the session list to confirm.
+4. Compare the pane addresses with the snapshot's. The agents that were not running are noted,
+   not started. Give the human the session list to confirm.
 
 ## Checks that proved each part
 
@@ -140,8 +142,14 @@ its `run-shell` jobs get `TMUX` for that server, so they stay on it.
   written.
 - Claude Code removes `~/.claude/sessions/<pid>.json` before SessionEnd runs, so the end line
   keeps the last name written.
-- An exited agent is never relaunched by itself. Its command is typed, and a person or an agent
-  with a person's go presses Enter.
+- An exited agent is never relaunched by itself, and nothing is typed into its pane. The pane
+  keeps a note, and `tide agents resume` brings it back on a person's choice.
+- A resumed hermes writes no binding line until its first turn. tide sees it running from its
+  command line (`hermes --resume <id>`), as it sees `pi --session <id>`.
+- tmux splits a target at its first colon, and miadi names sessions after circle ids
+  (`circle:1791110394383:jj1ql8`). `miadi-tmux` 3.7c-2 resolves a target to the longest prefix
+  that names a session, so such a session is reached by its name. A server started before that
+  package keeps the old lookup: use the session id (`tmux attach -t '$84'`).
 - A message the human sends while an agent is working is stored in the transcript as an
   `attachment` of type `queued_command`, not as a `user` record. The hook capture
   `_claude_user_inputs.jsonl` has it.
