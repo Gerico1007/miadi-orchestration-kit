@@ -116,12 +116,19 @@
       "stub": "2026-10-06; the name is held as William's decision D11",
       "level": "after an episode",
       "human_lead": "William",
-      "agent_lead": null,
+      "agent_lead": "t6-production-deepdiver-into-episodes-261007",
       "sessions": [
-        "mw-film-prod-devops-credibility"
+        "miadi-deepdiver",
+        "mw-film-prod-devops-credibility",
+        "t6-production-deepdiver-into-episodes-261007"
       ],
-      "folders": [],
-      "name_patterns": []
+      "folders": [
+        "/workspace/repos/jgwill/miadi-orchestration-kit/claude/miadi-deepdiver",
+        "/workspace/repos/miadisabelle/deepdiver"
+      ],
+      "name_patterns": [
+        "^t6-"
+      ]
     },
     {
       "id": "T7",
