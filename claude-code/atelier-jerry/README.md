@@ -106,7 +106,7 @@ stops working, rather than discovered mid-session:
 
 On a Miadi host, `apt install miadi-music` brings every tool above, and NumPy in its own venv
 (`/usr/lib/miadi-music/venv`), which the audio tool tries first. `miadi-music check` reports what
-is missing (`packages/miadi/deb` in this repository).
+is missing (jgwill/miadi-orchestration-kit#73).
 
 **No `mido`, no `librosa`, no `soundfile`, no `requests`.** The MIDI reader is hand-rolled
 and the HTTP client is `urllib` on purpose: the machine this was built for has none of those
