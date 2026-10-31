@@ -16,3 +16,5 @@ Held, each with what it waits for:
 | 16 GB memory floor as a default | the maintainers' answer on jgwill/miadi-orchestration-kit#114 |
 
 Not filed, on purpose: K2 of the review plan (wrong: a 3.7c client cannot attach to a 3.4 server); `claude attach` needing the short id (Claude Code, not the kit); the host-local `~/.local/miette-claude-bin/claude` shim (not in the kit).
+
+- I4 jgwill/miadi-orchestration-kit#117: the miadi-tide README names the capture hooks each agent needs (filed 2026-10-31)
